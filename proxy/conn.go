@@ -49,10 +49,6 @@ type Conn struct {
 
 	lastInsertId int64
 	affectedRows int64
-
-	stmtId uint32
-
-	stmts map[uint32]*Stmt
 }
 
 var baseConnId uint32 = 10000
@@ -81,9 +77,6 @@ func (s *Server) newConn(co net.Conn) *Conn {
 
 	c.collation = DEFAULT_COLLATION_ID
 	c.charset = DEFAULT_CHARSET
-
-	c.stmtId = 0
-	c.stmts = make(map[uint32]*Stmt)
 
 	return c
 }
