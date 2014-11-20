@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"github.com/wandoulabs/cm/client"
 	. "github.com/wandoulabs/cm/mysql"
 )
 
@@ -44,7 +43,7 @@ func (c *Conn) commit() (err error) {
 		co.Close()
 	}
 
-	c.txConns = map[*Node]*client.SqlConn{}
+	c.txConns = map[*Node]*SqlConn{}
 
 	return
 }
@@ -59,7 +58,7 @@ func (c *Conn) rollback() (err error) {
 		co.Close()
 	}
 
-	c.txConns = map[*Node]*client.SqlConn{}
+	c.txConns = map[*Node]*SqlConn{}
 
 	return
 }

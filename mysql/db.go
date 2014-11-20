@@ -1,9 +1,8 @@
-package client
+package mysql
 
 import (
 	"container/list"
 	"fmt"
-	. "github.com/wandoulabs/cm/mysql"
 	"sync"
 	"sync/atomic"
 )
@@ -51,7 +50,7 @@ func (db *DB) Close() error {
 	for {
 		if db.idleConns.Len() > 0 {
 			v := db.idleConns.Back()
-			co := v.Value.(*Conn)
+			co := v.Value.(*MySqlConn)
 			db.idleConns.Remove(v)
 
 			co.Close()
@@ -89,8 +88,8 @@ func (db *DB) GetConnNum() int {
 	return int(db.connNum)
 }
 
-func (db *DB) newConn() (*Conn, error) {
-	co := new(Conn)
+func (db *DB) newConn() (*MySqlConn, error) {
+	co := new(MySqlConn)
 
 	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
 		return nil, err
@@ -99,7 +98,7 @@ func (db *DB) newConn() (*Conn, error) {
 	return co, nil
 }
 
-func (db *DB) tryReuse(co *Conn) error {
+func (db *DB) tryReuse(co *MySqlConn) error {
 	if co.IsInTransaction() {
 		//we can not reuse a connection in transaction status
 		if err := co.Rollback(); err != nil {
@@ -125,11 +124,11 @@ func (db *DB) tryReuse(co *Conn) error {
 	return nil
 }
 
-func (db *DB) PopConn() (co *Conn, err error) {
+func (db *DB) PopConn() (co *MySqlConn, err error) {
 	db.Lock()
 	if db.idleConns.Len() > 0 {
 		v := db.idleConns.Front()
-		co = v.Value.(*Conn)
+		co = v.Value.(*MySqlConn)
 		db.idleConns.Remove(v)
 	}
 	db.Unlock()
@@ -151,8 +150,8 @@ func (db *DB) PopConn() (co *Conn, err error) {
 	return
 }
 
-func (db *DB) PushConn(co *Conn, err error) {
-	var closeConn *Conn = nil
+func (db *DB) PushConn(co *MySqlConn, err error) {
+	var closeConn *MySqlConn = nil
 
 	if err != nil {
 		closeConn = co
@@ -162,7 +161,7 @@ func (db *DB) PushConn(co *Conn, err error) {
 
 			if db.idleConns.Len() >= db.maxIdleConns {
 				v := db.idleConns.Front()
-				closeConn = v.Value.(*Conn)
+				closeConn = v.Value.(*MySqlConn)
 				db.idleConns.Remove(v)
 			}
 
@@ -184,15 +183,15 @@ func (db *DB) PushConn(co *Conn, err error) {
 }
 
 type SqlConn struct {
-	*Conn
+	*MySqlConn
 
 	db *DB
 }
 
 func (p *SqlConn) Close() {
-	if p.Conn != nil {
-		p.db.PushConn(p.Conn, p.Conn.pkgErr)
-		p.Conn = nil
+	if p.MySqlConn != nil {
+		p.db.PushConn(p.MySqlConn, p.MySqlConn.pkgErr)
+		p.MySqlConn = nil
 	}
 }
 

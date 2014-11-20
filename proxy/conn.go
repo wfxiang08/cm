@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 
 	log "github.com/ngaut/logging"
-	"github.com/wandoulabs/cm/client"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 )
@@ -44,7 +43,7 @@ type Conn struct {
 
 	schema *Schema
 
-	txConns map[*Node]*client.SqlConn
+	txConns map[*Node]*SqlConn
 
 	closed bool
 
@@ -76,7 +75,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 
 	c.salt, _ = RandomBuf(20)
 
-	c.txConns = make(map[*Node]*client.SqlConn)
+	c.txConns = make(map[*Node]*SqlConn)
 
 	c.closed = false
 

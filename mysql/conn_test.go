@@ -1,8 +1,7 @@
-package client
+package mysql
 
 import (
 	"fmt"
-	. "github.com/wandoulabs/cm/mysql"
 	"testing"
 )
 

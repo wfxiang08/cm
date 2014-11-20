@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/wandoulabs/cm/client"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
@@ -90,7 +89,7 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 	*/
 }
 
-func (c *Conn) getConn(n *Node, isSelect bool) (co *client.SqlConn, err error) {
+func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 	if !c.needBeginTx() {
 		if isSelect {
 			co, err = n.getSelectConn()
@@ -133,7 +132,7 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *client.SqlConn, err error) {
 	return
 }
 
-func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*client.SqlConn, error) {
+func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*SqlConn, error) {
 	nodes, err := c.getShardList(stmt, bindVars)
 	if err != nil {
 		return nil, err
@@ -141,9 +140,9 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 		return nil, nil
 	}
 
-	conns := make([]*client.SqlConn, 0, len(nodes))
+	conns := make([]*SqlConn, 0, len(nodes))
 
-	var co *client.SqlConn
+	var co *SqlConn
 	for _, n := range nodes {
 		co, err = c.getConn(n, isSelect)
 		if err != nil {
@@ -156,13 +155,13 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 	return conns, err
 }
 
-func (c *Conn) executeInShard(conns []*client.SqlConn, sql string, args []interface{}) ([]*Result, error) {
+func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) ([]*Result, error) {
 	var wg sync.WaitGroup
 	wg.Add(len(conns))
 
 	rs := make([]interface{}, len(conns))
 
-	f := func(rs []interface{}, i int, co *client.SqlConn) {
+	f := func(rs []interface{}, i int, co *SqlConn) {
 		r, err := co.Execute(sql, args...)
 		if err != nil {
 			rs[i] = err
@@ -192,7 +191,7 @@ func (c *Conn) executeInShard(conns []*client.SqlConn, sql string, args []interf
 	return r, err
 }
 
-func (c *Conn) closeShardConns(conns []*client.SqlConn, rollback bool) {
+func (c *Conn) closeShardConns(conns []*SqlConn, rollback bool) {
 	if c.isInTransaction() {
 		return
 	}
@@ -267,7 +266,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	return err
 }
 
-func (c *Conn) beginShardConns(conns []*client.SqlConn) error {
+func (c *Conn) beginShardConns(conns []*SqlConn) error {
 	if c.isInTransaction() {
 		return nil
 	}
@@ -281,7 +280,7 @@ func (c *Conn) beginShardConns(conns []*client.SqlConn) error {
 	return nil
 }
 
-func (c *Conn) commitShardConns(conns []*client.SqlConn) error {
+func (c *Conn) commitShardConns(conns []*SqlConn) error {
 	if c.isInTransaction() {
 		return nil
 	}

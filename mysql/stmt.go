@@ -1,14 +1,13 @@
-package client
+package mysql
 
 import (
 	"encoding/binary"
 	"fmt"
-	. "github.com/wandoulabs/cm/mysql"
 	"math"
 )
 
-type Stmt struct {
-	conn  *Conn
+type MySqlStmt struct {
+	conn  *MySqlConn
 	id    uint32
 	query string
 
@@ -16,15 +15,15 @@ type Stmt struct {
 	columns int
 }
 
-func (s *Stmt) ParamNum() int {
+func (s *MySqlStmt) ParamNum() int {
 	return s.params
 }
 
-func (s *Stmt) ColumnNum() int {
+func (s *MySqlStmt) ColumnNum() int {
 	return s.columns
 }
 
-func (s *Stmt) Execute(args ...interface{}) (*Result, error) {
+func (s *MySqlStmt) Execute(args ...interface{}) (*Result, error) {
 	if err := s.write(args...); err != nil {
 		return nil, err
 	}
@@ -32,7 +31,7 @@ func (s *Stmt) Execute(args ...interface{}) (*Result, error) {
 	return s.conn.readResult(true)
 }
 
-func (s *Stmt) Close() error {
+func (s *MySqlStmt) Close() error {
 	if err := s.conn.writeCommandUint32(COM_STMT_CLOSE, s.id); err != nil {
 		return err
 	}
@@ -40,7 +39,7 @@ func (s *Stmt) Close() error {
 	return nil
 }
 
-func (s *Stmt) write(args ...interface{}) error {
+func (s *MySqlStmt) write(args ...interface{}) error {
 	paramsNum := s.params
 
 	if len(args) != paramsNum {
@@ -162,7 +161,7 @@ func (s *Stmt) write(args ...interface{}) error {
 	return s.conn.writePacket(data)
 }
 
-func (c *Conn) Prepare(query string) (*Stmt, error) {
+func (c *MySqlConn) Prepare(query string) (*MySqlStmt, error) {
 	if err := c.writeCommandStr(COM_STMT_PREPARE, query); err != nil {
 		return nil, err
 	}
@@ -178,7 +177,7 @@ func (c *Conn) Prepare(query string) (*Stmt, error) {
 		return nil, ErrMalformPacket
 	}
 
-	s := new(Stmt)
+	s := new(MySqlStmt)
 	s.conn = c
 
 	pos := 1
