@@ -1,11 +1,6 @@
 package proxy
 
-import (
-	"fmt"
-	"github.com/wandoulabs/cm/sqlparser"
-	"strings"
-)
-
+/*
 func (c *Conn) handleAdmin(admin *sqlparser.Admin) error {
 	name := string(admin.Name)
 
@@ -25,6 +20,7 @@ func (c *Conn) handleAdmin(admin *sqlparser.Admin) error {
 
 	return c.writeOK(nil)
 }
+
 
 func (c *Conn) adminUpNodeServer(values sqlparser.ValExprs) error {
 	if len(values) != 3 {
@@ -62,3 +58,4 @@ func (c *Conn) adminDownNodeServer(values sqlparser.ValExprs) error {
 		return fmt.Errorf("invalid server type %s", sType)
 	}
 }
+*/

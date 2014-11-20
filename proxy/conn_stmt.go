@@ -3,11 +3,12 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	. "github.com/wandoulabs/cm/mysql"
-	"github.com/wandoulabs/cm/sqlparser"
 	"math"
 	"strconv"
 	"strings"
+
+	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/sqlparser"
 )
 
 var paramFieldData []byte
@@ -65,8 +66,10 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 		tableName = nstring(s.Table)
 	case *sqlparser.Delete:
 		tableName = nstring(s.Table)
-	case *sqlparser.Replace:
-		tableName = nstring(s.Table)
+		/*
+			case *sqlparser.Replace:
+				tableName = nstring(s.Table)
+		*/
 	default:
 		return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
 	}
@@ -228,8 +231,10 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 		err = c.handleExec(s.s, s.sql, s.args)
 	case *sqlparser.Delete:
 		err = c.handleExec(s.s, s.sql, s.args)
-	case *sqlparser.Replace:
-		err = c.handleExec(s.s, s.sql, s.args)
+		/*
+			case *sqlparser.Replace:
+				err = c.handleExec(s.s, s.sql, s.args)
+		*/
 	default:
 		err = fmt.Errorf("command %T not supported now", stmt)
 	}

@@ -2,12 +2,11 @@ package proxy
 
 import (
 	"bytes"
-	"fmt"
+
 	. "github.com/wandoulabs/cm/mysql"
-	"github.com/wandoulabs/cm/sqlparser"
-	"strings"
 )
 
+/*
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
 	if len(stmt.SelectExprs) != 1 {
 		return fmt.Errorf("support select one informaction function, %s", sql)
@@ -52,6 +51,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 
 	return c.writeResultset(c.status, r)
 }
+*/
 
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}

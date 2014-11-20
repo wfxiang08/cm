@@ -1,9 +1,10 @@
 package router
 
 import (
-	"github.com/wandoulabs/go-yaml/yaml"
-	"github.com/wandoulabs/cm/config"
 	"testing"
+
+	"github.com/siddontang/go-yaml/yaml"
+	"github.com/wandoulabs/cm/config"
 )
 
 func TestParseRule(t *testing.T) {

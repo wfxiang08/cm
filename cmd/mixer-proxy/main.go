@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"syscall"
 
 	log "github.com/ngaut/logging"
@@ -32,12 +31,6 @@ func main() {
 		return
 	}
 
-	if *logLevel != "" {
-		setLogLevel(*logLevel)
-	} else {
-		setLogLevel(cfg.LogLevel)
-	}
-
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(cfg)
 	if err != nil {
@@ -59,19 +52,4 @@ func main() {
 	}()
 
 	svr.Run()
-}
-
-func setLogLevel(level string) {
-	switch strings.ToLower(level) {
-	case "debug":
-		log.SetLevel(log.LevelDebug)
-	case "info":
-		log.SetLevel(log.LevelInfo)
-	case "warn":
-		log.SetLevel(log.LevelWarn)
-	case "error":
-		log.SetLevel(log.LevelError)
-	default:
-		log.SetLevel(log.LevelError)
-	}
 }
