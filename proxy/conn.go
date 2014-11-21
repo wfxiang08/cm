@@ -277,8 +277,6 @@ func (c *Conn) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
-	log.Info(cmd, data)
-
 	switch cmd {
 	case COM_QUIT:
 		c.Close()
