@@ -6,6 +6,53 @@ import (
 	. "github.com/wandoulabs/cm/mysql"
 )
 
+/*
+func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
+	if len(stmt.SelectExprs) != 1 {
+		return fmt.Errorf("support select one informaction function, %s", sql)
+	}
+
+	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
+	if !ok {
+		return fmt.Errorf("support select informaction function, %s", sql)
+	}
+
+	var f *sqlparser.FuncExpr
+	f, ok = expr.Expr.(*sqlparser.FuncExpr)
+	if !ok {
+		return fmt.Errorf("support select informaction function, %s", sql)
+	}
+
+	var r *Resultset
+	var err error
+
+	switch strings.ToLower(string(f.Name)) {
+	case "last_insert_id":
+		r, err = c.buildSimpleSelectResult(c.lastInsertId, f.Name, expr.As)
+	case "row_count":
+		r, err = c.buildSimpleSelectResult(c.affectedRows, f.Name, expr.As)
+	case "version":
+		r, err = c.buildSimpleSelectResult(ServerVersion, f.Name, expr.As)
+	case "connection_id":
+		r, err = c.buildSimpleSelectResult(c.connectionId, f.Name, expr.As)
+	case "database":
+		if c.schema != nil {
+			r, err = c.buildSimpleSelectResult(c.schema.db, f.Name, expr.As)
+		} else {
+			r, err = c.buildSimpleSelectResult("NULL", f.Name, expr.As)
+		}
+	default:
+		return fmt.Errorf("function %s not support", f.Name)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return c.writeResultset(c.status, r)
+}
+*/
+
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}
 

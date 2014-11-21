@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func newTestConn() *MySqlConn {
-	c := new(MySqlConn)
+func newTestConn() *Conn {
+	c := new(Conn)
 
 	if err := c.Connect("127.0.0.1:3306", "root", "", "mixer"); err != nil {
 		panic(err)
