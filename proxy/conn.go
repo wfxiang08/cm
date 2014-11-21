@@ -259,7 +259,7 @@ func (c *Conn) Run() {
 		}
 
 		if err := c.dispatch(data); err != nil {
-			log.Error("dispatch error %s", err.Error())
+			log.Errorf("dispatch error %s", err.Error())
 			if err != ErrBadConn {
 				c.writeError(err)
 			}
@@ -276,6 +276,8 @@ func (c *Conn) Run() {
 func (c *Conn) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
+
+	log.Info(cmd, data)
 
 	switch cmd {
 	case COM_QUIT:

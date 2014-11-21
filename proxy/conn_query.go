@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
@@ -36,27 +37,21 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Delete:
 		return c.handleExec(stmt, sql, nil)
-		/*
-			case *sqlparser.Replace:
-				return c.handleExec(stmt, sql, nil)
-		*/
 	case *sqlparser.Set:
 		return c.handleSet(v)
 		/*
-							case *sqlparser.Begin:
-								return c.handleBegin()
-							case *sqlparser.Commit:
-								return c.handleCommit()
-							case *sqlparser.Rollback:
-								return c.handleRollback()
-					case *sqlparser.SimpleSelect:
-						return c.handleSimpleSelect(sql, v)
-
+			case *sqlparser.Begin:
+				return c.handleBegin()
+			case *sqlparser.Commit:
+				return c.handleCommit()
+			case *sqlparser.Rollback:
+				return c.handleRollback()
+			case *sqlparser.SimpleSelect:
+				return c.handleSimpleSelect(sql, v)
 			case *sqlparser.Show:
 				return c.handleShow(sql, v)
 			case *sqlparser.Admin:
 				return c.handleAdmin(v)
-
 		*/
 	default:
 		return fmt.Errorf("statement %T not support now", stmt)
@@ -66,27 +61,22 @@ func (c *Conn) handleQuery(sql string) (err error) {
 }
 
 func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Node, error) {
-	return nil, nil
-	/*
-		if c.schema == nil {
-			return nil, NewDefaultError(ER_NO_DB_ERROR)
-		}
+	if c.schema == nil {
+		return nil, NewDefaultError(ER_NO_DB_ERROR)
+	}
 
-		ns, err := sqlparser.GetStmtShardList(stmt, c.schema.rule, bindVars)
-		if err != nil {
-			return nil, err
-		}
+	// ns, err := sqlparser.GetStmtShardList(stmt, c.schema.rule, bindVars)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-		if len(ns) == 0 {
-			return nil, nil
-		}
+	// if len(ns) == 0 {
+	// 	return nil, nil
+	// }
 
-		n := make([]*Node, 0, len(ns))
-		for _, name := range ns {
-			n = append(n, c.server.getNode(name))
-		}
-		return n, nil
-	*/
+	var n []*Node
+	n = append(n, c.server.getNode("node1"))
+	return n, nil
 }
 
 func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
@@ -146,6 +136,7 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 	for _, n := range nodes {
 		co, err = c.getConn(n, isSelect)
 		if err != nil {
+			log.Info(err)
 			break
 		}
 
@@ -311,18 +302,18 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	} else {
 		//for multi nodes, 2PC simple, begin, exec, commit
 		//if commit error, data maybe corrupt
-		for {
-			if err = c.beginShardConns(conns); err != nil {
-				break
-			}
+		// for {
+		// 	if err = c.beginShardConns(conns); err != nil {
+		// 		break
+		// 	}
 
-			if rs, err = c.executeInShard(conns, sql, args); err != nil {
-				break
-			}
+		// 	if rs, err = c.executeInShard(conns, sql, args); err != nil {
+		// 		break
+		// 	}
 
-			err = c.commitShardConns(conns)
-			break
-		}
+		// 	err = c.commitShardConns(conns)
+		// 	break
+		// }
 	}
 
 	c.closeShardConns(conns, err != nil)
