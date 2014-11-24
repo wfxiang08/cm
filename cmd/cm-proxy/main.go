@@ -12,8 +12,7 @@ import (
 	"github.com/wandoulabs/cm/proxy"
 )
 
-var configFile *string = flag.String("config", "/etc/mixer.json", "cm config file")
-var logLevel *string = flag.String("log-level", "", "log level [debug|info|warn|error], default error")
+var configFile *string = flag.String("config", "./etc/cfg.json", "cm config file")
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -30,6 +29,8 @@ func main() {
 		log.Error(err.Error())
 		return
 	}
+
+	log.SetLevelByString(cfg.LogLevel)
 
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(cfg)
