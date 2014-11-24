@@ -78,10 +78,28 @@ type SchemaInfo struct {
 	lastChange time.Time
 }
 
-func NewSchemaInfo(queryCacheSize int) *SchemaInfo {
+func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
 	si := &SchemaInfo{
 		queries: cache.NewLRUCache(int64(queryCacheSize)),
+		tables:  make(map[string]*TableInfo),
+		//todo: fill RowCacheConfig
+		cachePool: NewCachePool(dbName, RowCacheConfig{}, 3*time.Second, 3*time.Second),
 	}
+
+	var err error
+	si.connPool, err = mysql.Open(dbAddr, user, pwd, dbName)
+	if err != nil { //todo: return error
+		log.Fatal(err)
+	}
+
+	si.overrides = overrides
+	log.Infof("%+v", si.overrides)
+	for _, or := range si.overrides {
+		si.CreateOrUpdateTable(or.Name)
+	}
+
+	si.override()
+
 	stats.Publish("QueryCacheLength", stats.IntFunc(si.queries.Length))
 	stats.Publish("QueryCacheSize", stats.IntFunc(si.queries.Size))
 	stats.Publish("QueryCacheCapacity", stats.IntFunc(si.queries.Capacity))
@@ -105,7 +123,7 @@ func (si *SchemaInfo) override() {
 	for _, override := range si.overrides {
 		table, ok := si.tables[override.Name]
 		if !ok {
-			log.Warningf("Table not found for override: %v", override)
+			log.Warningf("Table not found for override: %v, %v", override, si.tables)
 			continue
 		}
 		if override.PKColumns != nil {
@@ -161,7 +179,7 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 	//todo: fix arg
 	defer si.connPool.PushConn(conn, nil)
 
-	tables, err := conn.Execute(fmt.Sprintf("%s and table_name = '%s'", base_show_tables, tableName), 1, false)
+	tables, err := conn.Execute(fmt.Sprintf("%s and table_name = '%s'", base_show_tables, tableName))
 	if err != nil {
 		log.Fatalf("Error fetching table %s: %v", tableName, err)
 	}
@@ -172,16 +190,23 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 		}
 	*/
 
+	create_time, err := sqltypes.BuildValue(tables.Values[0][2]) // create_time
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
 	tableInfo, err := NewTableInfo(
 		conn,
 		tableName,
-		tables.Values[0][1].(string),         // table_type
-		tables.Values[0][2].(sqltypes.Value), // create_time
-		tables.Values[0][3].(string),         // table_comment
+		string(tables.Values[0][1].([]byte)), // table_type
+		create_time,
+		string(tables.Values[0][3].([]byte)), // table_comment
 		si.cachePool,
 	)
 	if err != nil {
 		// This can happen if DDLs race with each other.
+		log.Error(err)
 		return
 	}
 	if _, ok := si.tables[tableName]; ok {

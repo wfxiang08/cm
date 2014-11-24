@@ -25,7 +25,7 @@ type Server struct {
 
 	schemas map[string]*Schema
 
-	autoSchama *tabletserver.SchemaInfo
+	autoSchamas map[string]*tabletserver.SchemaInfo
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
@@ -36,6 +36,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	s.addr = cfg.Addr
 	s.user = cfg.User
 	s.password = cfg.Password
+	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
 
 	if err := s.parseNodes(); err != nil {
 		return nil, err
@@ -45,7 +46,20 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	s.autoSchama = tabletserver.NewSchemaInfo(128 * 1024 * 1024)
+	//fix hard code
+	for _, v := range s.cfg.Schemas {
+		rc := v.RulesConifg
+		var overrides []tabletserver.SchemaOverride
+		//todo: fill override.Cache field
+		var or tabletserver.SchemaOverride
+		for _, sc := range rc.ShardRule {
+			or.Name = sc.Table //table name
+			or.PKColumns = append(or.PKColumns, sc.Key)
+		}
+		overrides = append(overrides, or)
+
+		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(128*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
+	}
 
 	var err error
 	netProto := "tcp"

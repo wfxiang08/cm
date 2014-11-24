@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/ngaut/sync2"
 	"github.com/wandoulabs/cm/mysql"
@@ -23,7 +24,8 @@ type TableInfo struct {
 	hits, absent, misses, invalidations sync2.AtomicInt64
 }
 
-func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, createTime sqltypes.Value, comment string, cachePool *CachePool) (ti *TableInfo, err error) {
+func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, createTime sqltypes.Value,
+	comment string, cachePool *CachePool) (ti *TableInfo, err error) {
 	ti, err = loadTableInfo(conn, tableName)
 	if err != nil {
 		return nil, err
@@ -35,21 +37,27 @@ func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, cre
 func loadTableInfo(conn *mysql.MySqlConn, tableName string) (ti *TableInfo, err error) {
 	ti = &TableInfo{Table: schema.NewTable(tableName)}
 	if err = ti.fetchColumns(conn); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	if err = ti.fetchIndexes(conn); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	return ti, nil
 }
 
 func (ti *TableInfo) fetchColumns(conn *mysql.MySqlConn) error {
-	columns, err := conn.Execute(fmt.Sprintf("describe `%s`", ti.Name), 10000, false)
+	columns, err := conn.Execute(fmt.Sprintf("describe `%s`", ti.Name))
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
+
 	for _, row := range columns.Values {
-		ti.AddColumn(row[0].(string), row[1].(string), row[4].(sqltypes.Value), row[5].(string))
+		v, err := sqltypes.BuildValue(row[4])
+		if err != nil {
+			return errors.Trace(err)
+		}
+		ti.AddColumn(string(row[0].([]byte)), string(row[1].([]byte)),
+			v, string(row[5].([]byte)))
 	}
 	return nil
 }
@@ -79,26 +87,26 @@ func (ti *TableInfo) SetPK(colnames []string) error {
 }
 
 func (ti *TableInfo) fetchIndexes(conn *mysql.MySqlConn) error {
-	indexes, err := conn.Execute(fmt.Sprintf("show index from `%s`", ti.Name), 10000, false)
+	indexes, err := conn.Execute(fmt.Sprintf("show index from `%s`", ti.Name))
 	if err != nil {
 		return err
 	}
 	var currentIndex *schema.Index
 	currentName := ""
 	for _, row := range indexes.Values {
-		indexName := row[2].(string)
+		indexName := string(row[2].([]byte))
 		if currentName != indexName {
 			currentIndex = ti.AddIndex(indexName)
 			currentName = indexName
 		}
 		var cardinality uint64
 		if row[6] != nil {
-			cardinality, err = strconv.ParseUint(row[6].(string), 0, 64)
+			cardinality, err = strconv.ParseUint(string(row[6].([]byte)), 0, 64)
 			if err != nil {
 				log.Warningf("%s", err)
 			}
 		}
-		currentIndex.AddColumn(row[4].(string), cardinality)
+		currentIndex.AddColumn(string(row[4].([]byte)), cardinality)
 	}
 	if len(ti.Indexes) == 0 {
 		return nil
