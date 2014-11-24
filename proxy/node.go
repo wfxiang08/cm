@@ -255,6 +255,14 @@ func (s *Server) getNode(name string) *Node {
 	return s.nodes[name]
 }
 
+func (s *Server) getNodeNames() []string {
+	var ret []string
+	for name, _ := range s.nodes {
+		ret = append(ret, name)
+	}
+	return ret
+}
+
 func (s *Server) parseNodes() error {
 	cfg := s.cfg
 	s.nodes = make(map[string]*Node, len(cfg.Nodes))

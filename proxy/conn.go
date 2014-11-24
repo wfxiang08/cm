@@ -119,8 +119,6 @@ func (c *Conn) Close() error {
 
 	c.c.Close()
 
-	c.rollback()
-
 	c.closed = true
 
 	return nil
