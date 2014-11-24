@@ -3,11 +3,12 @@ package mysql
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/juju/errors"
 )
 
 var (

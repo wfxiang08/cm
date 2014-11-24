@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
@@ -91,20 +92,20 @@ func (s *Server) newConn(co net.Conn) *Conn {
 func (c *Conn) Handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
 		log.Error("send initial handshake error %s", err.Error())
-		return err
+		return errors.Trace(err)
 	}
 
 	if err := c.readHandshakeResponse(); err != nil {
 		log.Error("recv handshake response error %s", err.Error())
 
 		c.writeError(err)
-
-		return err
+		return errors.Trace(err)
 	}
 
 	if err := c.writeOK(nil); err != nil {
 		log.Error("write ok fail %s", err.Error())
-		return err
+
+		return errors.Trace(err)
 	}
 
 	c.pkg.Sequence = 0
@@ -183,7 +184,7 @@ func (c *Conn) readHandshakeResponse() error {
 	data, err := c.readPacket()
 
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	pos := 0
@@ -214,7 +215,7 @@ func (c *Conn) readHandshakeResponse() error {
 	checkAuth := CalcPassword(c.salt, []byte(c.server.cfg.Password))
 
 	if !bytes.Equal(auth, checkAuth) {
-		return NewDefaultError(ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes")
+		return errors.Trace(NewDefaultError(ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes"))
 	}
 
 	pos += authLen
@@ -228,7 +229,7 @@ func (c *Conn) readHandshakeResponse() error {
 		pos += len(c.db) + 1
 
 		if err := c.useDB(db); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 
@@ -257,7 +258,7 @@ func (c *Conn) Run() {
 		}
 
 		if err := c.dispatch(data); err != nil {
-			log.Errorf("dispatch error %s", err.Error())
+			log.Errorf("dispatch error %s", errors.ErrorStack(err))
 			if err != ErrBadConn {
 				c.writeError(err)
 			}

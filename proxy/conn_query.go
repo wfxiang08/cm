@@ -22,8 +22,6 @@ type SchemaInfo struct {
 	tables map[string]*tabletserver.TableInfo
 }
 
-var si SchemaInfo
-
 func (c *Conn) handleQuery(sql string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -37,17 +35,23 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	var stmt sqlparser.Statement
 	stmt, err = sqlparser.Parse(sql)
 	if err != nil {
-		return fmt.Errorf(`parse sql "%s" error`, sql)
+		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
 
 	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		si.mu.Lock()
-		defer si.mu.Unlock()
-
-		tableInfo, ok := si.tables[tableName]
-		if !ok {
+		schema := c.server.getSchema(c.db)
+		if schema == nil {
 			return nil, false
 		}
+
+		if len(schema.nodes) == 0 {
+			return nil, false
+		}
+
+		for k, v := range schema.nodes {
+
+		}
+
 		return tableInfo.Table, true
 	}
 
@@ -56,7 +60,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return errors.Trace(err)
 	}
 
-	log.Info("%+v", plan)
+	log.Infof("%s, %+v, %+v", sql, plan, stmt)
 
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
@@ -69,22 +73,9 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Set:
 		return c.handleSet(v)
-		/*
-			case *sqlparser.Begin:
-				return c.handleBegin()
-			case *sqlparser.Commit:
-				return c.handleCommit()
-			case *sqlparser.Rollback:
-				return c.handleRollback()
-			case *sqlparser.SimpleSelect:
-				return c.handleSimpleSelect(sql, v)
-			case *sqlparser.Show:
-				return c.handleShow(sql, v)
-			case *sqlparser.Admin:
-				return c.handleAdmin(v)
-		*/
+
 	default:
-		return fmt.Errorf("statement %T not support now", stmt)
+		return errors.Errorf("statement %T not support now", stmt)
 	}
 
 	return nil
@@ -94,15 +85,6 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 	if c.schema == nil {
 		return nil, NewDefaultError(ER_NO_DB_ERROR)
 	}
-
-	// ns, err := sqlparser.GetStmtShardList(stmt, c.schema.rule, bindVars)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// if len(ns) == 0 {
-	// 	return nil, nil
-	// }
 
 	var n []*Node
 	names := c.server.getNodeNames()
@@ -143,7 +125,6 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 		}
 	}
 
-	//todo, set conn charset, etc...
 	if err = co.UseDB(c.schema.db); err != nil {
 		return
 	}
@@ -176,7 +157,7 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 		conns = append(conns, co)
 	}
 
-	return conns, err
+	return conns, errors.Trace(err)
 }
 
 func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) ([]*Result, error) {
@@ -212,7 +193,7 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 		r[i] = rs[i].(*Result)
 	}
 
-	return r, err
+	return r, errors.Trace(err)
 }
 
 func (c *Conn) closeShardConns(conns []*SqlConn, rollback bool) {
@@ -271,23 +252,20 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 
 	conns, err := c.getShardConns(true, stmt, bindVars)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	} else if conns == nil {
 		r := c.newEmptyResultset(stmt)
 		return c.writeResultset(c.status, r)
 	}
 
 	var rs []*Result
-
 	rs, err = c.executeInShard(conns, sql, args)
-
 	c.closeShardConns(conns, false)
-
 	if err == nil {
 		err = c.mergeSelectResult(rs, stmt)
 	}
 
-	return err
+	return errors.Trace(err)
 }
 
 func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
@@ -295,33 +273,17 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 
 	conns, err := c.getShardConns(false, stmt, bindVars)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	} else if conns == nil {
 		return c.writeOK(nil)
 	}
 
 	var rs []*Result
-
 	if len(conns) == 1 {
 		rs, err = c.executeInShard(conns, sql, args)
 	} else {
 		log.Warning("not implement yet")
-		//for multi nodes, 2PC simple, begin, exec, commit
-		//if commit error, data maybe corrupt
-		/*
-			for {
-				if err = c.beginShardConns(conns); err != nil {
-					break
-				}
 
-				if rs, err = c.executeInShard(conns, sql, args); err != nil {
-					break
-				}
-
-				err = c.commitShardConns(conns)
-				break
-			}
-		*/
 	}
 
 	c.closeShardConns(conns, err != nil)
@@ -330,7 +292,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		err = c.mergeExecResult(rs)
 	}
 
-	return err
+	return errors.Trace(err)
 }
 
 func (c *Conn) mergeExecResult(rs []*Result) error {
@@ -342,8 +304,7 @@ func (c *Conn) mergeExecResult(rs []*Result) error {
 		if r.InsertId == 0 {
 			r.InsertId = v.InsertId
 		} else if r.InsertId > v.InsertId {
-			//last insert id is first gen id for multi row inserted
-			//see http://dev.mysql.com/doc/refman/5.6/en/information-functions.html#function_last-insert-id
+
 			r.InsertId = v.InsertId
 		}
 	}
@@ -365,20 +326,16 @@ func (c *Conn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {
 	for i := 1; i < len(rs); i++ {
 		status |= rs[i].Status
 
-		//check fields equal
-
 		for j := range rs[i].Values {
 			r.Values = append(r.Values, rs[i].Values[j])
 			r.RowDatas = append(r.RowDatas, rs[i].RowDatas[j])
 		}
 	}
 
-	//to do order by, group by, limit offset
 	c.sortSelectResult(r, stmt)
-	//to do, add log here, sort may error because order by key not exist in resultset fields
 
 	if err := c.limitSelectResult(r, stmt); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	return c.writeResultset(status, r)
@@ -410,21 +367,21 @@ func (c *Conn) limitSelectResult(r *Resultset, stmt *sqlparser.Select) error {
 		offset = 0
 	} else {
 		if o, ok := stmt.Limit.Offset.(sqlparser.NumVal); !ok {
-			return fmt.Errorf("invalid select limit %s", nstring(stmt.Limit))
+			return errors.Errorf("invalid select limit %s", nstring(stmt.Limit))
 		} else {
 			if offset, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
-				return err
+				return errors.Trace(err)
 			}
 		}
 	}
 
 	if o, ok := stmt.Limit.Rowcount.(sqlparser.NumVal); !ok {
-		return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
+		return errors.Errorf("invalid limit %s", nstring(stmt.Limit))
 	} else {
 		if count, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
-			return err
+			return errors.Trace(err)
 		} else if count < 0 {
-			return fmt.Errorf("invalid limit %s", nstring(stmt.Limit))
+			return errors.Errorf("invalid limit %s", nstring(stmt.Limit))
 		}
 	}
 

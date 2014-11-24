@@ -23,7 +23,13 @@
             "nodes" : ["node1"],
             "rules" : {
                 "default" : "node1",
-                "shard" : []
+                "shard" : [
+			{
+				"table":"person",
+				"key": "id",
+				"node": "node1"
+			}
+		]
             }
         }
     ]
