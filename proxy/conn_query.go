@@ -13,14 +13,8 @@ import (
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 
-	"github.com/wandoulabs/cm/vt/tabletserver"
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 )
-
-type SchemaInfo struct {
-	mu     sync.Mutex
-	tables map[string]*tabletserver.TableInfo
-}
 
 func (c *Conn) handleQuery(sql string) (err error) {
 	defer func() {
@@ -39,20 +33,26 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	}
 
 	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		schema := c.server.getSchema(c.db)
-		if schema == nil {
+		/*
+			schema := c.server.getSchema(c.db)
+			if schema == nil {
+				return nil, false
+			}
+
+			if len(schema.nodes) == 0 {
+				return nil, false
+			}
+
+			for k, v := range schema.nodes {
+
+			}
+		*/
+		ti := c.server.autoSchama.GetTable(tableName)
+		if ti == nil {
 			return nil, false
 		}
 
-		if len(schema.nodes) == 0 {
-			return nil, false
-		}
-
-		for k, v := range schema.nodes {
-
-		}
-
-		return tableInfo.Table, true
+		return ti.Table, true
 	}
 
 	plan, err := planbuilder.GetExecPlan(sql, GetTable)

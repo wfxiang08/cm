@@ -1,12 +1,13 @@
 package proxy
 
 import (
-	log "github.com/ngaut/logging"
-	"github.com/wandoulabs/cm/config"
-
 	"net"
 	"runtime"
 	"strings"
+
+	log "github.com/ngaut/logging"
+	"github.com/wandoulabs/cm/config"
+	"github.com/wandoulabs/cm/vt/tabletserver"
 )
 
 type Server struct {
@@ -23,6 +24,8 @@ type Server struct {
 	nodes map[string]*Node
 
 	schemas map[string]*Schema
+
+	autoSchama *tabletserver.SchemaInfo
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
@@ -41,6 +44,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	if err := s.parseSchemas(); err != nil {
 		return nil, err
 	}
+
+	s.autoSchama = tabletserver.NewSchemaInfo(128 * 1024 * 1024)
 
 	var err error
 	netProto := "tcp"

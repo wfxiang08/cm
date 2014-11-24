@@ -19,7 +19,6 @@ import (
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 	"github.com/youtube/vitess/go/cache"
 	"github.com/youtube/vitess/go/stats"
-	"github.com/youtube/vitess/go/timer"
 )
 
 const base_show_tables = "select table_name, table_type, unix_timestamp(create_time), table_comment from information_schema.tables where table_schema = database()"
@@ -77,13 +76,11 @@ type SchemaInfo struct {
 	cachePool  *CachePool
 	connPool   *mysql.DB
 	lastChange time.Time
-	ticks      *timer.Timer
 }
 
-func NewSchemaInfo(queryCacheSize int, reloadTime time.Duration, idleTimeout time.Duration) *SchemaInfo {
+func NewSchemaInfo(queryCacheSize int) *SchemaInfo {
 	si := &SchemaInfo{
 		queries: cache.NewLRUCache(int64(queryCacheSize)),
-		ticks:   timer.NewTimer(reloadTime),
 	}
 	stats.Publish("QueryCacheLength", stats.IntFunc(si.queries.Length))
 	stats.Publish("QueryCacheSize", stats.IntFunc(si.queries.Size))
@@ -91,7 +88,6 @@ func NewSchemaInfo(queryCacheSize int, reloadTime time.Duration, idleTimeout tim
 	stats.Publish("QueryCacheOldest", stats.StringFunc(func() string {
 		return fmt.Sprintf("%v", si.queries.Oldest())
 	}))
-	stats.Publish("SchemaReloadTime", stats.DurationFunc(si.ticks.Interval))
 	_ = stats.NewMultiCountersFunc("TableStats", []string{"Table", "Stats"}, si.getTableStats)
 	_ = stats.NewMultiCountersFunc("TableInvalidations", []string{"Table"}, si.getTableInvalidations)
 	_ = stats.NewMultiCountersFunc("QueryCounts", []string{"Table", "Plan"}, si.getQueryCount)
@@ -148,16 +144,9 @@ func (si *SchemaInfo) override() {
 }
 
 func (si *SchemaInfo) Close() {
-	si.ticks.Stop()
 	si.tables = nil
 	si.overrides = nil
 	si.queries.Clear()
-}
-
-// safe to call this if Close has been called, as si.ticks will be stopped
-// and won't fire
-func (si *SchemaInfo) triggerReload() {
-	si.ticks.Trigger()
 }
 
 func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
@@ -277,11 +266,6 @@ func (si *SchemaInfo) SetQueryCacheSize(size int) {
 		log.Fatalf("cache size %v out of range", size)
 	}
 	si.queries.SetCapacity(int64(size))
-}
-
-func (si *SchemaInfo) SetReloadTime(reloadTime time.Duration) {
-	si.ticks.Trigger()
-	si.ticks.SetInterval(reloadTime)
 }
 
 func (si *SchemaInfo) getTableStats() map[string]int64 {
