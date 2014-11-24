@@ -5,7 +5,14 @@
 package tabletserver
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	log "github.com/ngaut/logging"
 	"github.com/ngaut/sync2"
+	"github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
@@ -16,17 +23,16 @@ type TableInfo struct {
 	hits, absent, misses, invalidations sync2.AtomicInt64
 }
 
-/*
-func NewTableInfo(conn dbconnpool.PoolConnection, tableName string, tableType string, createTime sqltypes.Value, comment string, cachePool *CachePool) (ti *TableInfo, err error) {
+func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, createTime sqltypes.Value, comment string, cachePool *CachePool) (ti *TableInfo, err error) {
 	ti, err = loadTableInfo(conn, tableName)
 	if err != nil {
 		return nil, err
 	}
-	ti.initRowCache(conn, tableType, createTime, comment, cachePool)
+	ti.initRowCache(tableType, createTime, comment, cachePool)
 	return ti, nil
 }
 
-func loadTableInfo(conn dbconnpool.PoolConnection, tableName string) (ti *TableInfo, err error) {
+func loadTableInfo(conn *mysql.MySqlConn, tableName string) (ti *TableInfo, err error) {
 	ti = &TableInfo{Table: schema.NewTable(tableName)}
 	if err = ti.fetchColumns(conn); err != nil {
 		return nil, err
@@ -37,13 +43,13 @@ func loadTableInfo(conn dbconnpool.PoolConnection, tableName string) (ti *TableI
 	return ti, nil
 }
 
-func (ti *TableInfo) fetchColumns(conn dbconnpool.PoolConnection) error {
-	columns, err := conn.ExecuteFetch(fmt.Sprintf("describe `%s`", ti.Name), 10000, false)
+func (ti *TableInfo) fetchColumns(conn *mysql.MySqlConn) error {
+	columns, err := conn.Execute(fmt.Sprintf("describe `%s`", ti.Name), 10000, false)
 	if err != nil {
 		return err
 	}
-	for _, row := range columns.Rows {
-		ti.AddColumn(row[0].String(), row[1].String(), row[4], row[5].String())
+	for _, row := range columns.Values {
+		ti.AddColumn(row[0].(string), row[1].(string), row[4].(sqltypes.Value), row[5].(string))
 	}
 	return nil
 }
@@ -72,27 +78,27 @@ func (ti *TableInfo) SetPK(colnames []string) error {
 	return nil
 }
 
-func (ti *TableInfo) fetchIndexes(conn dbconnpool.PoolConnection) error {
-	indexes, err := conn.ExecuteFetch(fmt.Sprintf("show index from `%s`", ti.Name), 10000, false)
+func (ti *TableInfo) fetchIndexes(conn *mysql.MySqlConn) error {
+	indexes, err := conn.Execute(fmt.Sprintf("show index from `%s`", ti.Name), 10000, false)
 	if err != nil {
 		return err
 	}
 	var currentIndex *schema.Index
 	currentName := ""
-	for _, row := range indexes.Rows {
-		indexName := row[2].String()
+	for _, row := range indexes.Values {
+		indexName := row[2].(string)
 		if currentName != indexName {
 			currentIndex = ti.AddIndex(indexName)
 			currentName = indexName
 		}
 		var cardinality uint64
-		if !row[6].IsNull() {
-			cardinality, err = strconv.ParseUint(row[6].String(), 0, 64)
+		if row[6] != nil {
+			cardinality, err = strconv.ParseUint(row[6].(string), 0, 64)
 			if err != nil {
 				log.Warningf("%s", err)
 			}
 		}
-		currentIndex.AddColumn(row[4].String(), cardinality)
+		currentIndex.AddColumn(row[4].(string), cardinality)
 	}
 	if len(ti.Indexes) == 0 {
 		return nil
@@ -126,7 +132,7 @@ func (ti *TableInfo) fetchIndexes(conn dbconnpool.PoolConnection) error {
 	return nil
 }
 
-func (ti *TableInfo) initRowCache(conn dbconnpool.PoolConnection, tableType string, createTime sqltypes.Value, comment string, cachePool *CachePool) {
+func (ti *TableInfo) initRowCache(tableType string, createTime sqltypes.Value, comment string, cachePool *CachePool) {
 	if cachePool.IsClosed() {
 		return
 	}
@@ -167,4 +173,3 @@ func (ti *TableInfo) StatsJSON() string {
 func (ti *TableInfo) Stats() (hits, absent, misses, invalidations int64) {
 	return ti.hits.Get(), ti.absent.Get(), ti.misses.Get(), ti.invalidations.Get()
 }
-*/
