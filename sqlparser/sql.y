@@ -48,9 +48,10 @@ var (
   expr        Expr
   boolExpr    BoolExpr
   valExpr     ValExpr
-  tuple       Tuple
+  colTuple    ColTuple
   valExprs    ValExprs
   values      Values
+  rowTuple    RowTuple
   subquery    *Subquery
   caseExpr    *CaseExpr
   whens       []*When
@@ -66,7 +67,7 @@ var (
 %token LEX_ERROR
 %token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
 %token <empty> ALL DISTINCT AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
-%token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
+%token <bytes> ID STRING NUMBER VALUE_ARG LIST_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
 %token <empty> '(' '=' '<' '>' '~'
 
@@ -74,7 +75,8 @@ var (
 %left <empty> ','
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
 %left <empty> ON
-%left <empty> AND OR
+%left <empty> OR
+%left <empty> AND
 %right <empty> NOT
 %left <empty> '&' '|' '^'
 %left <empty> '+' '-'
@@ -84,25 +86,10 @@ var (
 %right <empty> CASE, WHEN, THEN, ELSE
 %left <empty> END
 
-// Transaction Tokens
-%token <empty> BEGIN COMMIT ROLLBACK
-
-// Charset Tokens
-%token <empty> NAMES 
-
-// Replace
-%token <empty> REPLACE
-
-// Mixer admin
-%token <empty> ADMIN
-
-// Show
-%token <empty> SHOW
-%token <empty> DATABASES TABLES PROXY
-
 // DDL Tokens
-%token <empty> CREATE ALTER DROP RENAME
+%token <empty> CREATE ALTER DROP RENAME ANALYZE
 %token <empty> TABLE INDEX VIEW TO IGNORE IF UNIQUE USING
+%token <empty> SHOW DESCRIBE EXPLAIN
 
 %start any_command
 
@@ -110,6 +97,7 @@ var (
 %type <selStmt> select_statement
 %type <statement> insert_statement update_statement delete_statement set_statement
 %type <statement> create_statement alter_statement rename_statement drop_statement
+%type <statement> analyze_statement other_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
 %type <str> distinct_opt
@@ -129,9 +117,10 @@ var (
 %type <str> compare
 %type <insRows> row_list
 %type <valExpr> value value_expression
-%type <tuple> tuple
+%type <colTuple> col_tuple
 %type <valExprs> value_expression_list
 %type <values> tuple_list
+%type <rowTuple> row_tuple
 %type <bytes> keyword_as_func
 %type <subquery> subquery
 %type <byt> unary_operator
@@ -155,14 +144,6 @@ var (
 %type <bytes> sql_id
 %type <empty> force_eof
 
-%type <statement> begin_statement commit_statement rollback_statement
-%type <statement> replace_statement
-%type <statement> show_statement
-%type <statement> admin_statement
-
-%type <valExpr> from_opt
-%type <expr> like_or_where_opt
-
 %%
 
 any_command:
@@ -184,12 +165,8 @@ command:
 | alter_statement
 | rename_statement
 | drop_statement
-| begin_statement
-| commit_statement
-| rollback_statement
-| replace_statement
-| show_statement
-| admin_statement
+| analyze_statement
+| other_statement
 
 select_statement:
   SELECT comment_opt distinct_opt select_expression_list
@@ -204,7 +181,6 @@ select_statement:
   {
     $$ = &Union{Type: $2, Left: $1, Right: $3}
   }
-
 
 insert_statement:
   INSERT comment_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
@@ -222,23 +198,6 @@ insert_statement:
     $$ = &Insert{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}, OnDup: OnDup($7)}
   }
 
-replace_statement:
-  REPLACE comment_opt INTO dml_table_expression column_list_opt row_list
-  {
-    $$ = &Replace{Comments: Comments($2), Table: $4, Columns: $5, Rows: $6}
-  }
-| REPLACE comment_opt INTO dml_table_expression SET update_list
-  {
-    cols := make(Columns, 0, len($6))
-    vals := make(ValTuple, 0, len($6))
-    for _, col := range $6 {
-      cols = append(cols, &NonStarExpr{Expr: col.Name})
-      vals = append(vals, col.Expr)
-    }
-    $$ = &Replace{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}}
-  }
-
-
 update_statement:
   UPDATE comment_opt dml_table_expression SET update_list where_expression_opt order_by_opt limit_opt
   {
@@ -255,48 +214,6 @@ set_statement:
   SET comment_opt update_list
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
-  }
-| SET comment_opt NAMES ID 
-  {
-    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
-  }
-
-begin_statement:
-  BEGIN
-  {
-    $$ = &Begin{}
-  }
-
-commit_statement:
-  COMMIT
-  {
-    $$ = &Commit{}
-  }
-
-rollback_statement:
-  ROLLBACK
-  {
-    $$ = &Rollback{}
-  }
-
-admin_statement:
-  ADMIN sql_id '(' value_expression_list ')'
-  {
-    $$ = &Admin{Name : $2, Values : $4}
-  }
-
-show_statement:
-  SHOW DATABASES 
-  {
-    $$ = &Show{Section: "databases"}
-  }
-| SHOW TABLES from_opt like_or_where_opt 
-  {
-    $$ = &Show{Section: "tables", From: $3, LikeOrWhere: $4}
-  }
-| SHOW PROXY sql_id from_opt like_or_where_opt
-  {
-    $$ = &Show{Section: "proxy", Key: string($3), From: $4, LikeOrWhere: $5}
   }
 
 create_statement:
@@ -348,6 +265,26 @@ drop_statement:
 | DROP VIEW exists_opt sql_id force_eof
   {
     $$ = &DDL{Action: AST_DROP, Table: $4}
+  }
+
+analyze_statement:
+  ANALYZE TABLE ID
+  {
+    $$ = &DDL{Action: AST_ALTER, Table: $3, NewName: $3}
+  }
+
+other_statement:
+  SHOW force_eof
+  {
+    $$ = &Other{}
+  }
+| DESCRIBE force_eof
+  {
+    $$ = &Other{}
+  }
+| EXPLAIN force_eof
+  {
+    $$ = &Other{}
   }
 
 comment_opt:
@@ -586,28 +523,6 @@ where_expression_opt:
     $$ = $2
   }
 
-like_or_where_opt:
-  {
-    $$ = nil
-  }
-| WHERE boolean_expression
-  {
-    $$ = $2
-  }
-| LIKE value_expression
-  {
-    $$ = $2
-  }
-
-from_opt:
-  {
-    $$ = nil
-  }
-| FROM value_expression
-  {
-    $$ = $2
-  }
-
 boolean_expression:
   condition
 | boolean_expression AND boolean_expression
@@ -632,11 +547,11 @@ condition:
   {
     $$ = &ComparisonExpr{Left: $1, Operator: $2, Right: $3}
   }
-| value_expression IN tuple
+| value_expression IN col_tuple
   {
     $$ = &ComparisonExpr{Left: $1, Operator: AST_IN, Right: $3}
   }
-| value_expression NOT IN tuple
+| value_expression NOT IN col_tuple
   {
     $$ = &ComparisonExpr{Left: $1, Operator: AST_NOT_IN, Right: $4}
   }
@@ -699,27 +614,7 @@ compare:
     $$ = AST_NSE
   }
 
-row_list:
-  VALUES tuple_list
-  {
-    $$ = $2
-  }
-| select_statement
-  {
-    $$ = $1
-  }
-
-tuple_list:
-  tuple
-  {
-    $$ = Values{$1}
-  }
-| tuple_list ',' tuple
-  {
-    $$ = append($1, $3)
-  }
-
-tuple:
+col_tuple:
   '(' value_expression_list ')'
   {
     $$ = ValTuple($2)
@@ -727,6 +622,10 @@ tuple:
 | subquery
   {
     $$ = $1
+  }
+| LIST_ARG
+  {
+    $$ = ListArg($1)
   }
 
 subquery:
@@ -754,7 +653,7 @@ value_expression:
   {
     $$ = $1
   }
-| tuple
+| row_tuple
   {
     $$ = $1
   }
@@ -1034,6 +933,36 @@ on_dup_opt:
 | ON DUPLICATE KEY UPDATE update_list
   {
     $$ = $5
+  }
+
+row_list:
+  VALUES tuple_list
+  {
+    $$ = $2
+  }
+| select_statement
+  {
+    $$ = $1
+  }
+
+tuple_list:
+  row_tuple
+  {
+    $$ = Values{$1}
+  }
+| tuple_list ',' row_tuple
+  {
+    $$ = append($1, $3)
+  }
+
+row_tuple:
+  '(' value_expression_list ')'
+  {
+    $$ = ValTuple($2)
+  }
+| subquery
+  {
+    $$ = $1
   }
 
 update_list:

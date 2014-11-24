@@ -11,9 +11,6 @@ import (
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
-	"github.com/wandoulabs/cm/vt/schema"
-
-	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 )
 
 func (c *Conn) handleQuery(sql string) (err error) {
@@ -32,35 +29,20 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
 
-	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		/*
-			schema := c.server.getSchema(c.db)
-			if schema == nil {
-				return nil, false
-			}
+	//	GetTable := func(tableName string) (table *schema.Table, ok bool) {
+	//		ti := c.server.autoSchama.GetTable(tableName)
+	//		if ti == nil {
+	//			return nil, false
+	//		}
+	//
+	//		return ti.Table, true
+	//	}
+	//	 plan, err := planbuilder.GetExecPlan(sql, GetTable)
+	//	 if err != nil {
+	//	 	return errors.Trace(err)
+	//	 }
 
-			if len(schema.nodes) == 0 {
-				return nil, false
-			}
-
-			for k, v := range schema.nodes {
-
-			}
-		*/
-		ti := c.server.autoSchama.GetTable(tableName)
-		if ti == nil {
-			return nil, false
-		}
-
-		return ti.Table, true
-	}
-
-	plan, err := planbuilder.GetExecPlan(sql, GetTable)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	log.Infof("%s, %+v, %+v", sql, plan, stmt)
+	//	log.Infof("%s, %+v, %+v", sql, plan, stmt)
 
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
@@ -73,7 +55,8 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Set:
 		return c.handleSet(v)
-
+	case *sqlparser.SimpleSelect:
+		return c.handleSimpleSelect(sql, v)
 	default:
 		return errors.Errorf("statement %T not support now", stmt)
 	}

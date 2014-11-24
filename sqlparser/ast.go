@@ -956,3 +956,17 @@ func (node OnDup) Format(buf *TrackedBuffer) {
 	}
 	buf.Myprintf(" on duplicate key update %v", UpdateExprs(node))
 }
+
+type SimpleSelect struct {
+	Comments    Comments
+	Distinct    string
+	SelectExprs SelectExprs
+}
+
+func (node *SimpleSelect) Format(buf *TrackedBuffer) {
+	buf.Myprintf("select %v%s%v", node.Comments, node.Distinct, node.SelectExprs)
+}
+
+func (*SimpleSelect) IStatement()       {}
+func (*SimpleSelect) ISelectStatement() {}
+func (*SimpleSelect) IInsertRows()      {}

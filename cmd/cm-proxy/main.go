@@ -48,7 +48,7 @@ func main() {
 
 	go func() {
 		sig := <-sc
-		log.Info("Got signal [%d] to exit.", sig)
+		log.Infof("Got signal [%d] to exit.", sig)
 		svr.Close()
 	}()
 
