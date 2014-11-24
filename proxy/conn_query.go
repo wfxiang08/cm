@@ -56,6 +56,8 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return errors.Trace(err)
 	}
 
+	log.Info("%+v", plan)
+
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
 		return c.handleSelect(v, sql, nil)
