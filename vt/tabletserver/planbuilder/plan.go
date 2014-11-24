@@ -5,8 +5,9 @@
 package planbuilder
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/juju/errors"
 
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
@@ -66,7 +67,7 @@ type ExecPlan struct {
 func (node *ExecPlan) setTableInfo(tableName string, getTable TableGetter) (*schema.Table, error) {
 	tableInfo, ok := getTable(tableName)
 	if !ok {
-		return nil, fmt.Errorf("table %s not found in schema", tableName)
+		return nil, errors.Errorf("table %s not found in schema", tableName)
 	}
 	node.TableName = tableInfo.Name
 	return tableInfo, nil

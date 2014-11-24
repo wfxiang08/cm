@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ngaut/sync2"
 	"github.com/youtube/vitess/go/sqltypes"
 	"github.com/youtube/vitess/go/stats"
 	"github.com/youtube/vitess/go/vt/schema"
@@ -29,13 +28,6 @@ const (
 	// MAX_DATA_LEN prevents large rows from being inserted in rowcache.
 	MAX_DATA_LEN = 8000
 )
-
-type TableInfo struct {
-	*schema.Table
-	Cache *RowCache
-	// stats updated by sqlquery.go
-	hits, absent, misses, invalidations sync2.AtomicInt64
-}
 
 type RowCache struct {
 	tableInfo *TableInfo

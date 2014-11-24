@@ -6,11 +6,23 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
+	"github.com/wandoulabs/cm/vt/schema"
+
+	"github.com/wandoulabs/cm/vt/tabletserver"
+	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 )
+
+type SchemaInfo struct {
+	mu     sync.Mutex
+	tables map[string]*tabletserver.TableInfo
+}
+
+var si SchemaInfo
 
 func (c *Conn) handleQuery(sql string) (err error) {
 	defer func() {
@@ -26,6 +38,22 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	stmt, err = sqlparser.Parse(sql)
 	if err != nil {
 		return fmt.Errorf(`parse sql "%s" error`, sql)
+	}
+
+	GetTable := func(tableName string) (table *schema.Table, ok bool) {
+		si.mu.Lock()
+		defer si.mu.Unlock()
+
+		tableInfo, ok := si.tables[tableName]
+		if !ok {
+			return nil, false
+		}
+		return tableInfo.Table, true
+	}
+
+	plan, err := planbuilder.GetExecPlan(sql, GetTable)
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	switch v := stmt.(type) {
