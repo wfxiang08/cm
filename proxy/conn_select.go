@@ -1,10 +1,14 @@
 package proxy
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+	"strings"
 
-import . "github.com/wandoulabs/cm/mysql"
+	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/sqlparser"
+)
 
-/*
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
 	if len(stmt.SelectExprs) != 1 {
 		return fmt.Errorf("support select one informaction function, %s", sql)
@@ -72,7 +76,6 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 
 	return r, nil
 }
-*/
 
 func (c *Conn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)

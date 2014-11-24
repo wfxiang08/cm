@@ -53,7 +53,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, err
 	}
 
-	log.Info("Server run MySql Protocol Listen(%s) at [%s]", netProto, s.addr)
+	log.Infof("Server run MySql Protocol Listen(%s) at [%s]", netProto, s.addr)
 	return s, nil
 }
 
@@ -63,7 +63,7 @@ func (s *Server) Run() error {
 	for s.running {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			log.Error("accept error %s", err.Error())
+			log.Errorf("accept error %s", err.Error())
 			continue
 		}
 
@@ -88,14 +88,14 @@ func (s *Server) onConn(c net.Conn) {
 			const size = 4096
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			log.Error("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+			log.Errorf("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
 		}
 
 		conn.Close()
 	}()
 
 	if err := conn.Handshake(); err != nil {
-		log.Error("handshake error %s", err.Error())
+		log.Errorf("handshake error %s", err.Error())
 		c.Close()
 		return
 	}

@@ -91,19 +91,19 @@ func (s *Server) newConn(co net.Conn) *Conn {
 
 func (c *Conn) Handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
-		log.Error("send initial handshake error %s", err.Error())
+		log.Errorf("send initial handshake error %s", err.Error())
 		return errors.Trace(err)
 	}
 
 	if err := c.readHandshakeResponse(); err != nil {
-		log.Error("recv handshake response error %s", err.Error())
+		log.Errorf("recv handshake response error %s", err.Error())
 
 		c.writeError(err)
 		return errors.Trace(err)
 	}
 
 	if err := c.writeOK(nil); err != nil {
-		log.Error("write ok fail %s", err.Error())
+		log.Errorf("write ok fail %s", err.Error())
 
 		return errors.Trace(err)
 	}
@@ -244,7 +244,7 @@ func (c *Conn) Run() {
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
 
-			log.Error("%v, %s", err, buf)
+			log.Errorf("%v, %s", err, buf)
 		}
 
 		c.Close()
