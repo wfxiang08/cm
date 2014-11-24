@@ -1,10 +1,8 @@
 package proxy
 
-import (
-	"bytes"
+import "bytes"
 
-	. "github.com/wandoulabs/cm/mysql"
-)
+import . "github.com/wandoulabs/cm/mysql"
 
 /*
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
@@ -51,7 +49,6 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 
 	return c.writeResultset(c.status, r)
 }
-*/
 
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
 	field := &Field{}
@@ -75,6 +72,7 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 
 	return r, nil
 }
+*/
 
 func (c *Conn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
@@ -85,7 +83,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 		return NewDefaultError(ER_NO_DB_ERROR)
 	}
 
-	nodeName := c.schema.rule.GetRule(table).Nodes[0]
+	nodeName := c.schema.rule.GetRule(table).Node
 
 	n := c.server.getNode(nodeName)
 

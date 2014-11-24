@@ -12,7 +12,7 @@ import (
 	"github.com/wandoulabs/cm/proxy"
 )
 
-var configFile *string = flag.String("config", "/etc/mixer.conf", "mixer proxy config file")
+var configFile *string = flag.String("config", "/etc/mixer.json", "cm config file")
 var logLevel *string = flag.String("log-level", "", "log level [debug|info|warn|error], default error")
 
 func main() {

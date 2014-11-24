@@ -1,11 +1,11 @@
 package proxy
 
 import (
-	"github.com/wandoulabs/cm/client"
-	"github.com/wandoulabs/cm/config"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/wandoulabs/cm/config"
 )
 
 var testServerOnce sync.Once

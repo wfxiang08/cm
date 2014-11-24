@@ -1,57 +1,54 @@
 package config
 
 import (
+	"encoding/json"
 	"io/ioutil"
-
-	"github.com/siddontang/go-yaml/yaml"
 )
 
 type NodeConfig struct {
-	Name             string `yaml:"name"`
-	DownAfterNoAlive int    `yaml:"down_after_noalive"`
-	IdleConns        int    `yaml:"idle_conns"`
-	RWSplit          bool   `yaml:"rw_split"`
+	Name             string `json:"name"`
+	DownAfterNoAlive int    `json:"down_after_noalive"`
+	IdleConns        int    `json:"idle_conns"`
+	RWSplit          bool   `json:"rw_split"`
 
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	User     string `json:"user"`
+	Password string `json:"password"`
 
-	Master string `yaml:"master"`
-	Slave  string `yaml:"slave"`
+	Master string `json:"master"`
+	Slave  string `json:"slave"`
 }
 
 type SchemaConfig struct {
-	DB          string      `yaml:"db"`
-	Nodes       []string    `yaml:"nodes"`
-	RulesConifg RulesConfig `yaml:"rules"`
+	DB          string      `json:"db"`
+	Nodes       []string    `json:"nodes"`
+	RulesConifg RulesConfig `json:"rules"`
 }
 
 type RulesConfig struct {
-	Default   string        `yaml:"default"`
-	ShardRule []ShardConfig `yaml:"shard"`
+	Default   string        `json:"default"`
+	ShardRule []ShardConfig `json:"shard"`
 }
 
 type ShardConfig struct {
-	Table string   `yaml:"table"`
-	Key   string   `yaml:"key"`
-	Nodes []string `yaml:"nodes"`
-	Type  string   `yaml:"type"`
-	Range string   `yaml:"range"`
+	Table string `json:"table"`
+	Key   string `json:"key"`
+	Node  string `json:"node"`
 }
 
 type Config struct {
-	Addr     string `yaml:"addr"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	LogLevel string `yaml:"log_level"`
+	Addr     string `json:"addr"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	LogLevel string `json:"log_level"`
 
-	Nodes []NodeConfig `yaml:"nodes"`
+	Nodes []NodeConfig `json:"nodes"`
 
-	Schemas []SchemaConfig `yaml:"schemas"`
+	Schemas []SchemaConfig `json:"schemas"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {
 	var cfg Config
-	if err := yaml.Unmarshal([]byte(data), &cfg); err != nil {
+	if err := json.Unmarshal([]byte(data), &cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

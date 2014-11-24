@@ -76,7 +76,7 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 
 	r := c.schema.rule.GetRule(tableName)
 
-	n := c.server.getNode(r.Nodes[0])
+	n := c.server.getNode(r.Node)
 
 	if co, err := n.getMasterConn(); err != nil {
 		return fmt.Errorf("prepare error %s", err)

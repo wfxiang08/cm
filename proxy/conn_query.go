@@ -260,34 +260,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	return err
 }
 
-func (c *Conn) beginShardConns(conns []*SqlConn) error {
-	if c.isInTransaction() {
-		return nil
-	}
-
-	for _, co := range conns {
-		if err := co.Begin(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Conn) commitShardConns(conns []*SqlConn) error {
-	if c.isInTransaction() {
-		return nil
-	}
-
-	for _, co := range conns {
-		if err := co.Commit(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
 	bindVars := makeBindVars(args)
 
@@ -303,20 +275,23 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	if len(conns) == 1 {
 		rs, err = c.executeInShard(conns, sql, args)
 	} else {
+		log.Warning("not implement yet")
 		//for multi nodes, 2PC simple, begin, exec, commit
 		//if commit error, data maybe corrupt
-		// for {
-		// 	if err = c.beginShardConns(conns); err != nil {
-		// 		break
-		// 	}
+		/*
+			for {
+				if err = c.beginShardConns(conns); err != nil {
+					break
+				}
 
-		// 	if rs, err = c.executeInShard(conns, sql, args); err != nil {
-		// 		break
-		// 	}
+				if rs, err = c.executeInShard(conns, sql, args); err != nil {
+					break
+				}
 
-		// 	err = c.commitShardConns(conns)
-		// 	break
-		// }
+				err = c.commitShardConns(conns)
+				break
+			}
+		*/
 	}
 
 	c.closeShardConns(conns, err != nil)

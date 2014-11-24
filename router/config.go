@@ -1,12 +1,6 @@
 package router
 
-import (
-	"fmt"
-	"github.com/wandoulabs/cm/config"
-	"regexp"
-	"strconv"
-	"strings"
-)
+import "github.com/wandoulabs/cm/config"
 
 var (
 	DefaultRuleType = "default"
@@ -23,8 +17,7 @@ func (c *RuleConfig) ParseRule(db string) (*Rule, error) {
 	r.DB = db
 	r.Table = c.Table
 	r.Key = c.Key
-	r.Type = c.Type
-	r.Nodes = c.Nodes
+	r.Node = c.Node
 
 	if err := c.parseShard(r); err != nil {
 		return nil, err
@@ -33,6 +26,7 @@ func (c *RuleConfig) ParseRule(db string) (*Rule, error) {
 	return r, nil
 }
 
+/*
 func (c *RuleConfig) parseNodes(r *Rule) error {
 	// Note: did not used yet, by HuangChuanTong
 	reg, err := regexp.Compile(`(\w+)\((\d+)\-(\d+)\)`)
@@ -40,7 +34,7 @@ func (c *RuleConfig) parseNodes(r *Rule) error {
 		return err
 	}
 
-	ns := c.Nodes // strings.Split(c.Nodes, ",")
+	ns := c.Node
 
 	nodes := map[string]struct{}{}
 
@@ -52,7 +46,7 @@ func (c *RuleConfig) parseNodes(r *Rule) error {
 			}
 
 			nodes[n] = struct{}{}
-			r.Nodes = append(r.Nodes, n)
+			r.Node = append(r.Nodes, n)
 		} else {
 			var start, stop int
 			if start, err = strconv.Atoi(s[2]); err != nil {
@@ -91,25 +85,8 @@ func (c *RuleConfig) parseNodes(r *Rule) error {
 
 	return nil
 }
+*/
 
 func (c *RuleConfig) parseShard(r *Rule) error {
-	if r.Type == HashRuleType {
-		//hash shard
-		r.Shard = &HashShard{ShardNum: len(r.Nodes)}
-	} else if r.Type == RangeRuleType {
-		rs, err := ParseNumShardingSpec(c.Range)
-		if err != nil {
-			return err
-		}
-
-		if len(rs) != len(r.Nodes) {
-			return fmt.Errorf("range space %d not equal nodes %d", len(rs), len(r.Nodes))
-		}
-
-		r.Shard = &NumRangeShard{Shards: rs}
-	} else {
-		r.Shard = &DefaultShard{}
-	}
-
 	return nil
 }

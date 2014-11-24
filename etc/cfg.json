@@ -1,0 +1,30 @@
+{
+    "addr": "127.0.0.1:4000",
+    "user": "root",
+    "password": "",
+    "log_level" : "error",
+
+    "nodes" : [
+        {
+            "name" : "node1",
+            "down_after_noalive" : 0,
+            "idle_conns" : 16,
+            "rw_split" : false,
+            "master" : "127.0.0.1:3306",
+            "slave" : "",
+            "user" : "root",
+            "password": ""
+        }
+    ],
+
+    "schemas" : [
+        {
+            "db": "test",
+            "nodes" : ["node1"],
+            "rules" : {
+                "default" : "node1",
+                "shard" : []
+            }
+        }
+    ]
+}
