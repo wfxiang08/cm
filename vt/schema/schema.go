@@ -10,7 +10,7 @@ package schema
 import (
 	"strings"
 
-	"github.com/youtube/vitess/go/sqltypes"
+	"github.com/wandoulabs/cm/sqltypes"
 )
 
 // Column categories
