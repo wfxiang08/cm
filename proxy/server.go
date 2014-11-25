@@ -51,7 +51,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		rc := v.RulesConifg
 		var overrides []tabletserver.SchemaOverride
 		//todo: fill override.Cache field
-		var or tabletserver.SchemaOverride
+		or := tabletserver.SchemaOverride{}
+		or.Cache = &tabletserver.OverrideCacheDesc{Type: "RW", Prefix: or.Name, Table: or.Name}
 		for _, sc := range rc.ShardRule {
 			or.Name = sc.Table //table name
 			or.PKColumns = append(or.PKColumns, sc.Key)

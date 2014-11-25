@@ -335,7 +335,7 @@ func (s *MemcacheStats) readStats(k string, proc func(key, value string)) {
 			continue
 		}
 		items := strings.Split(line, " ")
-		if len(items) != 3 {
+		if len(items) < 3 { //liuqi: if using apt-get, memcached info would be:  STAT version 1.4.14 (Ubuntu)
 			log.Errorf("Unexpected stats: %v", line)
 			internalErrors.Add("MemcacheStats", 1)
 			continue

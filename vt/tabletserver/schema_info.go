@@ -58,14 +58,16 @@ func (ep *ExecPlan) Stats() (queryCount int64, duration time.Duration, rowCount,
 	return
 }
 
+type OverrideCacheDesc struct {
+	Type   string
+	Prefix string
+	Table  string
+}
+
 type SchemaOverride struct {
 	Name      string
 	PKColumns []string
-	Cache     *struct {
-		Type   string
-		Prefix string
-		Table  string
-	}
+	Cache     *OverrideCacheDesc
 }
 
 type SchemaInfo struct {
@@ -79,11 +81,16 @@ type SchemaInfo struct {
 }
 
 func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
+	//todo: make all configurable
+	rowCacheConf := RowCacheConfig{Memory: 128 * 1024 * 1024, TcpPort: 11211, Connections: 1024, Threads: -1}
+	rowCacheConf.Binary = "/usr/bin/memcached"
+	//rowCacheConf.Socket = "memcache.sock"
+
 	si := &SchemaInfo{
 		queries: cache.NewLRUCache(int64(queryCacheSize)),
 		tables:  make(map[string]*TableInfo),
 		//todo: fill RowCacheConfig
-		cachePool: NewCachePool(dbName, RowCacheConfig{}, 3*time.Second, 3*time.Second),
+		cachePool: NewCachePool(dbName, rowCacheConf, 3*time.Second, 3*time.Second),
 	}
 
 	var err error
@@ -94,6 +101,8 @@ func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, 
 
 	si.overrides = overrides
 	log.Infof("%+v", si.overrides)
+	si.cachePool.Open()
+
 	for _, or := range si.overrides {
 		si.CreateOrUpdateTable(or.Name)
 	}
@@ -127,14 +136,17 @@ func (si *SchemaInfo) override() {
 			continue
 		}
 		if override.PKColumns != nil {
+			log.Infof("SetPK Table name %s, pk %v", override.Name, override.PKColumns)
 			if err := table.SetPK(override.PKColumns); err != nil {
 				log.Warningf("%v: %v", err, override)
 				continue
 			}
 		}
 		if si.cachePool.IsClosed() || override.Cache == nil {
+			log.Infof("%+v", override)
 			continue
 		}
+
 		switch override.Cache.Type {
 		case "RW":
 			table.CacheType = schema.CACHE_RW
