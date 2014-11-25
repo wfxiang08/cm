@@ -59,7 +59,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	} else {
 		switch strings.ToLower(string(specialColumn.Name)) {
 		case "@@max_allowed_packet":
-			r, err = c.buildSimpleSelectResult("1234567890", specialColumn.Name[2:], expr.As)
+			r, err = c.buildSimpleSelectResult(1048576, specialColumn.Name[2:], expr.As)
 		default:
 			return fmt.Errorf("config %s not support", specialColumn.Name)
 		}
