@@ -19,38 +19,55 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		return fmt.Errorf("support select informaction function, %s", sql)
 	}
 
-	var f *sqlparser.FuncExpr
-	f, ok = expr.Expr.(*sqlparser.FuncExpr)
-	if !ok {
+	var funcExpr *sqlparser.FuncExpr
+	var specialColumn *sqlparser.ColName
+
+	switch v := expr.Expr.(type) {
+	case *sqlparser.FuncExpr:
+		funcExpr = v
+	case *sqlparser.ColName:
+		specialColumn = v
+	default:
 		return fmt.Errorf("support select informaction function, %s", sql)
 	}
 
 	var r *Resultset
 	var err error
 
-	switch strings.ToLower(string(f.Name)) {
-	case "last_insert_id":
-		r, err = c.buildSimpleSelectResult(c.lastInsertId, f.Name, expr.As)
-	case "row_count":
-		r, err = c.buildSimpleSelectResult(c.affectedRows, f.Name, expr.As)
-	case "version":
-		r, err = c.buildSimpleSelectResult(ServerVersion, f.Name, expr.As)
-	case "connection_id":
-		r, err = c.buildSimpleSelectResult(c.connectionId, f.Name, expr.As)
-	case "database":
-		if c.schema != nil {
-			r, err = c.buildSimpleSelectResult(c.schema.db, f.Name, expr.As)
-		} else {
-			r, err = c.buildSimpleSelectResult("NULL", f.Name, expr.As)
+	if funcExpr != nil {
+		switch strings.ToLower(string(funcExpr.Name)) {
+		case "last_insert_id":
+			r, err = c.buildSimpleSelectResult(c.lastInsertId, funcExpr.Name, expr.As)
+		case "row_count":
+			r, err = c.buildSimpleSelectResult(c.affectedRows, funcExpr.Name, expr.As)
+		case "version":
+			r, err = c.buildSimpleSelectResult(ServerVersion, funcExpr.Name, expr.As)
+		case "connection_id":
+			r, err = c.buildSimpleSelectResult(c.connectionId, funcExpr.Name, expr.As)
+		case "database":
+			if c.schema != nil {
+				r, err = c.buildSimpleSelectResult(c.schema.db, funcExpr.Name, expr.As)
+			} else {
+				r, err = c.buildSimpleSelectResult("NULL", funcExpr.Name, expr.As)
+			}
+		default:
+			return fmt.Errorf("function %s not support", funcExpr.Name)
 		}
-	default:
-		return fmt.Errorf("function %s not support", f.Name)
-	}
+		if err != nil {
+			return err
+		}
+	} else {
+		switch strings.ToLower(string(specialColumn.Name)) {
+		case "@@max_allowed_packet":
+			r, err = c.buildSimpleSelectResult("1234567890", specialColumn.Name[2:], expr.As)
+		default:
+			return fmt.Errorf("config %s not support", specialColumn.Name)
+		}
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
-
 	return c.writeResultset(c.status, r)
 }
 
