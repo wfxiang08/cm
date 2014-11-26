@@ -540,7 +540,7 @@ func (c *MySqlConn) readResultRows(result *Result, isBinary bool) (err error) {
 		result.RowDatas = append(result.RowDatas, data)
 	}
 
-	result.Values = make([][]interface{}, len(result.RowDatas))
+	result.Values = make([]RowValue, len(result.RowDatas))
 
 	for i := range result.Values {
 		result.Values[i], err = result.RowDatas[i].Parse(result.Fields, isBinary)

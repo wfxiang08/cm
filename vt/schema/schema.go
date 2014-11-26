@@ -10,14 +10,17 @@ package schema
 import (
 	"strings"
 
-	"github.com/wandoulabs/cm/sqltypes"
+	"github.com/wandoulabs/cm/mysql"
 )
 
 // Column categories
 const (
 	CAT_OTHER = iota
-	CAT_NUMBER
-	CAT_VARBINARY
+	CAT_INT64
+	CAT_FLOAT64
+	CAT_BYTES
+	CAT_STR
+	CAT_TIME
 )
 
 // Cache types
@@ -31,7 +34,7 @@ type TableColumn struct {
 	Name     string
 	Category int
 	IsAuto   bool
-	Default  sqltypes.Value
+	Default  mysql.Value
 }
 
 type Table struct {
@@ -50,29 +53,27 @@ func NewTable(name string) *Table {
 	}
 }
 
-func (ta *Table) AddColumn(name string, columnType string, defval sqltypes.Value, extra string) {
+func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, extra string) {
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
 	if strings.Contains(columnType, "int") {
-		ta.Columns[index].Category = CAT_NUMBER
+		ta.Columns[index].Category = CAT_INT64
 	} else if strings.HasPrefix(columnType, "varbinary") {
-		ta.Columns[index].Category = CAT_VARBINARY
-	} else {
-		ta.Columns[index].Category = CAT_OTHER
+		ta.Columns[index].Category = CAT_BYTES
+	} else if strings.Contains(columnType, "float") || strings.Contains(columnType, "double") {
+		ta.Columns[index].Category = CAT_FLOAT64
+	} else if strings.Contains(columnType, "TEXT") {
+		ta.Columns[index].Category = CAT_STR
 	}
 	if extra == "auto_increment" {
 		ta.Columns[index].IsAuto = true
 		// Ignore default value, if any
 		return
 	}
-	if defval.IsNull() {
+	if defval == nil {
 		return
 	}
-	if ta.Columns[index].Category == CAT_NUMBER {
-		ta.Columns[index].Default = sqltypes.MakeNumeric(defval.Raw())
-	} else {
-		ta.Columns[index].Default = sqltypes.MakeString(defval.Raw())
-	}
+	ta.Columns[index].Default = defval
 }
 
 func (ta *Table) FindColumn(name string) int {

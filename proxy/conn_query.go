@@ -218,7 +218,7 @@ func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 		}
 	}
 
-	r.Values = make([][]interface{}, 0)
+	r.Values = make([]RowValue, 0)
 	r.RowDatas = make([]RowData, 0)
 
 	return r

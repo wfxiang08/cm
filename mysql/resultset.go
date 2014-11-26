@@ -3,14 +3,52 @@ package mysql
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/wandoulabs/cm/hack"
 	"math"
 	"strconv"
+	"time"
+
+	"github.com/wandoulabs/cm/hack"
 )
 
 type RowData []byte
+type Value interface{}
+type RowValue []Value
 
-func (p RowData) Parse(f []*Field, binary bool) ([]interface{}, error) {
+func Raw(val interface{}) (v []byte, err error) {
+	switch bindVal := val.(type) {
+	case nil:
+		// no op
+	case int:
+		v = strconv.AppendInt(nil, int64(bindVal), 10)
+	case int32:
+		v = strconv.AppendInt(nil, int64(bindVal), 10)
+	case int64:
+		v = strconv.AppendInt(nil, int64(bindVal), 10)
+	case uint:
+		v = strconv.AppendUint(nil, uint64(bindVal), 10)
+	case uint32:
+		v = strconv.AppendUint(nil, uint64(bindVal), 10)
+	case uint64:
+		v = strconv.AppendUint(nil, uint64(bindVal), 10)
+	case float64:
+		v = strconv.AppendFloat(nil, bindVal, 'f', -1, 64)
+	case string:
+		v = []byte(bindVal)
+	case []byte:
+		v = bindVal
+	case time.Time:
+		v = []byte(bindVal.Format("'2006-01-02 15:04:05'"))
+	default:
+		return nil, fmt.Errorf("unsupported bind variable type %T: %v", v, v)
+	}
+	return v, nil
+}
+
+func DecodeRaw(raw []byte) (v Value, err error) {
+	return nil, nil
+}
+
+func (p RowData) Parse(f []*Field, binary bool) ([]Value, error) {
 	if binary {
 		return p.ParseBinary(f)
 	} else {
@@ -18,8 +56,8 @@ func (p RowData) Parse(f []*Field, binary bool) ([]interface{}, error) {
 	}
 }
 
-func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
-	data := make([]interface{}, len(f))
+func (p RowData) ParseText(f []*Field) ([]Value, error) {
+	data := make([]Value, len(f))
 
 	var err error
 	var v []byte
@@ -63,8 +101,8 @@ func (p RowData) ParseText(f []*Field) ([]interface{}, error) {
 	return data, nil
 }
 
-func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
-	data := make([]interface{}, len(f))
+func (p RowData) ParseBinary(f []*Field) ([]Value, error) {
+	data := make([]Value, len(f))
 
 	if p[0] != OK_HEADER {
 		return nil, ErrMalformPacket
@@ -220,7 +258,7 @@ func (p RowData) ParseBinary(f []*Field) ([]interface{}, error) {
 type Resultset struct {
 	Fields     []*Field
 	FieldNames map[string]int
-	Values     [][]interface{}
+	Values     []RowValue
 
 	RowDatas []RowData
 }

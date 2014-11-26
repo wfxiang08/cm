@@ -6,13 +6,13 @@ package tabletserver
 
 import (
 	"encoding/binary"
-	"log"
 	"strconv"
 	"time"
 
-	"github.com/youtube/vitess/go/sqltypes"
+	log "github.com/ngaut/logging"
+
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/youtube/vitess/go/stats"
-	"github.com/youtube/vitess/go/vt/schema"
 )
 
 var cacheStats = stats.NewTimings("Rowcache")
@@ -36,7 +36,7 @@ type RowCache struct {
 }
 
 type RCResult struct {
-	Row []sqltypes.Value
+	Row mysql.RowValue
 	Cas uint64
 }
 
@@ -83,7 +83,7 @@ func (rc *RowCache) Get(keys []string) (results map[string]RCResult) {
 	return
 }
 
-func (rc *RowCache) Set(key string, row []sqltypes.Value, cas uint64) {
+func (rc *RowCache) Set(key string, row mysql.RowValue, cas uint64) {
 	if len(key) > MAX_KEY_LEN {
 		return
 	}
@@ -127,10 +127,15 @@ func (rc *RowCache) Delete(key string) {
 	}
 }
 
-func (rc *RowCache) encodeRow(row []sqltypes.Value) (b []byte) {
+func (rc *RowCache) encodeRow(row mysql.RowValue) (b []byte) {
 	length := 0
 	for _, v := range row {
-		length += len(v.Raw())
+		raw, err := mysql.Raw(v)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+		length += len(raw)
 		if length > MAX_DATA_LEN {
 			return nil
 		}
@@ -140,20 +145,22 @@ func (rc *RowCache) encodeRow(row []sqltypes.Value) (b []byte) {
 	data := b[datastart:datastart]
 	pack.PutUint32(b, uint32(len(row)))
 	for i, v := range row {
-		if v.IsNull() {
+		raw, _ := mysql.Raw(v)
+
+		if raw == nil {
 			pack.PutUint32(b[4+i*4:], 0xFFFFFFFF)
 			continue
 		}
-		data = append(data, v.Raw()...)
-		pack.PutUint32(b[4+i*4:], uint32(len(v.Raw())))
+		data = append(data, raw...)
+		pack.PutUint32(b[4+i*4:], uint32(len(raw)))
 	}
 	return b
 }
 
-func (rc *RowCache) decodeRow(b []byte) (row []sqltypes.Value) {
+func (rc *RowCache) decodeRow(b []byte) (row mysql.RowValue) {
 	rowlen := pack.Uint32(b)
 	data := b[4+rowlen*4:]
-	row = make([]sqltypes.Value, rowlen)
+	row = mysql.RowValue(make([]mysql.Value, rowlen))
 	for i := range row {
 		length := pack.Uint32(b[4+i*4:])
 		if length == 0xFFFFFFFF {
@@ -163,11 +170,8 @@ func (rc *RowCache) decodeRow(b []byte) (row []sqltypes.Value) {
 			// Corrupt data
 			return nil
 		}
-		if rc.tableInfo.Columns[i].Category == schema.CAT_NUMBER {
-			row[i] = sqltypes.MakeNumeric(data[:length])
-		} else {
-			row[i] = sqltypes.MakeString(data[:length])
-		}
+
+		row[i], _ = mysql.DecodeRaw(data[:length])
 		data = data[length:]
 	}
 	return row
