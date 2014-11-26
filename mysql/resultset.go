@@ -14,7 +14,7 @@ type RowData []byte
 type Value interface{}
 type RowValue []Value
 
-func Raw(val interface{}) (v []byte, err error) {
+func Raw(val Value) (v []byte, err error) {
 	switch bindVal := val.(type) {
 	case nil:
 		// no op
@@ -31,7 +31,9 @@ func Raw(val interface{}) (v []byte, err error) {
 	case uint64:
 		v = strconv.AppendUint(nil, uint64(bindVal), 10)
 	case float64:
-		v = strconv.AppendFloat(nil, bindVal, 'f', -1, 64)
+		v = make([]byte, 8)
+		bits := math.Float64bits(bindVal)
+		binary.LittleEndian.PutUint64(v, bits)
 	case string:
 		v = []byte(bindVal)
 	case []byte:
@@ -44,8 +46,23 @@ func Raw(val interface{}) (v []byte, err error) {
 	return v, nil
 }
 
-func DecodeRaw(raw []byte) (v Value, err error) {
-	return nil, nil
+func DecodeRaw(raw []byte, t byte) (v Value, err error) {
+	switch t {
+	case MYSQL_TYPE_STRING:
+		v = string(raw)
+	case MYSQL_TYPE_VARCHAR:
+		v = raw
+	case MYSQL_TYPE_LONGLONG:
+		v, _ = strconv.ParseInt(string(raw), 10, 64)
+	case MYSQL_TYPE_DOUBLE:
+		bits := binary.LittleEndian.Uint64(raw)
+		v = math.Float64frombits(bits)
+	case MYSQL_TYPE_DATETIME:
+		v, _ = time.Parse("'2006-01-02 15:04:05'", string(raw))
+	default:
+		return nil, fmt.Errorf("unsupported type: %v", t)
+	}
+	return v, nil
 }
 
 func (p RowData) Parse(f []*Field, binary bool) ([]Value, error) {

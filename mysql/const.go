@@ -123,6 +123,10 @@ const (
 )
 
 const (
+	MYSQL_TYPE_NO_CACHE byte = 0xff
+)
+
+const (
 	NOT_NULL_FLAG       = 1
 	PRI_KEY_FLAG        = 2
 	UNIQUE_KEY_FLAG     = 4

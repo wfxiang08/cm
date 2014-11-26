@@ -171,7 +171,7 @@ func (rc *RowCache) decodeRow(b []byte) (row mysql.RowValue) {
 			return nil
 		}
 
-		row[i], _ = mysql.DecodeRaw(data[:length])
+		row[i], _ = mysql.DecodeRaw(data[:length], rc.tableInfo.Columns[i].Category)
 		data = data[length:]
 	}
 	return row

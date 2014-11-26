@@ -13,16 +13,6 @@ import (
 	"github.com/wandoulabs/cm/mysql"
 )
 
-// Column categories
-const (
-	CAT_OTHER = iota
-	CAT_INT64
-	CAT_FLOAT64
-	CAT_BYTES
-	CAT_STR
-	CAT_TIME
-)
-
 // Cache types
 const (
 	CACHE_NONE = 0
@@ -32,7 +22,7 @@ const (
 
 type TableColumn struct {
 	Name     string
-	Category int
+	Category byte
 	IsAuto   bool
 	Default  mysql.Value
 }
@@ -57,13 +47,15 @@ func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, e
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
 	if strings.Contains(columnType, "int") {
-		ta.Columns[index].Category = CAT_INT64
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_LONGLONG
 	} else if strings.HasPrefix(columnType, "varbinary") {
-		ta.Columns[index].Category = CAT_BYTES
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_VARCHAR
 	} else if strings.Contains(columnType, "float") || strings.Contains(columnType, "double") {
-		ta.Columns[index].Category = CAT_FLOAT64
-	} else if strings.Contains(columnType, "TEXT") {
-		ta.Columns[index].Category = CAT_STR
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_DOUBLE
+	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") {
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_STRING
+	} else {
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_NO_CACHE
 	}
 	if extra == "auto_increment" {
 		ta.Columns[index].IsAuto = true
