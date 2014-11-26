@@ -11,9 +11,21 @@ import (
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
+	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 )
+
+func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
+	output = make(RowValue, len(columnNumbers))
+	for colIndex, colPointer := range columnNumbers {
+		if colPointer >= 0 {
+			output[colIndex] = input[colPointer]
+		}
+	}
+
+	return output
+}
 
 func (c *Conn) handleQuery(sql string) (err error) {
 	defer func() {
@@ -41,12 +53,36 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 		return ti.Table, true
 	}
+
 	plan, err := planbuilder.GetExecPlan(sql, GetTable)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
+	//todo: fix hard code
+	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
+	key := plan.PKValues[0].(sqltypes.Value).String()
+	items := ti.Cache.Get([]string{key})
+	if row, ok := items[key]; ok {
+		retValues := applyFilter(plan.ColumnNumbers, row.Row)
+		log.Infof("%+v", retValues)
+		//todo:write back
+		return
+	}
+
+	pk := ti.Columns[ti.PKColumns[0]]
+	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
+	log.Info(rowsql)
+
+	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
 	log.Infof("%s, %+v, %+v", sql, plan, stmt)
+	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
+	log.Infof("%+v", retValues)
+	ti.Cache.Set(key, result.Values[0], 0)
 
 	switch v := stmt.(type) {
 	case *sqlparser.Select:

@@ -179,6 +179,18 @@ func (si *SchemaInfo) Close() {
 	si.queries.Clear()
 }
 
+func (si *SchemaInfo) Exec(sql string) (*mysql.Result, error) {
+	conn, err := si.connPool.PopConn()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//todo: fix nil arg
+	defer si.connPool.PushConn(conn, nil)
+
+	return conn.Execute(sql)
+}
+
 func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 	si.mu.Lock()
 	defer si.mu.Unlock()
