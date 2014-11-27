@@ -270,6 +270,16 @@ func pkValuesToStrings(pkValues []interface{}) []string {
 	return s
 }
 
+func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []string {
+	fields := make([]string, 0, len(plan.ColumnNumbers)) //construct field name
+	for _, i := range plan.ColumnNumbers {
+		c := ti.Columns[i]
+		fields = append(fields, c.Name)
+	}
+
+	return fields
+}
+
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
 	// handle cache
 	plan, ti, err := c.getPlanAndTableInfo(sql)
@@ -281,12 +291,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	keys := pkValuesToStrings(plan.PKValues)
 	items := ti.Cache.Get(keys)
 	if len(items) == len(keys) { //all cache hint
-		var fields []string //construct field name
-		for _, i := range plan.ColumnNumbers {
-			c := ti.Columns[i]
-			fields = append(fields, c.Name)
-		}
-
 		var values []RowValue
 		for _, key := range keys {
 			row, ok := items[key]
@@ -299,7 +303,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 			log.Info("hit cache!", sql)
 		}
 
-		r, err := c.buildResultset(fields, values)
+		r, err := c.buildResultset(getFieldNames(plan, ti), values)
 		if err != nil {
 			log.Error(err)
 			return errors.Trace(err)
@@ -308,11 +312,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		return c.writeResultset(c.status, r)
 	}
 
-	if plan.PlanId == planbuilder.PLAN_PK_IN {
-		if len(keys) > 1 {
-			break
-		}
-
+	if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
 		pk := ti.Columns[ti.PKColumns[0]]
 		rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
 		log.Info(rowsql)
@@ -330,6 +330,17 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		if len(result.Values) == 1 && len(keys) == 1 {
 			ti.Cache.Set(keys[0], result.Values[0], 0)
 		}
+
+		var values []RowValue
+		values = append(values, retValues)
+		r, err := c.buildResultset(getFieldNames(plan, ti), values)
+		if err != nil {
+			log.Error(err)
+			return errors.Trace(err)
+		}
+
+		return c.writeResultset(c.status, r)
+
 	}
 
 	bindVars := makeBindVars(args)
