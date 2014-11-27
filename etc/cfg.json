@@ -25,7 +25,7 @@
                 "default" : "node1",
                 "shard" : [
 			{
-				"table":"person",
+				"table":"t1",
 				"key": "id",
 				"node": "node1"
 			}

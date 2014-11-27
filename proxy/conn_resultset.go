@@ -2,9 +2,10 @@ package proxy
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
-	"strconv"
 )
 
 func formatValue(value interface{}) ([]byte, error) {
@@ -61,7 +62,7 @@ func formatField(field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *Conn) buildResultset(names []string, values [][]interface{}) (*Resultset, error) {
+func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, error) {
 	r := new(Resultset)
 
 	r.Fields = make([]*Field, len(names))

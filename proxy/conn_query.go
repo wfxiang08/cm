@@ -28,6 +28,7 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 }
 
 func (c *Conn) handleQuery(sql string) (err error) {
+
 	sql = strings.TrimRight(sql, ";")
 
 	var stmt sqlparser.Statement
@@ -36,10 +37,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
 
-	log.Info(sql)
-
 	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		log.Infof("%+v", c.server.autoSchamas[c.db])
 		ti := c.server.autoSchamas[c.db].GetTable(tableName)
 		if ti == nil {
 			return nil, false
@@ -57,18 +55,24 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 	//todo: fix hard code
 	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
-	if ti == nil {
-		return errors.Errorf("unsupport sql %s", sql)
-	}
-
-	log.Infof("%+v", ti)
 	key := plan.PKValues[0].(sqltypes.Value).String()
 	items := ti.Cache.Get([]string{key})
 	if row, ok := items[key]; ok {
-		retValues := applyFilter(plan.ColumnNumbers, row.Row)
-		log.Infof("%+v", retValues)
+		retValue := applyFilter(plan.ColumnNumbers, row.Row)
+		var fields []string
+		var values []RowValue
+		for _, i := range plan.ColumnNumbers {
+			c := ti.Columns[i]
+			fields = append(fields, c.Name)
+		}
+		values = append(values, retValue)
+		r, err := c.buildResultset(fields, values)
+		if err != nil {
+			log.Error(err)
+		}
 		//todo:write back
-		return errors.Trace(err)
+		log.Info("hit cache!")
+		return c.writeResultset(c.status, r)
 	}
 
 	pk := ti.Columns[ti.PKColumns[0]]
