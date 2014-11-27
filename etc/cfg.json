@@ -24,12 +24,17 @@
             "rules" : {
                 "default" : "node1",
                 "shard" : [
-			{
-				"table":"person",
-				"key": "id",
-				"node": "node1"
-			}
-		]
+                    {
+                        "table":"person",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
+                        "table":"t1",
+                        "key": "id",
+                        "node": "node1"
+                    }
+                ]
             }
         }
     ]
