@@ -44,22 +44,20 @@ type Conn struct {
 var baseConnId uint32 = 10000
 
 func (s *Server) newConn(co net.Conn) *Conn {
-	c := new(Conn)
-	c.c = co
-	c.pkg = NewPacketIO(co)
-	c.server = s
-	c.c = co
+	c := &Conn{
+		c:            co,
+		pkg:          NewPacketIO(co),
+		server:       s,
+		connectionId: atomic.AddUint32(&baseConnId, 1),
+		status:       SERVER_STATUS_AUTOCOMMIT,
+		txConns:      make(map[*Node]*SqlConn),
+		stmts:        make(map[uint32]*Stmt),
+		collation:    DEFAULT_COLLATION_ID,
+		closed:       false,
+		charset:      DEFAULT_CHARSET,
+	}
 	c.pkg.Sequence = 0
-	c.connectionId = atomic.AddUint32(&baseConnId, 1)
-	c.status = SERVER_STATUS_AUTOCOMMIT
 	c.salt, _ = RandomBuf(20)
-	c.txConns = make(map[*Node]*SqlConn)
-	c.closed = false
-	c.collation = DEFAULT_COLLATION_ID
-	c.charset = DEFAULT_CHARSET
-
-	c.stmtId = 0
-	c.stmts = make(map[uint32]*Stmt)
 
 	return c
 }
