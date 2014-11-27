@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
+	"github.com/wandoulabs/cm/vt/tabletserver"
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 )
 
@@ -219,63 +221,116 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 	return bindVars
 }
 
-func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
-	// handle cache
-	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		ti := c.server.autoSchamas[c.db].GetTable(tableName)
-		if ti == nil {
-			return nil, false
-		}
-
-		log.Infof("%+v", ti.Table)
-
-		return ti.Table, true
+func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
+	ti := c.server.autoSchamas[c.db].GetTable(tableName)
+	if ti == nil {
+		return nil, false
 	}
 
-	plan, err := planbuilder.GetExecPlan(sql, GetTable)
+	log.Infof("%+v", ti.Table)
+
+	return ti.Table, true
+}
+
+func (c *Conn) getTableInfo(tableName string) *tabletserver.TableInfo {
+	return c.server.autoSchamas[c.db].GetTable(tableName)
+}
+
+func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletserver.TableInfo, error) {
+	plan, err := planbuilder.GetExecPlan(sql, c.getTableSchema)
+	if err != nil {
+		return nil, nil, errors.Trace(err)
+	}
+
+	log.Infof("%+v", plan)
+
+	ti := c.getTableInfo(plan.TableName)
+	if ti == nil {
+		return plan, nil, errors.Errorf("unsupport sql %s", sql)
+	}
+
+	return plan, ti, nil
+}
+
+func pkValuesToStrings(pkValues []interface{}) []string {
+	s := make([]string, 0)
+	for _, values := range pkValues {
+		switch v := values.(type) {
+		case sqltypes.Value:
+			s = append(s, v.String())
+		case []interface{}:
+			for _, value := range v {
+				s = append(s, value.(sqltypes.Value).String())
+			}
+		default:
+			log.Fatal(v, reflect.TypeOf(v))
+		}
+	}
+
+	return s
+}
+
+func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+	// handle cache
+	plan, ti, err := c.getPlanAndTableInfo(sql)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	//todo: fix hard code
-	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
-	if ti == nil {
-		return errors.Errorf("unsupport sql %s", sql)
-	}
-
-	key := plan.PKValues[0].(sqltypes.Value).String()
-	items := ti.Cache.Get([]string{key})
-	if row, ok := items[key]; ok {
-		retValue := applyFilter(plan.ColumnNumbers, row.Row)
-		var fields []string
-		var values []RowValue
+	keys := pkValuesToStrings(plan.PKValues)
+	items := ti.Cache.Get(keys)
+	if len(items) == len(keys) { //all cache hint
+		var fields []string //construct field name
 		for _, i := range plan.ColumnNumbers {
 			c := ti.Columns[i]
 			fields = append(fields, c.Name)
 		}
-		values = append(values, retValue)
+
+		var values []RowValue
+		for _, key := range keys {
+			row, ok := items[key]
+			if !ok {
+				log.Fatal("should never happend")
+			}
+			retValue := applyFilter(plan.ColumnNumbers, row.Row)
+			values = append(values, retValue)
+
+			log.Info("hit cache!", sql)
+		}
+
 		r, err := c.buildResultset(fields, values)
 		if err != nil {
 			log.Error(err)
+			return errors.Trace(err)
 		}
-		//todo:write back
-		log.Info("hit cache!")
+
 		return c.writeResultset(c.status, r)
 	}
 
-	pk := ti.Columns[ti.PKColumns[0]]
-	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
-	log.Info(rowsql)
+	if plan.PlanId == planbuilder.PLAN_PK_IN {
+		if len(keys) > 1 {
+			break
+		}
 
-	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
-	if err != nil {
-		return errors.Trace(err)
+		pk := ti.Columns[ti.PKColumns[0]]
+		rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
+		log.Info(rowsql)
+
+		result, err := c.server.autoSchamas[c.db].Exec(rowsql)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		log.Infof("%s, %+v, %+v", sql, plan, stmt)
+		retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
+		log.Infof("%+v", retValues)
+
+		//just simple cache just now
+		if len(result.Values) == 1 && len(keys) == 1 {
+			ti.Cache.Set(keys[0], result.Values[0], 0)
+		}
 	}
-
-	log.Infof("%s, %+v, %+v", sql, plan, stmt)
-	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
-	log.Infof("%+v", retValues)
-	ti.Cache.Set(key, result.Values[0], 0)
 
 	bindVars := makeBindVars(args)
 
