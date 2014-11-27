@@ -335,6 +335,10 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		return errors.Trace(err)
 	}
 
+	if len(plan.PKValues) == 0 {
+		return errors.Errorf("pk not exist, %s", sql)
+	}
+
 	//todo: fix hard code
 	keys := pkValuesToStrings(plan.PKValues)
 	items := ti.Cache.Get(keys)
@@ -349,7 +353,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	}
 
 	bindVars := makeBindVars(args)
-
 	conns, err := c.getShardConns(true, stmt, bindVars)
 	if err != nil {
 		return errors.Trace(err)
