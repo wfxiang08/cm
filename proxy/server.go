@@ -11,20 +11,14 @@ import (
 )
 
 type Server struct {
-	cfg *config.Config
-
-	addr     string
-	user     string
-	password string
-
-	running bool
-
-	listener net.Listener
-
-	nodes map[string]*Node
-
-	schemas map[string]*Schema
-
+	cfg         *config.Config
+	addr        string
+	user        string
+	password    string
+	running     bool
+	listener    net.Listener
+	nodes       map[string]*Node
+	schemas     map[string]*Schema
 	autoSchamas map[string]*tabletserver.SchemaInfo
 }
 
@@ -50,14 +44,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	for _, v := range s.cfg.Schemas {
 		rc := v.RulesConifg
 		var overrides []tabletserver.SchemaOverride
-		//todo: fill override.Cache field
-		or := tabletserver.SchemaOverride{}
-		or.Cache = &tabletserver.OverrideCacheDesc{Type: "RW", Prefix: or.Name, Table: or.Name}
 		for _, sc := range rc.ShardRule {
+			or := tabletserver.SchemaOverride{}
 			or.Name = sc.Table //table name
 			or.PKColumns = append(or.PKColumns, sc.Key)
+			or.Cache = &tabletserver.OverrideCacheDesc{Type: "RW", Prefix: or.Name, Table: or.Name}
+			overrides = append(overrides, or)
 		}
-		overrides = append(overrides, or)
 
 		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(128*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
 	}
