@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/config"
 	"github.com/wandoulabs/cm/vt/tabletserver"
@@ -23,35 +24,33 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
-	s := new(Server)
-
-	s.cfg = cfg
-
-	s.addr = cfg.Addr
-	s.user = cfg.User
-	s.password = cfg.Password
-	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
+	s := &Server{
+		cfg:         cfg,
+		addr:        cfg.Addr,
+		user:        cfg.User,
+		password:    cfg.Password,
+		autoSchamas: make(map[string]*tabletserver.SchemaInfo),
+	}
 
 	if err := s.parseNodes(); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	if err := s.parseSchemas(); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
-	//fix hard code
 	for _, v := range s.cfg.Schemas {
 		rc := v.RulesConifg
 		var overrides []tabletserver.SchemaOverride
 		for _, sc := range rc.ShardRule {
-			or := tabletserver.SchemaOverride{}
-			or.Name = sc.Table //table name
+			or := tabletserver.SchemaOverride{Name: sc.Table}
 			or.PKColumns = append(or.PKColumns, sc.Key)
 			or.Cache = &tabletserver.OverrideCacheDesc{Type: "RW", Prefix: or.Name, Table: or.Name}
 			overrides = append(overrides, or)
 		}
 
+		//fix hard code node
 		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(128*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
 	}
 
@@ -61,9 +60,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		netProto = "unix"
 	}
 	s.listener, err = net.Listen(netProto, s.addr)
-
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	log.Infof("Server run MySql Protocol Listen(%s) at [%s]", netProto, s.addr)
