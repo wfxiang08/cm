@@ -280,6 +280,54 @@ func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []str
 	return fields
 }
 
+func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string, items map[string]tabletserver.RCResult) error {
+	var values []RowValue
+	for _, key := range keys {
+		row, ok := items[key]
+		if !ok {
+			log.Fatal("should never happend")
+		}
+		retValue := applyFilter(plan.ColumnNumbers, row.Row)
+		values = append(values, retValue)
+	}
+
+	r, err := c.buildResultset(getFieldNames(plan, ti), values)
+	if err != nil {
+		log.Error(err)
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.writeResultset(c.status, r))
+}
+
+func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string) error {
+	pk := ti.Columns[ti.PKColumns[0]]
+	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
+	log.Info(rowsql)
+
+	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
+
+	//just simple cache just now
+	if len(result.Values) == 1 && len(keys) == 1 {
+		ti.Cache.Set(keys[0], result.Values[0], 0)
+	}
+
+	var values []RowValue
+	values = append(values, retValues)
+	r, err := c.buildResultset(getFieldNames(plan, ti), values)
+	if err != nil {
+		log.Error(err)
+		return errors.Trace(err)
+	}
+
+	return c.writeResultset(c.status, r)
+}
+
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
 	// handle cache
 	plan, ti, err := c.getPlanAndTableInfo(sql)
@@ -291,56 +339,13 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	keys := pkValuesToStrings(plan.PKValues)
 	items := ti.Cache.Get(keys)
 	if len(items) == len(keys) { //all cache hint
-		var values []RowValue
-		for _, key := range keys {
-			row, ok := items[key]
-			if !ok {
-				log.Fatal("should never happend")
-			}
-			retValue := applyFilter(plan.ColumnNumbers, row.Row)
-			values = append(values, retValue)
-
-			log.Info("hit cache!", sql)
-		}
-
-		r, err := c.buildResultset(getFieldNames(plan, ti), values)
-		if err != nil {
-			log.Error(err)
-			return errors.Trace(err)
-		}
-
-		return c.writeResultset(c.status, r)
+		log.Info("hit cache!", sql)
+		return c.writeCacheResults(plan, ti, keys, items)
 	}
 
 	if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
-		pk := ti.Columns[ti.PKColumns[0]]
-		rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
-		log.Info(rowsql)
-
-		result, err := c.server.autoSchamas[c.db].Exec(rowsql)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
 		log.Infof("%s, %+v, %+v", sql, plan, stmt)
-		retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
-		log.Infof("%+v", retValues)
-
-		//just simple cache just now
-		if len(result.Values) == 1 && len(keys) == 1 {
-			ti.Cache.Set(keys[0], result.Values[0], 0)
-		}
-
-		var values []RowValue
-		values = append(values, retValues)
-		r, err := c.buildResultset(getFieldNames(plan, ti), values)
-		if err != nil {
-			log.Error(err)
-			return errors.Trace(err)
-		}
-
-		return c.writeResultset(c.status, r)
-
+		return c.fillCacheAndReturnResults(plan, ti, keys)
 	}
 
 	bindVars := makeBindVars(args)
