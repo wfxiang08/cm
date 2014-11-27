@@ -10,6 +10,8 @@ package schema
 import (
 	"strings"
 
+	log "github.com/ngaut/logging"
+
 	"github.com/wandoulabs/cm/mysql"
 )
 
@@ -50,12 +52,14 @@ func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, e
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_LONGLONG
 	} else if strings.HasPrefix(columnType, "varbinary") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_VARCHAR
+	} else if strings.HasPrefix(columnType, "datetime") || strings.HasPrefix(columnType, "timestamp") {
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_DATETIME
 	} else if strings.Contains(columnType, "float") || strings.Contains(columnType, "double") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_DOUBLE
 	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_STRING
 	} else {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_NO_CACHE
+		log.Fatalf("not support type: %s", columnType)
 	}
 	if extra == "auto_increment" {
 		ta.Columns[index].IsAuto = true

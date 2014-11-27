@@ -81,7 +81,7 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 	formatField(field, value)
 
 	r := &Resultset{Fields: []*Field{field}}
-	row, err := formatValue(value)
+	row, err := Raw(value)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

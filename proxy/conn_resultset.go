@@ -2,47 +2,12 @@ package proxy
 
 import (
 	"fmt"
-	"strconv"
+	"time"
 
 	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 )
-
-func formatValue(value interface{}) ([]byte, error) {
-	switch v := value.(type) {
-	case int8:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int16:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int32:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int64:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case int:
-		return strconv.AppendInt(nil, int64(v), 10), nil
-	case uint8:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint16:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint32:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint64:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case uint:
-		return strconv.AppendUint(nil, uint64(v), 10), nil
-	case float32:
-		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-	case float64:
-		return strconv.AppendFloat(nil, float64(v), 'f', -1, 64), nil
-	case []byte:
-		return v, nil
-	case string:
-		return hack.Slice(v), nil
-	default:
-		return nil, fmt.Errorf("invalid type %T", value)
-	}
-}
 
 func formatField(field *Field, value interface{}) error {
 	switch value.(type) {
@@ -57,6 +22,9 @@ func formatField(field *Field, value interface{}) error {
 	case string, []byte:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VAR_STRING
+	case time.Time:
+		field.Charset = 33
+		field.Type = MYSQL_TYPE_DATETIME
 	default:
 		return fmt.Errorf("unsupport type %T for resultset", value)
 	}
@@ -85,7 +53,7 @@ func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, er
 					return nil, errors.Trace(err)
 				}
 			}
-			b, err = formatValue(value)
+			b, err = Raw(value)
 
 			if err != nil {
 				return nil, errors.Trace(err)
