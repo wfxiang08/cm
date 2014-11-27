@@ -55,9 +55,7 @@ func Raw(val Value) (v []byte, err error) {
 
 func DecodeRaw(raw []byte, t byte) (v Value, err error) {
 	switch t {
-	case MYSQL_TYPE_STRING:
-		v = string(raw)
-	case MYSQL_TYPE_VARCHAR:
+	case MYSQL_TYPE_STRING, MYSQL_TYPE_ENUM, MYSQL_TYPE_VARCHAR:
 		v = raw
 	case MYSQL_TYPE_SHORT, MYSQL_TYPE_LONG, MYSQL_TYPE_INT24, MYSQL_TYPE_LONGLONG:
 		v, _ = strconv.ParseInt(string(raw), 10, 64)

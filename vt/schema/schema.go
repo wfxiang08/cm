@@ -48,15 +48,17 @@ func NewTable(name string) *Table {
 func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, extra string) {
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
-	if strings.Contains(columnType, "int") {
+	if strings.Contains(columnType, "int") || strings.Contains(columnType, "long") || strings.Contains(columnType, "tiny") || strings.Contains(columnType, "short") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_LONGLONG
-	} else if strings.HasPrefix(columnType, "varbinary") {
+	} else if strings.HasPrefix(columnType, "varbinary") || strings.Contains(columnType, "blob") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_VARCHAR
 	} else if strings.HasPrefix(columnType, "datetime") || strings.HasPrefix(columnType, "timestamp") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_DATETIME
 	} else if strings.Contains(columnType, "float") || strings.Contains(columnType, "double") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_DOUBLE
-	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") {
+	} else if strings.HasPrefix(columnType, "enum") {
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_ENUM
+	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") || strings.Contains(columnType, "string") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_STRING
 	} else {
 		log.Fatalf("not support type: %s", columnType)
