@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/juju/errors"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )
@@ -72,22 +73,17 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 }
 
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
-	field := &Field{}
-
-	field.Name = name
-
+	field := &Field{Name: name, OrgName: name}
 	if asName != nil {
 		field.Name = asName
 	}
-
-	field.OrgName = name
 
 	formatField(field, value)
 
 	r := &Resultset{Fields: []*Field{field}}
 	row, err := formatValue(value)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
 
@@ -100,7 +96,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 	wildcard := string(data[index+1:])
 
 	if c.schema == nil {
-		return NewDefaultError(ER_NO_DB_ERROR)
+		return errors.Trace(NewDefaultError(ER_NO_DB_ERROR))
 	}
 
 	nodeName := c.schema.rule.GetRule(table).Node
@@ -109,18 +105,18 @@ func (c *Conn) handleFieldList(data []byte) error {
 
 	co, err := n.getMasterConn()
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 	defer co.Close()
 
 	if err = co.UseDB(c.schema.db); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	if fs, err := co.FieldList(table, wildcard); err != nil {
-		return err
+		return errors.Trace(err)
 	} else {
-		return c.writeFieldList(c.status, fs)
+		return errors.Trace(c.writeFieldList(c.status, fs))
 	}
 }
 
@@ -133,12 +129,10 @@ func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
 		data = data[0:4]
 		data = append(data, v.Dump()...)
 		if err := c.writePacket(data); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
-		return err
-	}
-	return nil
+	err := c.writeEOF(status)
+	return errors.Trace(err)
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/juju/errors"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )
@@ -15,24 +16,20 @@ var paramFieldData []byte
 var columnFieldData []byte
 
 func init() {
-	var p = &Field{Name: []byte("?")}
-	var c = &Field{}
+	p := &Field{Name: []byte("?")}
+	c := &Field{}
 
 	paramFieldData = p.Dump()
 	columnFieldData = c.Dump()
 }
 
 type Stmt struct {
-	id uint32
-
+	id      uint32
 	params  int
 	columns int
-
-	args []interface{}
-
-	s sqlparser.Statement
-
-	sql string
+	args    []interface{}
+	s       sqlparser.Statement
+	sql     string
 }
 
 func (s *Stmt) ResetParams() {
@@ -44,14 +41,14 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 		return NewDefaultError(ER_NO_DB_ERROR)
 	}
 
-	s := new(Stmt)
+	s := &Stmt{}
 
 	sql = strings.TrimRight(sql, ";")
 
 	var err error
 	s.s, err = sqlparser.Parse(sql)
 	if err != nil {
-		return fmt.Errorf(`parse sql "%s" error`, sql)
+		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
 
 	s.sql = sql
@@ -71,15 +68,13 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 				tableName = nstring(s.Table)
 		*/
 	default:
-		return fmt.Errorf(`unsupport prepare sql "%s"`, sql)
+		return errors.Errorf(`unsupport prepare sql "%s"`, sql)
 	}
 
 	r := c.schema.rule.GetRule(tableName)
-
 	n := c.server.getNode(r.Node)
-
 	if co, err := n.getMasterConn(); err != nil {
-		return fmt.Errorf("prepare error %s", err)
+		return errors.Errorf("prepare error %s", err)
 	} else {
 		defer co.Close()
 
@@ -100,7 +95,7 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 	c.stmtId++
 
 	if err = c.writePrepare(s); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	s.ResetParams()
@@ -206,7 +201,7 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 		if data[pos] == 1 {
 			pos++
 			if len(data) < (pos + (paramNum << 1)) {
-				return ErrMalformPacket
+				return errors.Trace(ErrMalformPacket)
 			}
 
 			paramTypes = data[pos : pos+(paramNum<<1)]
@@ -216,7 +211,7 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 		}
 
 		if err := c.bindStmtArgs(s, nullBitmaps, paramTypes, paramValues); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 
@@ -236,12 +231,12 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 				err = c.handleExec(s.s, s.sql, s.args)
 		*/
 	default:
-		err = fmt.Errorf("command %T not supported now", stmt)
+		err = errors.Errorf("command %T not supported now", stmt)
 	}
 
 	s.ResetParams()
 
-	return err
+	return errors.Trace(err)
 }
 
 func (c *Conn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte) error {
@@ -384,7 +379,7 @@ func (c *Conn) handleStmtSendLongData(data []byte) error {
 
 	paramId := binary.LittleEndian.Uint16(data[4:6])
 	if paramId >= uint16(s.params) {
-		return NewDefaultError(ER_WRONG_ARGUMENTS, "stmt_send_longdata")
+		return errors.Trace(NewDefaultError(ER_WRONG_ARGUMENTS, "stmt_send_longdata"))
 	}
 
 	if s.args[paramId] == nil {
@@ -394,7 +389,7 @@ func (c *Conn) handleStmtSendLongData(data []byte) error {
 			b = append(b, data[6:]...)
 			s.args[paramId] = b
 		} else {
-			return fmt.Errorf("invalid param long data type %T", s.args[paramId])
+			return errors.Errorf("invalid param long data type %T", s.args[paramId])
 		}
 	}
 
@@ -410,13 +405,13 @@ func (c *Conn) handleStmtReset(data []byte) error {
 
 	s, ok := c.stmts[id]
 	if !ok {
-		return NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
-			strconv.FormatUint(uint64(id), 10), "stmt_reset")
+		return errors.Trace(NewDefaultError(ER_UNKNOWN_STMT_HANDLER,
+			strconv.FormatUint(uint64(id), 10), "stmt_reset"))
 	}
 
 	s.ResetParams()
 
-	return c.writeOK(nil)
+	return errors.Trace(c.writeOK(nil))
 }
 
 func (c *Conn) handleStmtClose(data []byte) error {

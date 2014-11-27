@@ -28,11 +28,8 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 }
 
 func (c *Conn) handleQuery(sql string) (err error) {
-
 	sql = strings.TrimRight(sql, ";")
-
-	var stmt sqlparser.Statement
-	stmt, err = sqlparser.Parse(sql)
+	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
 		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
@@ -55,6 +52,10 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 	//todo: fix hard code
 	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
+	if ti == nil {
+		return errors.Errorf("unsupport sql %s", sql)
+	}
+
 	key := plan.PKValues[0].(sqltypes.Value).String()
 	items := ti.Cache.Get([]string{key})
 	if row, ok := items[key]; ok {
@@ -193,7 +194,6 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 	wg.Add(len(conns))
 
 	rs := make([]interface{}, len(conns))
-
 	f := func(rs []interface{}, i int, co *SqlConn) {
 		r, err := co.Execute(sql, args...)
 		if err != nil {

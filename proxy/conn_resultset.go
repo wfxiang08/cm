@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 )
@@ -63,9 +64,7 @@ func formatField(field *Field, value interface{}) error {
 }
 
 func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, error) {
-	r := new(Resultset)
-
-	r.Fields = make([]*Field, len(names))
+	r := &Resultset{Fields: make([]*Field, len(names))}
 
 	var b []byte
 	var err error
@@ -83,13 +82,13 @@ func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, er
 				field.Name = hack.Slice(names[j])
 
 				if err = formatField(field, value); err != nil {
-					return nil, err
+					return nil, errors.Trace(err)
 				}
 			}
 			b, err = formatValue(value)
 
 			if err != nil {
-				return nil, err
+				return nil, errors.Trace(err)
 			}
 
 			row = append(row, PutLengthEncodedString(b)...)
@@ -103,39 +102,33 @@ func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, er
 
 func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 	c.affectedRows = int64(-1)
-
 	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))
-
 	data := make([]byte, 4, 1024)
-
 	data = append(data, columnLen...)
 	if err := c.writePacket(data); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	for _, v := range r.Fields {
 		data = data[0:4]
 		data = append(data, v.Dump()...)
 		if err := c.writePacket(data); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 
 	if err := c.writeEOF(status); err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	for _, v := range r.RowDatas {
 		data = data[0:4]
 		data = append(data, v...)
 		if err := c.writePacket(data); err != nil {
-			return err
+			return errors.Trace(err)
 		}
 	}
 
-	if err := c.writeEOF(status); err != nil {
-		return err
-	}
-
-	return nil
+	err := c.writeEOF(status)
+	return errors.Trace(err)
 }
