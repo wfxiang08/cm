@@ -28,13 +28,6 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 }
 
 func (c *Conn) handleQuery(sql string) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("execute %s error %v", sql, e)
-			return
-		}
-	}()
-
 	sql = strings.TrimRight(sql, ";")
 
 	var stmt sqlparser.Statement
@@ -43,7 +36,10 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
 
+	log.Info(sql)
+
 	GetTable := func(tableName string) (table *schema.Table, ok bool) {
+		log.Infof("%+v", c.server.autoSchamas[c.db])
 		ti := c.server.autoSchamas[c.db].GetTable(tableName)
 		if ti == nil {
 			return nil, false
@@ -61,13 +57,18 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 	//todo: fix hard code
 	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
+	if ti == nil {
+		return errors.Errorf("unsupport sql %s", sql)
+	}
+
+	log.Infof("%+v", ti)
 	key := plan.PKValues[0].(sqltypes.Value).String()
 	items := ti.Cache.Get([]string{key})
 	if row, ok := items[key]; ok {
 		retValues := applyFilter(plan.ColumnNumbers, row.Row)
 		log.Infof("%+v", retValues)
 		//todo:write back
-		return
+		return errors.Trace(err)
 	}
 
 	pk := ti.Columns[ti.PKColumns[0]]
