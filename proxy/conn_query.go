@@ -34,62 +34,6 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return errors.Errorf(`parse sql "%s" error`, sql)
 	}
 
-	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		ti := c.server.autoSchamas[c.db].GetTable(tableName)
-		if ti == nil {
-			return nil, false
-		}
-
-		log.Infof("%+v", ti.Table)
-
-		return ti.Table, true
-	}
-
-	plan, err := planbuilder.GetExecPlan(sql, GetTable)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	//todo: fix hard code
-	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
-	if ti == nil {
-		return errors.Errorf("unsupport sql %s", sql)
-	}
-
-	key := plan.PKValues[0].(sqltypes.Value).String()
-	items := ti.Cache.Get([]string{key})
-	if row, ok := items[key]; ok {
-		retValue := applyFilter(plan.ColumnNumbers, row.Row)
-		var fields []string
-		var values []RowValue
-		for _, i := range plan.ColumnNumbers {
-			c := ti.Columns[i]
-			fields = append(fields, c.Name)
-		}
-		values = append(values, retValue)
-		r, err := c.buildResultset(fields, values)
-		if err != nil {
-			log.Error(err)
-		}
-		//todo:write back
-		log.Info("hit cache!")
-		return c.writeResultset(c.status, r)
-	}
-
-	pk := ti.Columns[ti.PKColumns[0]]
-	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
-	log.Info(rowsql)
-
-	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	log.Infof("%s, %+v, %+v", sql, plan, stmt)
-	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
-	log.Infof("%+v", retValues)
-	ti.Cache.Set(key, result.Values[0], 0)
-
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
 		return c.handleSelect(v, sql, nil)
@@ -276,6 +220,63 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+	// handle cache
+	GetTable := func(tableName string) (table *schema.Table, ok bool) {
+		ti := c.server.autoSchamas[c.db].GetTable(tableName)
+		if ti == nil {
+			return nil, false
+		}
+
+		log.Infof("%+v", ti.Table)
+
+		return ti.Table, true
+	}
+
+	plan, err := planbuilder.GetExecPlan(sql, GetTable)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	//todo: fix hard code
+	ti := c.server.autoSchamas[c.db].GetTable(plan.TableName)
+	if ti == nil {
+		return errors.Errorf("unsupport sql %s", sql)
+	}
+
+	key := plan.PKValues[0].(sqltypes.Value).String()
+	items := ti.Cache.Get([]string{key})
+	if row, ok := items[key]; ok {
+		retValue := applyFilter(plan.ColumnNumbers, row.Row)
+		var fields []string
+		var values []RowValue
+		for _, i := range plan.ColumnNumbers {
+			c := ti.Columns[i]
+			fields = append(fields, c.Name)
+		}
+		values = append(values, retValue)
+		r, err := c.buildResultset(fields, values)
+		if err != nil {
+			log.Error(err)
+		}
+		//todo:write back
+		log.Info("hit cache!")
+		return c.writeResultset(c.status, r)
+	}
+
+	pk := ti.Columns[ti.PKColumns[0]]
+	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
+	log.Info(rowsql)
+
+	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	log.Infof("%s, %+v, %+v", sql, plan, stmt)
+	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
+	log.Infof("%+v", retValues)
+	ti.Cache.Set(key, result.Values[0], 0)
+
 	bindVars := makeBindVars(args)
 
 	conns, err := c.getShardConns(true, stmt, bindVars)
