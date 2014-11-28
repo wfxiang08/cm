@@ -227,6 +227,8 @@ func (c *Conn) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
+	log.Debug(cmd, hack.String(data))
+
 	switch cmd {
 	case COM_QUIT:
 		c.Close()
@@ -245,6 +247,7 @@ func (c *Conn) dispatch(data []byte) error {
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
 		//todo: disable prepare
+		log.Debug("prepare")
 		return c.handleStmtPrepare(hack.String(data))
 	case COM_STMT_EXECUTE:
 		return c.handleStmtExecute(data)

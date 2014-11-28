@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )
@@ -37,6 +38,7 @@ func (s *Stmt) ResetParams() {
 }
 
 func (c *Conn) handleStmtPrepare(sql string) error {
+	log.Warning(sql)
 	if c.schema == nil {
 		return NewDefaultError(ER_NO_DB_ERROR)
 	}
@@ -220,9 +222,10 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 	switch stmt := s.s.(type) {
 	case *sqlparser.Select:
 		err = c.handleSelect(stmt, s.sql, s.args)
-	case *sqlparser.Insert, *sqlparser.Update, *sqlparser.Delete:
-
-		err = c.handleExec(s.s, s.sql, s.args)
+	case *sqlparser.Insert:
+		err = c.handleExec(s.s, s.sql, s.args, true)
+	case *sqlparser.Update, *sqlparser.Delete:
+		err = c.handleExec(s.s, s.sql, s.args, false)
 		/*
 			case *sqlparser.Replace:
 				err = c.handleExec(s.s, s.sql, s.args)

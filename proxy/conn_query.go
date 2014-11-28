@@ -30,6 +30,7 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 }
 
 func (c *Conn) handleQuery(sql string) (err error) {
+	log.Debug(sql)
 	sql = strings.TrimRight(sql, ";")
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
@@ -40,11 +41,11 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.Select:
 		return c.handleSelect(v, sql, nil)
 	case *sqlparser.Insert:
-		return c.handleExec(stmt, sql, nil)
+		return c.handleExec(stmt, sql, nil, true)
 	case *sqlparser.Update:
-		return c.handleExec(stmt, sql, nil)
+		return c.handleExec(stmt, sql, nil, false)
 	case *sqlparser.Delete:
-		return c.handleExec(stmt, sql, nil)
+		return c.handleExec(stmt, sql, nil, false)
 	case *sqlparser.Set:
 		return c.handleSet(v)
 	case *sqlparser.SimpleSelect:
@@ -347,7 +348,8 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		return errors.Errorf("pk not exist, sql: %s", sql)
 	}
 
-	//todo: fix hard code
+	log.Debug(sql, plan.PKValues)
+
 	keys := pkValuesToStrings(plan.PKValues)
 	items := ti.Cache.Get(keys)
 	count := 0
@@ -393,19 +395,23 @@ func invalidCache(ti *tabletserver.TableInfo, keys []string) {
 	}
 }
 
-func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
-	// handle cache
-	plan, ti, err := c.getPlanAndTableInfo(sql)
-	if err != nil {
-		return errors.Trace(err)
-	}
+func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}, skipCache bool) error {
+	if !skipCache {
+		// handle cache
+		plan, ti, err := c.getPlanAndTableInfo(sql)
+		if err != nil {
+			return errors.Trace(err)
+		}
 
-	if len(plan.PKValues) == 0 {
-		return errors.Errorf("pk not exist, sql: %s", sql)
-	}
+		if len(plan.PKValues) == 0 {
+			return errors.Errorf("pk not exist, sql: %s", sql)
+		}
 
-	keys := pkValuesToStrings(plan.PKValues)
-	invalidCache(ti, keys)
+		log.Debugf("%s %+v", sql, plan)
+
+		keys := pkValuesToStrings(plan.PKValues)
+		invalidCache(ti, keys)
+	}
 
 	bindVars := makeBindVars(args)
 	conns, err := c.getShardConns(false, stmt, bindVars)
