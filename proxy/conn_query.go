@@ -300,7 +300,7 @@ func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.Ta
 	return errors.Trace(c.writeResultset(c.status, r))
 }
 
-func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string) error {
+func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, items map[string]tabletserver.RCResult) error {
 	pk := ti.Columns[ti.PKColumns[0]]
 	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
 	log.Info(rowsql)
@@ -317,8 +317,10 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 
 	//just simple cache just now
-	if len(result.Values) == 1 && len(keys) == 1 {
-		ti.Cache.Set(keys[0], result.Values[0], 0)
+	if len(result.Values) == 1 && len(items) == 1 {
+		pkvalue := plan.PKValues[0].(sqltypes.Value).String()
+		item := items[pkvalue]
+		ti.Cache.Set(pkvalue, result.Values[0], item.Cas)
 	}
 
 	var values []RowValue
@@ -346,14 +348,21 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	//todo: fix hard code
 	keys := pkValuesToStrings(plan.PKValues)
 	items := ti.Cache.Get(keys)
-	if len(items) == len(keys) { //all cache hint
-		log.Info("hit cache!", sql)
+	count := 0
+	for _, item := range items {
+		if item.Row != nil {
+			count++
+		}
+	}
+
+	if count == len(keys) { //all cache hint
+		log.Info("hit cache!", sql, items, keys)
 		return c.writeCacheResults(plan, ti, keys, items)
 	}
 
 	if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
 		log.Infof("%s, %+v, %+v", sql, plan, stmt)
-		return c.fillCacheAndReturnResults(plan, ti, keys)
+		return c.fillCacheAndReturnResults(plan, ti, items)
 	}
 
 	bindVars := makeBindVars(args)
@@ -375,6 +384,12 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	return errors.Trace(err)
 }
 
+func invalidCache(ti *tabletserver.TableInfo, keys []string) {
+	for _, key := range keys {
+		ti.Cache.Delete(key)
+	}
+}
+
 func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
 	// handle cache
 	plan, ti, err := c.getPlanAndTableInfo(sql)
@@ -387,9 +402,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	}
 
 	keys := pkValuesToStrings(plan.PKValues)
-	for _, key := range keys {
-		ti.Cache.Delete(key)
-	}
+	invalidCache(ti, keys)
 
 	bindVars := makeBindVars(args)
 	conns, err := c.getShardConns(false, stmt, bindVars)
