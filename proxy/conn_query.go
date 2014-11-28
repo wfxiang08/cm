@@ -300,7 +300,7 @@ func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.Ta
 	return errors.Trace(c.writeResultset(c.status, r))
 }
 
-func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, items map[string]tabletserver.RCResult) error {
+func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string) error {
 	pk := ti.Columns[ti.PKColumns[0]]
 	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
 	log.Info(rowsql)
@@ -311,16 +311,18 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	}
 
 	if len(result.Values) == 0 {
+		log.Debug("empty set")
 		return c.writeResultset(result.Status, result.Resultset)
 	}
 
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
+	log.Debug(len(retValues), len(keys))
 
 	//just simple cache just now
-	if len(result.Values) == 1 && len(items) == 1 {
+	if len(result.Values) == 1 && len(keys) == 1 {
 		pkvalue := plan.PKValues[0].(sqltypes.Value).String()
-		item := items[pkvalue]
-		ti.Cache.Set(pkvalue, result.Values[0], item.Cas)
+		log.Debug("fill cache", pkvalue)
+		ti.Cache.Set(pkvalue, result.Values[0], 0)
 	}
 
 	var values []RowValue
@@ -350,6 +352,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	items := ti.Cache.Get(keys)
 	count := 0
 	for _, item := range items {
+		log.Info(item)
 		if item.Row != nil {
 			count++
 		}
@@ -362,7 +365,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 
 	if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
 		log.Infof("%s, %+v, %+v", sql, plan, stmt)
-		return c.fillCacheAndReturnResults(plan, ti, items)
+		return c.fillCacheAndReturnResults(plan, ti, keys)
 	}
 
 	bindVars := makeBindVars(args)
