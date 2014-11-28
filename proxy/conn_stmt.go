@@ -220,11 +220,8 @@ func (c *Conn) handleStmtExecute(data []byte) error {
 	switch stmt := s.s.(type) {
 	case *sqlparser.Select:
 		err = c.handleSelect(stmt, s.sql, s.args)
-	case *sqlparser.Insert:
-		err = c.handleExec(s.s, s.sql, s.args)
-	case *sqlparser.Update:
-		err = c.handleExec(s.s, s.sql, s.args)
-	case *sqlparser.Delete:
+	case *sqlparser.Insert, *sqlparser.Update, *sqlparser.Delete:
+
 		err = c.handleExec(s.s, s.sql, s.args)
 		/*
 			case *sqlparser.Replace:

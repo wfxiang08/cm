@@ -310,6 +310,10 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 		return errors.Trace(err)
 	}
 
+	if len(result.Values) == 0 {
+		return c.writeResultset(result.Status, result.Resultset)
+	}
+
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 
 	//just simple cache just now
@@ -336,7 +340,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	}
 
 	if len(plan.PKValues) == 0 {
-		return errors.Errorf("pk not exist, %s", sql)
+		return errors.Errorf("pk not exist, sql: %s", sql)
 	}
 
 	//todo: fix hard code
@@ -372,8 +376,22 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 }
 
 func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
-	bindVars := makeBindVars(args)
+	// handle cache
+	plan, ti, err := c.getPlanAndTableInfo(sql)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
+	if len(plan.PKValues) == 0 {
+		return errors.Errorf("pk not exist, sql: %s", sql)
+	}
+
+	keys := pkValuesToStrings(plan.PKValues)
+	for _, key := range keys {
+		ti.Cache.Delete(key)
+	}
+
+	bindVars := makeBindVars(args)
 	conns, err := c.getShardConns(false, stmt, bindVars)
 	if err != nil {
 		return errors.Trace(err)

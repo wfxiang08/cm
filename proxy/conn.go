@@ -244,6 +244,7 @@ func (c *Conn) dispatch(data []byte) error {
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
+		//todo: disable prepare
 		return c.handleStmtPrepare(hack.String(data))
 	case COM_STMT_EXECUTE:
 		return c.handleStmtExecute(data)
