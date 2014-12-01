@@ -54,7 +54,7 @@ func (s *MySqlStmt) write(args ...interface{}) error {
 
 	var length int = int(1 + 4 + 1 + 4 + ((paramsNum + 7) >> 3) + 1 + (paramsNum << 1))
 
-	var newParamBoundFlag byte = 0
+	var newParamBoundFlag byte
 
 	for i := range args {
 		if args[i] == nil {

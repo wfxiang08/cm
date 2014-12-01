@@ -46,21 +46,18 @@ func (db *DB) String() string {
 
 func (db *DB) Close() error {
 	db.Lock()
+	defer db.Unlock()
 
 	for {
 		if db.idleConns.Len() > 0 {
 			v := db.idleConns.Back()
 			co := v.Value.(*MySqlConn)
 			db.idleConns.Remove(v)
-
 			co.Close()
-
 		} else {
 			break
 		}
 	}
-
-	db.Unlock()
 
 	return nil
 }
@@ -90,7 +87,6 @@ func (db *DB) GetConnNum() int {
 
 func (db *DB) newConn() (*MySqlConn, error) {
 	co := new(MySqlConn)
-
 	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
 		return nil, err
 	}
@@ -151,7 +147,7 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 }
 
 func (db *DB) PushConn(co *MySqlConn, err error) {
-	var closeConn *MySqlConn = nil
+	var closeConn *MySqlConn
 
 	if err != nil {
 		closeConn = co
@@ -172,19 +168,16 @@ func (db *DB) PushConn(co *MySqlConn, err error) {
 		} else {
 			closeConn = co
 		}
-
 	}
 
 	if closeConn != nil {
 		atomic.AddInt32(&db.connNum, -1)
-
 		closeConn.Close()
 	}
 }
 
 type SqlConn struct {
 	*MySqlConn
-
 	db *DB
 }
 

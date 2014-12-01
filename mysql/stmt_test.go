@@ -8,7 +8,6 @@ func TestStmt_DropTable(t *testing.T) {
 	str := `drop table if exists mixer_test_stmt`
 
 	c := newTestConn()
-
 	s, err := c.Prepare(str)
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +35,6 @@ func TestStmt_CreateTable(t *testing.T) {
 	defer c.Close()
 
 	s, err := c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +53,6 @@ func TestStmt_Delete(t *testing.T) {
 	defer c.Close()
 
 	s, err := c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +71,6 @@ func TestStmt_Insert(t *testing.T) {
 	defer c.Close()
 
 	s, err := c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +144,6 @@ func TestStmt_NULL(t *testing.T) {
 	defer c.Close()
 
 	s, err := c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +160,6 @@ func TestStmt_NULL(t *testing.T) {
 
 	str = `select * from mixer_test_stmt where id = ?`
 	s, err = c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +202,6 @@ func TestStmt_Unsigned(t *testing.T) {
 	defer c.Close()
 
 	s, err := c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +243,6 @@ func TestStmt_Signed(t *testing.T) {
 	defer c.Close()
 
 	s, err := c.Prepare(str)
-
 	if err != nil {
 		t.Fatal(err)
 	}
