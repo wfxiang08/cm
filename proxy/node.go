@@ -17,21 +17,15 @@ const (
 
 type Node struct {
 	sync.Mutex
-
 	server *Server
-
-	cfg config.NodeConfig
-
+	cfg    config.NodeConfig
 	//running master db
-	db *mysql.DB
-
-	master *mysql.DB
-	slave  *mysql.DB
-
+	db               *mysql.DB
+	master           *mysql.DB
+	slave            *mysql.DB
 	downAfterNoAlive time.Duration
-
-	lastMasterPing int64
-	lastSlavePing  int64
+	lastMasterPing   int64
+	lastSlavePing    int64
 }
 
 func (n *Node) run() {
@@ -126,7 +120,6 @@ func (n *Node) checkSlave() {
 	if int64(n.downAfterNoAlive) > 0 && time.Now().Unix()-n.lastSlavePing > int64(n.downAfterNoAlive) {
 		log.Error("%s slave db %s not alive over %ds, down it",
 			n, db.Addr(), int64(n.downAfterNoAlive/time.Second))
-
 		n.downSlave()
 	}
 }

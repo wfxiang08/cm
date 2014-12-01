@@ -19,7 +19,6 @@ var columnFieldData []byte
 func init() {
 	p := &Field{Name: []byte("?")}
 	c := &Field{}
-
 	paramFieldData = p.Dump()
 	columnFieldData = c.Dump()
 }
@@ -245,7 +244,7 @@ func (c *Conn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte)
 	pos := 0
 
 	var v []byte
-	var n int = 0
+	var n int
 	var isNull bool
 	var err error
 
@@ -361,6 +360,7 @@ func (c *Conn) bindStmtArgs(s *Stmt, nullBitmap, paramTypes, paramValues []byte)
 			return fmt.Errorf("Stmt Unknown FieldType %d", tp)
 		}
 	}
+
 	return nil
 }
 

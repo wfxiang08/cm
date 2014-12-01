@@ -7,11 +7,9 @@ import (
 )
 
 type Schema struct {
-	db string
-
+	db    string
 	nodes map[string]*Node
-
-	rule *router.Router
+	rule  *router.Router
 }
 
 func (s *Server) parseSchemas() error {
@@ -34,7 +32,6 @@ func (s *Server) parseSchemas() error {
 			if _, ok := nodes[n]; ok {
 				return fmt.Errorf("schema [%s] node [%s] duplicate.", schemaCfg.DB, n)
 			}
-
 			nodes[n] = s.getNode(n)
 		}
 

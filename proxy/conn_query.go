@@ -319,7 +319,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 	log.Debug(len(retValues), len(keys))
 
-	//just simple cache just now
+	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 {
 		pkvalue := plan.PKValues[0].(sqltypes.Value).String()
 		log.Debug("fill cache", pkvalue)
