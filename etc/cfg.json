@@ -32,7 +32,8 @@
                     {
                         "table":"t1",
                         "key": "id",
-                        "node": "node1"
+                        "node": "node1",
+		        "row_cache_type":"RW"		
                     }
                 ]
             }

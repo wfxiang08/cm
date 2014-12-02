@@ -8,6 +8,7 @@ import (
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/config"
+	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/wandoulabs/cm/vt/tabletserver"
 )
 
@@ -21,6 +22,17 @@ type Server struct {
 	nodes       map[string]*Node
 	schemas     map[string]*Schema
 	autoSchamas map[string]*tabletserver.SchemaInfo
+}
+
+func GetRowCacheType(rowCacheType string) int {
+	switch rowCacheType {
+	case "RW":
+		return schema.CACHE_RW
+	case "W":
+		return schema.CACHE_W
+	default:
+		return schema.CACHE_NONE
+	}
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
@@ -46,7 +58,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		for _, sc := range rc.ShardRule {
 			or := tabletserver.SchemaOverride{Name: sc.Table}
 			or.PKColumns = append(or.PKColumns, sc.Key)
-			or.Cache = &tabletserver.OverrideCacheDesc{Type: "RW", Prefix: or.Name, Table: or.Name}
+			or.Cache = &tabletserver.OverrideCacheDesc{Type: sc.RowCacheType, Prefix: or.Name, Table: or.Name}
 			overrides = append(overrides, or)
 		}
 

@@ -30,9 +30,10 @@ type RulesConfig struct {
 }
 
 type ShardConfig struct {
-	Table string `json:"table"`
-	Key   string `json:"key"`
-	Node  string `json:"node"`
+	Table        string `json:"table"`
+	Key          string `json:"key"`
+	RowCacheType string `json:"row_cache_type"`
+	Node         string `json:"node"`
 }
 
 type Config struct {

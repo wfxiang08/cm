@@ -320,7 +320,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	log.Debug(len(retValues), len(keys))
 
 	//just do simple cache now
-	if len(result.Values) == 1 && len(keys) == 1 {
+	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
 		pkvalue := plan.PKValues[0].(sqltypes.Value).String()
 		log.Debug("fill cache", pkvalue)
 		ti.Cache.Set(pkvalue, result.Values[0], 0)
@@ -344,30 +344,32 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		return errors.Trace(err)
 	}
 
-	if len(plan.PKValues) == 0 {
-		return errors.Errorf("pk not exist, sql: %s", sql)
-	}
-
-	log.Debug(sql, plan.PKValues)
-
-	keys := pkValuesToStrings(plan.PKValues)
-	items := ti.Cache.Get(keys)
-	count := 0
-	for _, item := range items {
-		log.Info(item)
-		if item.Row != nil {
-			count++
+	if ti.CacheType != schema.CACHE_NONE {
+		if len(plan.PKValues) == 0 {
+			return errors.Errorf("pk not exist, sql: %s", sql)
 		}
-	}
 
-	if count == len(keys) { //all cache hint
-		log.Info("hit cache!", sql, items, keys)
-		return c.writeCacheResults(plan, ti, keys, items)
-	}
+		log.Debug(sql, plan.PKValues)
 
-	if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
-		log.Infof("%s, %+v, %+v", sql, plan, stmt)
-		return c.fillCacheAndReturnResults(plan, ti, keys)
+		keys := pkValuesToStrings(plan.PKValues)
+		items := ti.Cache.Get(keys)
+		count := 0
+		for _, item := range items {
+			log.Info(item)
+			if item.Row != nil {
+				count++
+			}
+		}
+
+		if count == len(keys) { //all cache hint
+			log.Info("hit cache!", sql, items, keys)
+			return c.writeCacheResults(plan, ti, keys, items)
+		}
+
+		if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
+			log.Infof("%s, %+v, %+v", sql, plan, stmt)
+			return c.fillCacheAndReturnResults(plan, ti, keys)
+		}
 	}
 
 	bindVars := makeBindVars(args)
@@ -403,14 +405,16 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 			return errors.Trace(err)
 		}
 
-		if len(plan.PKValues) == 0 {
-			return errors.Errorf("pk not exist, sql: %s", sql)
+		if ti.CacheType != schema.CACHE_NONE {
+			if len(plan.PKValues) == 0 {
+				return errors.Errorf("pk not exist, sql: %s", sql)
+			}
+
+			log.Debugf("%s %+v", sql, plan)
+
+			keys := pkValuesToStrings(plan.PKValues)
+			invalidCache(ti, keys)
 		}
-
-		log.Debugf("%s %+v", sql, plan)
-
-		keys := pkValuesToStrings(plan.PKValues)
-		invalidCache(ti, keys)
 	}
 
 	bindVars := makeBindVars(args)
