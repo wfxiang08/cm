@@ -2,7 +2,7 @@
     "addr": "127.0.0.1:4000",
     "user": "root",
     "password": "",
-    "log_level" : "info",
+    "log_level" : "debug",
 
     "nodes" : [
         {
@@ -55,6 +55,26 @@
                         "node": "node1"
                     },
                     {
+                        "table":"test_char",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
+                        "table":"test_blob",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
+                        "table":"test_tinyblob",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
+                        "table":"test_longblob",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
                         "table":"test_varchar",
                         "key": "id",
                         "node": "node1"
@@ -75,7 +95,12 @@
                         "node": "node1"
                     },
                     {
-                        "table":"test_blob",
+                        "table":"test_date",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
+                        "table":"test_enum",
                         "key": "id",
                         "node": "node1"
                     }

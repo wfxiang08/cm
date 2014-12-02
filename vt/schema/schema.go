@@ -54,11 +54,13 @@ func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, e
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_VARCHAR
 	} else if strings.HasPrefix(columnType, "datetime") || strings.HasPrefix(columnType, "timestamp") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_DATETIME
+	} else if strings.HasPrefix(columnType, "date") {
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_DATE
 	} else if strings.Contains(columnType, "float") || strings.Contains(columnType, "double") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_DOUBLE
 	} else if strings.HasPrefix(columnType, "enum") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_ENUM
-	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") || strings.Contains(columnType, "string") {
+	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") || strings.Contains(columnType, "string") || strings.Contains(columnType, "char") {
 		ta.Columns[index].Category = mysql.MYSQL_TYPE_STRING
 	} else {
 		log.Fatalf("not support type: %s", columnType)

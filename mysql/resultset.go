@@ -67,6 +67,11 @@ func DecodeRaw(raw []byte, t byte) (v Value, err error) {
 		if err != nil {
 			v = "0000-00-00 00:00:00"
 		}
+	case MYSQL_TYPE_DATE:
+		v, err = time.Parse("2006-01-02", string(raw))
+		if err != nil {
+			v = "0000-00-00"
+		}
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", t)
 	}

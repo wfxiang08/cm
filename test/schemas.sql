@@ -25,7 +25,7 @@ insert into test_bool values (0, TRUE);
 create table test_varchar (id INT, data varchar(100));
 insert into test_varchar values (0, "hello");
 
-create table test_char (id INT, data varchar(1024));
+create table test_char (id INT, data char(255));
 insert into test_char values (0, "hello");
 
 create table test_text (id INT, data text);
