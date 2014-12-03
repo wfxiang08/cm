@@ -24,9 +24,7 @@ type Field struct {
 }
 
 func (p FieldData) Parse() (f *Field, err error) {
-	f = new(Field)
-
-	f.Data = p
+	f = &Field{Data: p}
 
 	var n int
 	pos := 0

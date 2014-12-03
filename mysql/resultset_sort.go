@@ -3,8 +3,9 @@ package mysql
 import (
 	"bytes"
 	"fmt"
-	"github.com/wandoulabs/cm/hack"
 	"sort"
+
+	"github.com/wandoulabs/cm/hack"
 )
 
 const (
@@ -14,24 +15,19 @@ const (
 
 type SortKey struct {
 	//name of the field
-	Name string
-
+	Name      string
 	Direction string
-
 	//column index of the field
 	column int
 }
 
 type resultsetSorter struct {
 	*Resultset
-
 	sk []SortKey
 }
 
 func newResultsetSorter(r *Resultset, sk []SortKey) (*resultsetSorter, error) {
-	s := new(resultsetSorter)
-
-	s.Resultset = r
+	s := &resultsetSorter{Resultset: r}
 
 	for i, k := range sk {
 		if column, ok := r.FieldNames[k.Name]; ok {
@@ -125,13 +121,11 @@ func cmpValue(v1 interface{}, v2 interface{}) int {
 
 func (r *resultsetSorter) Swap(i, j int) {
 	r.Values[i], r.Values[j] = r.Values[j], r.Values[i]
-
 	r.RowDatas[i], r.RowDatas[j] = r.RowDatas[j], r.RowDatas[i]
 }
 
 func (r *Resultset) Sort(sk []SortKey) error {
 	s, err := newResultsetSorter(r, sk)
-
 	if err != nil {
 		return err
 	}

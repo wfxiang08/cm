@@ -23,8 +23,7 @@ func (e *SqlError) Error() string {
 
 //default mysql error, must adapt errname message format
 func NewDefaultError(errCode uint16, args ...interface{}) *SqlError {
-	e := new(SqlError)
-	e.Code = errCode
+	e := &SqlError{Code: errCode}
 
 	if s, ok := MySQLState[errCode]; ok {
 		e.State = s
@@ -42,8 +41,7 @@ func NewDefaultError(errCode uint16, args ...interface{}) *SqlError {
 }
 
 func NewError(errCode uint16, message string) *SqlError {
-	e := new(SqlError)
-	e.Code = errCode
+	e := &SqlError{Code: errCode}
 
 	if s, ok := MySQLState[errCode]; ok {
 		e.State = s

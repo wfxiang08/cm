@@ -19,7 +19,6 @@ func NewPacketIO(conn net.Conn) *PacketIO {
 
 	p.rb = bufio.NewReaderSize(conn, 1024)
 	p.wb = conn
-
 	p.Sequence = 0
 
 	return p
@@ -67,7 +66,6 @@ func (p *PacketIO) WritePacket(data []byte) error {
 	length := len(data) - 4
 
 	for length >= MaxPayloadLen {
-
 		data[0] = 0xff
 		data[1] = 0xff
 		data[2] = 0xff

@@ -9,28 +9,23 @@ import (
 
 type DB struct {
 	sync.Mutex
-
 	addr         string
 	user         string
 	password     string
 	db           string
 	maxIdleConns int
-
-	idleConns *list.List
-
-	connNum int32
+	idleConns    *list.List
+	connCount    int32
 }
 
 func Open(addr string, user string, password string, dbName string) (*DB, error) {
-	db := new(DB)
-
-	db.addr = addr
-	db.user = user
-	db.password = password
-	db.db = dbName
-
-	db.idleConns = list.New()
-	db.connNum = 0
+	db := &DB{
+		addr:      addr,
+		user:      user,
+		password:  password,
+		db:        dbName,
+		idleConns: list.New(),
+	}
 
 	return db, nil
 }
@@ -82,7 +77,7 @@ func (db *DB) GetIdleConnNum() int {
 }
 
 func (db *DB) GetConnNum() int {
-	return int(db.connNum)
+	return int(atomic.LoadInt32(&db.connCount))
 }
 
 func (db *DB) newConn() (*MySqlConn, error) {
@@ -141,7 +136,7 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 
 	co, err = db.newConn()
 	if err == nil {
-		atomic.AddInt32(&db.connNum, 1)
+		atomic.AddInt32(&db.connCount, 1)
 	}
 	return
 }
@@ -171,7 +166,7 @@ func (db *DB) PushConn(co *MySqlConn, err error) {
 	}
 
 	if closeConn != nil {
-		atomic.AddInt32(&db.connNum, -1)
+		atomic.AddInt32(&db.connCount, -1)
 		closeConn.Close()
 	}
 }
