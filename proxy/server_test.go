@@ -1,5 +1,6 @@
 package proxy
 
+/*
 import (
 	"sync"
 	"testing"
@@ -16,19 +17,19 @@ var testDB *client.DB
 var testConfigData = []byte(`
 addr : 127.0.0.1:4000
 user : root
-password : 
+password :
 
 nodes :
-- 
-    name : node1 
+-
+    name : node1
     down_after_noalive : 300
     idle_conns : 16
     rw_split: false
     user: root
     password:
     master : 127.0.0.1:3306
-    slave : 
-- 
+    slave :
+-
     name : node2
     down_after_noalive : 300
     idle_conns : 16
@@ -37,8 +38,8 @@ nodes :
     password:
     master : 127.0.0.1:3307
 
-- 
-    name : node3 
+-
+    name : node3
     down_after_noalive : 300
     idle_conns : 16
     rw_split: false
@@ -48,18 +49,18 @@ nodes :
 
 schemas :
 -
-    db : mixer 
+    db : mixer
     nodes: [node1, node2, node3]
     rules:
-        default: node1 
+        default: node1
         shard:
-            -   
+            -
                 table: mixer_test_shard_hash
                 key: id
                 nodes: [node2, node3]
                 type: hash
 
-            -   
+            -
                 table: mixer_test_shard_range
                 key: id
                 nodes: [node2, node3]
@@ -122,3 +123,4 @@ func newTestDBConn(t *testing.T) *client.SqlConn {
 func TestServer(t *testing.T) {
 	newTestServer(t)
 }
+*/

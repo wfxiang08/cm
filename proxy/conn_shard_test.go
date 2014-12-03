@@ -1,10 +1,12 @@
 package proxy
 
+/*
 import (
 	"fmt"
-	"github.com/wandoulabs/cm/mysql"
 	"reflect"
 	"testing"
+
+	"github.com/wandoulabs/cm/mysql"
 )
 
 func testShard_Insert(t *testing.T, table string, node string, id int, str string) {
@@ -337,3 +339,4 @@ func TestShard_Range(t *testing.T) {
 	testShard_StmtSelect(t, table, "id > ? and id <= ?", []interface{}{1, 10000}, "b", "c")
 	testShard_StmtSelect(t, table, "id < ? and id >= ?", []interface{}{1, 10000})
 }
+*/

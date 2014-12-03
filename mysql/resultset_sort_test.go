@@ -1,5 +1,7 @@
 package mysql
 
+/*
+
 import (
 	"fmt"
 	"reflect"
@@ -96,3 +98,4 @@ func TestResultsetSort(t *testing.T) {
 	}
 
 }
+*/

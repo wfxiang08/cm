@@ -1,5 +1,7 @@
 package proxy
 
+/*
+
 import (
 	. "github.com/wandoulabs/cm/mysql"
 	"testing"
@@ -377,3 +379,4 @@ func TestConn_SelectVersion(t *testing.T) {
 		}
 	}
 }
+*/

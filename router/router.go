@@ -49,7 +49,6 @@ type Router struct {
 }
 
 func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
-
 	if !includeNode(schemaConfig.Nodes, schemaConfig.RulesConifg.Default) {
 		return nil, fmt.Errorf("default node[%s] not in the nodes list.",
 			schemaConfig.RulesConifg.Default)
@@ -86,5 +85,6 @@ func includeNode(nodes []string, node string) bool {
 			return true
 		}
 	}
+
 	return false
 }
