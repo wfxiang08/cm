@@ -344,11 +344,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		return errors.Trace(err)
 	}
 
-	if ti.CacheType != schema.CACHE_NONE {
-		if len(plan.PKValues) == 0 {
-			return errors.Errorf("pk not exist, sql: %s", sql)
-		}
-
+	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
 		log.Debug(sql, plan.PKValues)
 
 		keys := pkValuesToStrings(plan.PKValues)
