@@ -87,9 +87,8 @@ func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, 
 	//rowCacheConf.Socket = "memcache.sock"
 
 	si := &SchemaInfo{
-		queries: cache.NewLRUCache(int64(queryCacheSize)),
-		tables:  make(map[string]*TableInfo),
-		//todo: fill RowCacheConfig
+		queries:   cache.NewLRUCache(int64(queryCacheSize)),
+		tables:    make(map[string]*TableInfo),
 		cachePool: NewCachePool(dbName, rowCacheConf, 3*time.Second, 3*time.Second),
 	}
 
@@ -179,16 +178,19 @@ func (si *SchemaInfo) Close() {
 	si.queries.Clear()
 }
 
-func (si *SchemaInfo) Exec(sql string) (*mysql.Result, error) {
+func (si *SchemaInfo) Exec(sql string) (result *mysql.Result, err error) {
 	conn, err := si.connPool.PopConn()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//todo: fix nil arg
-	defer si.connPool.PushConn(conn, nil)
+	defer func() {
+		si.connPool.PushConn(conn, err)
+	}()
 
-	return conn.Execute(sql)
+	result, err = conn.Execute(sql)
+
+	return result, err
 }
 
 func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
@@ -200,8 +202,9 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 		log.Fatal(err)
 	}
 
-	//todo: fix arg
-	defer si.connPool.PushConn(conn, nil)
+	defer func() {
+		si.connPool.PushConn(conn, err)
+	}()
 
 	tables, err := conn.Execute(fmt.Sprintf("%s and table_name = '%s'", base_show_tables, tableName))
 	if err != nil {

@@ -157,9 +157,7 @@ func (db *DB) PushConn(co *MySqlConn, err error) {
 			}
 
 			db.idleConns.PushBack(co)
-
 			db.Unlock()
-
 		} else {
 			closeConn = co
 		}
