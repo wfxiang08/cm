@@ -99,6 +99,7 @@ func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, 
 	}
 
 	si.overrides = overrides
+	si.connPool.SetMaxIdleConnNum(100)
 	log.Infof("%+v", si.overrides)
 	si.cachePool.Open()
 
