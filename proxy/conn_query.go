@@ -34,7 +34,9 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";")
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		return errors.Errorf(`parse sql "%s" error`, sql)
+		log.Warning(sql)
+		return c.handleShow(stmt, sql, nil)
+		//return errors.Errorf(`parse sql "%s" error: %s`, sql, err)
 	}
 
 	switch v := stmt.(type) {
@@ -355,6 +357,11 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 
 	r := rs[0].Resultset
 	status := c.status | rs[0].Status
+
+	//todo: handle set command when sharding
+	if stmt == nil { //hack for "set names utf8"
+		return errors.Trace(c.writeOK(rs[0]))
+	}
 
 	for i := 1; i < len(rs); i++ {
 		status |= rs[i].Status
