@@ -10,7 +10,7 @@ import (
 
 var nstring = sqlparser.String
 
-func (c *Conn) handleSet(stmt *sqlparser.Set) error {
+func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 	if len(stmt.Exprs) != 1 {
 		return errors.Errorf("must set one item once, not %s", nstring(stmt))
 	}
@@ -23,7 +23,7 @@ func (c *Conn) handleSet(stmt *sqlparser.Set) error {
 	case `NAMES`:
 		return c.handleSetNames(stmt.Exprs[0].Expr)
 	default:
-		return errors.Errorf("set %s is not supported now", k)
+		return c.handleShow(nil, sql, nil) //errors.Errorf("set %s is not supported now", k)
 	}
 }
 

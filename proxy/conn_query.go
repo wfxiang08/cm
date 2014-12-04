@@ -49,7 +49,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.Delete:
 		return c.handleExec(stmt, sql, nil, false)
 	case *sqlparser.Set:
-		return c.handleSet(v)
+		return c.handleSet(v, sql)
 	case *sqlparser.SimpleSelect:
 		return c.handleSimpleSelect(sql, v)
 	case *sqlparser.Other:
