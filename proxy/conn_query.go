@@ -50,6 +50,8 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleSet(v)
 	case *sqlparser.SimpleSelect:
 		return c.handleSimpleSelect(sql, v)
+	case *sqlparser.Other:
+		return c.handleShow(v, sql, nil)
 	default:
 		return errors.Errorf("statement %T not support now, %+v, %s", stmt, stmt, sql)
 	}
@@ -337,6 +339,34 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	return c.writeResultset(c.status, r)
 }
 
+func (c *Conn) handleShow(stmt *sqlparser.Other, sql string, args []interface{}) error {
+	log.Debug(sql)
+	bindVars := makeBindVars(args)
+	conns, err := c.getShardConns(true, stmt, bindVars)
+	if err != nil {
+		return errors.Trace(err)
+	} else if conns == nil {
+		return errors.Errorf("not enough connection for %s", sql)
+	}
+
+	var rs []*Result
+	rs, err = c.executeInShard(conns, sql, args)
+	c.closeShardConns(conns, false)
+
+	r := rs[0].Resultset
+	status := c.status | rs[0].Status
+
+	for i := 1; i < len(rs); i++ {
+		status |= rs[i].Status
+		for j := range rs[i].Values {
+			r.Values = append(r.Values, rs[i].Values[j])
+			r.RowDatas = append(r.RowDatas, rs[i].RowDatas[j])
+		}
+	}
+
+	return errors.Trace(c.writeResultset(status, r))
+}
+
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
 	// handle cache
 	plan, ti, err := c.getPlanAndTableInfo(sql)
@@ -426,7 +456,6 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		rs, err = c.executeInShard(conns, sql, args)
 	} else {
 		log.Warning("not implement yet")
-
 	}
 
 	c.closeShardConns(conns, err != nil)
@@ -447,7 +476,6 @@ func (c *Conn) mergeExecResult(rs []*Result) error {
 		if r.InsertId == 0 {
 			r.InsertId = v.InsertId
 		} else if r.InsertId > v.InsertId {
-
 			r.InsertId = v.InsertId
 		}
 	}
