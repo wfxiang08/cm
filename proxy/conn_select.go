@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )
@@ -28,6 +29,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		funcExpr = v
 	case *sqlparser.ColName:
 		specialColumn = v
+		log.Debug(specialColumn)
 	default:
 		return fmt.Errorf("support select informaction function, %s", sql)
 	}
@@ -52,24 +54,17 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 				r, err = c.buildSimpleSelectResult("NULL", funcExpr.Name, expr.As)
 			}
 		default:
-			return fmt.Errorf("function %s not support", funcExpr.Name)
-		}
-		if err != nil {
-			return err
-		}
-	} else {
-		switch strings.ToLower(string(specialColumn.Name)) {
-		case "@@max_allowed_packet":
-			r, err = c.buildSimpleSelectResult(1048576, specialColumn.Name[2:], expr.As)
-		default:
-			return fmt.Errorf("config %s not support", specialColumn.Name)
+			return errors.Errorf("function %s not support", funcExpr.Name)
 		}
 
 		if err != nil {
-			return err
+			return errors.Trace(err)
 		}
+	} else {
+		return errors.Trace(c.handleShow(stmt, sql, nil))
 	}
-	return c.writeResultset(c.status, r)
+
+	return errors.Trace(c.writeResultset(c.status, r))
 }
 
 func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {

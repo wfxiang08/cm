@@ -51,7 +51,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.SimpleSelect:
 		return c.handleSimpleSelect(sql, v)
 	case *sqlparser.Other:
-		return c.handleShow(v, sql, nil)
+		return c.handleShow(stmt, sql, nil)
 	default:
 		return errors.Errorf("statement %T not support now, %+v, %s", stmt, stmt, sql)
 	}
@@ -339,7 +339,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	return c.writeResultset(c.status, r)
 }
 
-func (c *Conn) handleShow(stmt *sqlparser.Other, sql string, args []interface{}) error {
+func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args []interface{}) error {
 	log.Debug(sql)
 	bindVars := makeBindVars(args)
 	conns, err := c.getShardConns(true, stmt, bindVars)
