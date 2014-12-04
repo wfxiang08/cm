@@ -388,7 +388,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		items := ti.Cache.Get(keys)
 		count := 0
 		for _, item := range items {
-			log.Info(item)
 			if item.Row != nil {
 				count++
 			}

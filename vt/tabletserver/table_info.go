@@ -6,7 +6,6 @@ package tabletserver
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/juju/errors"
@@ -87,6 +86,7 @@ func (ti *TableInfo) SetPK(colnames []string) error {
 }
 
 func (ti *TableInfo) fetchIndexes(conn *mysql.MySqlConn) error {
+	/* todo: handle index
 	indexes, err := conn.Execute(fmt.Sprintf("show index from `%s`", ti.Name))
 	if err != nil {
 		return err
@@ -137,6 +137,7 @@ func (ti *TableInfo) fetchIndexes(conn *mysql.MySqlConn) error {
 			ti.Indexes[i].DataColumns = append(ti.Indexes[i].DataColumns, c)
 		}
 	}
+	*/
 	return nil
 }
 
