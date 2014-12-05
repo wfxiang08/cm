@@ -39,6 +39,8 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		//return errors.Errorf(`parse sql "%s" error: %s`, sql, err)
 	}
 
+	log.Debugf("statement %T , %+v, %s", stmt, stmt, sql)
+
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
 		return c.handleSelect(v, sql, nil)

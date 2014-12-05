@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"github.com/juju/errors"
@@ -13,12 +12,12 @@ import (
 
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
 	if len(stmt.SelectExprs) != 1 {
-		return fmt.Errorf("support select one informaction function, %s", sql)
+		return errors.Errorf("support select one informaction function, %s", sql)
 	}
 
 	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
 	if !ok {
-		return fmt.Errorf("support select informaction function, %s", sql)
+		return errors.Errorf("support select informaction function, %s", sql)
 	}
 
 	var funcExpr *sqlparser.FuncExpr
@@ -30,8 +29,10 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	case *sqlparser.ColName:
 		specialColumn = v
 		log.Debug(specialColumn)
+	case sqlparser.NumVal:
+		return errors.Trace(c.handleShow(stmt, sql, nil))
 	default:
-		return fmt.Errorf("support select informaction function, %s", sql)
+		return errors.Errorf("support select informaction function, %s, %T", sql, v)
 	}
 
 	var r *Resultset
