@@ -52,6 +52,7 @@ func main() {
 		sig := <-sc
 		log.Infof("Got signal [%d] to exit.", sig)
 		svr.Close()
+		os.Exit(0)
 	}()
 
 	go svr.Run()
