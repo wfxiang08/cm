@@ -237,6 +237,7 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 		log.Error(err)
 		return
 	}
+
 	if _, ok := si.tables[tableName]; ok {
 		// If the table already exists, we overwrite it with the latest info.
 		// This also means that the query cache needs to be cleared.
@@ -250,14 +251,6 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 		log.Infof("Initialized table: %s", tableName)
 	} else {
 		log.Infof("Initialized cached table: %s, prefix: %s", tableName, tableInfo.Cache.prefix)
-	}
-
-	// If the table has an override, re-apply all overrides.
-	for _, o := range si.overrides {
-		if o.Name == tableName {
-			si.override()
-			return
-		}
 	}
 }
 
