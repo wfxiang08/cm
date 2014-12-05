@@ -17,26 +17,19 @@ var (
 
 //proxy <-> mysql server
 type MySqlConn struct {
-	conn net.Conn
-
-	pkg *PacketIO
-
-	addr     string
-	user     string
-	password string
-	db       string
-
+	conn       net.Conn
+	pkg        *PacketIO
+	addr       string
+	user       string
+	password   string
+	db         string
 	capability uint32
-
-	status uint16
-
-	collation CollationId
-	charset   string
-	salt      []byte
-
-	lastPing int64
-
-	pkgErr error
+	status     uint16
+	collation  CollationId
+	charset    string
+	salt       []byte
+	lastPing   int64
+	pkgErr     error
 }
 
 func (c *MySqlConn) Connect(addr string, user string, password string, db string) error {
@@ -77,13 +70,11 @@ func (c *MySqlConn) ReConnect() error {
 
 	if err := c.writeAuthHandshake(); err != nil {
 		c.conn.Close()
-
 		return err
 	}
 
 	if _, err := c.readOK(); err != nil {
 		c.conn.Close()
-
 		return err
 	}
 
@@ -91,7 +82,6 @@ func (c *MySqlConn) ReConnect() error {
 	if !c.IsAutoCommit() {
 		if _, err := c.exec("set autocommit = 1"); err != nil {
 			c.conn.Close()
-
 			return err
 		}
 	}
@@ -201,7 +191,6 @@ func (c *MySqlConn) writeAuthHandshake() error {
 
 	if len(c.db) > 0 {
 		capability |= CLIENT_CONNECT_WITH_DB
-
 		length += len(c.db) + 1
 	}
 
@@ -261,13 +250,9 @@ func (c *MySqlConn) writeCommand(command byte) error {
 
 func (c *MySqlConn) writeCommandBuf(command byte, arg []byte) error {
 	c.pkg.Sequence = 0
-
 	length := len(arg) + 1
-
 	data := make([]byte, length+4)
-
 	data[4] = command
-
 	copy(data[5:], arg)
 
 	return c.writePacket(data)
@@ -275,13 +260,9 @@ func (c *MySqlConn) writeCommandBuf(command byte, arg []byte) error {
 
 func (c *MySqlConn) writeCommandStr(command byte, arg string) error {
 	c.pkg.Sequence = 0
-
 	length := len(arg) + 1
-
 	data := make([]byte, length+4)
-
 	data[4] = command
-
 	copy(data[5:], arg)
 
 	return c.writePacket(data)
@@ -437,6 +418,7 @@ func (c *MySqlConn) FieldList(table string, wildcard string) ([]*Field, error) {
 			fs = append(fs, f)
 		}
 	}
+
 	return nil, fmt.Errorf("field list error")
 }
 
@@ -479,7 +461,7 @@ func (c *MySqlConn) readResultset(data []byte, binary bool) (*Result, error) {
 }
 
 func (c *MySqlConn) readResultColumns(result *Result) (err error) {
-	var i int = 0
+	var i int
 	var data []byte
 
 	for {
@@ -510,7 +492,6 @@ func (c *MySqlConn) readResultColumns(result *Result) (err error) {
 		}
 
 		result.FieldNames[string(result.Fields[i].Name)] = i
-
 		i++
 	}
 }
