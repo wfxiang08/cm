@@ -31,6 +31,8 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		log.Debug(specialColumn)
 	case sqlparser.NumVal:
 		return errors.Trace(c.handleShow(stmt, sql, nil))
+	case *sqlparser.BinaryExpr:
+		return errors.Trace(c.handleShow(stmt, sql, nil))
 	default:
 		return errors.Errorf("support select informaction function, %s, %T", sql, v)
 	}
