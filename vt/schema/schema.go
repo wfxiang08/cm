@@ -82,6 +82,7 @@ func (ta *Table) FindColumn(name string) int {
 			return i
 		}
 	}
+
 	return -1
 }
 
@@ -92,6 +93,7 @@ func (ta *Table) GetPKColumn(index int) *TableColumn {
 func (ta *Table) AddIndex(name string) (index *Index) {
 	index = NewIndex(name)
 	ta.Indexes = append(ta.Indexes, index)
+
 	return index
 }
 
@@ -120,6 +122,7 @@ func (idx *Index) FindColumn(name string) int {
 			return i
 		}
 	}
+
 	return -1
 }
 
@@ -129,5 +132,6 @@ func (idx *Index) FindDataColumn(name string) int {
 			return i
 		}
 	}
+
 	return -1
 }

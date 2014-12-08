@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -307,9 +308,37 @@ func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.Ta
 	return errors.Trace(c.writeResultset(c.status, r))
 }
 
+//todo: test select a == b && c == d
+//select c ==d && a == b
+func generateSelectSql(ti *tabletserver.TableInfo, plan *planbuilder.ExecPlan) (string, error) {
+	if len(ti.PKColumns) != len(plan.PKValues) {
+		log.Error("PKColumns and PKValues not match")
+		return "", errors.Errorf("PKColumns and PKValues not match", ti.PKColumns, plan.PKValues)
+	}
+
+	pks := make([]schema.TableColumn, 0, len(ti.PKColumns))
+	for i, _ := range ti.PKColumns {
+		pks = append(pks, ti.Columns[ti.PKColumns[i]])
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("select * from %s where ", ti.Name))
+	for i, pk := range pks {
+		buf.WriteString(pk.Name)
+		buf.WriteString("=")
+		buf.WriteString(fmt.Sprintf("%s", plan.PKValues[i]))
+		if i < len(pks)-1 {
+			buf.WriteString(" and ")
+		}
+	}
+
+	buf.WriteString(";")
+
+	return buf.String(), nil
+}
+
 func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string) error {
-	pk := ti.Columns[ti.PKColumns[0]]
-	rowsql := fmt.Sprintf("select * from %s where %s = %s", plan.TableName, pk.Name, plan.PKValues[0])
+	rowsql, err := generateSelectSql(ti, plan)
 	log.Info(rowsql)
 
 	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
@@ -323,7 +352,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	}
 
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
-	log.Debug(len(retValues), len(keys))
+	//log.Debug(len(retValues), len(keys))
 
 	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
@@ -384,8 +413,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	}
 
 	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
-		log.Debug(sql, plan.PKValues)
-
 		keys := pkValuesToStrings(plan.PKValues)
 		items := ti.Cache.Get(keys)
 		count := 0

@@ -27,9 +27,11 @@ func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, cre
 	comment string, cachePool *CachePool) (ti *TableInfo, err error) {
 	ti, err = loadTableInfo(conn, tableName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
+
 	ti.initRowCache(tableType, createTime, comment, cachePool)
+
 	return ti, nil
 }
 
@@ -38,9 +40,11 @@ func loadTableInfo(conn *mysql.MySqlConn, tableName string) (ti *TableInfo, err 
 	if err = ti.fetchColumns(conn); err != nil {
 		return nil, errors.Trace(err)
 	}
+
 	if err = ti.fetchIndexes(conn); err != nil {
 		return nil, errors.Trace(err)
 	}
+
 	return ti, nil
 }
 
@@ -86,58 +90,81 @@ func (ti *TableInfo) SetPK(colnames []string) error {
 }
 
 func (ti *TableInfo) fetchIndexes(conn *mysql.MySqlConn) error {
-	/* todo: handle index
-	indexes, err := conn.Execute(fmt.Sprintf("show index from `%s`", ti.Name))
-	if err != nil {
-		return err
-	}
-	var currentIndex *schema.Index
-	currentName := ""
-	for _, row := range indexes.Values {
-		indexName := string(row[2].([]byte))
-		if currentName != indexName {
-			currentIndex = ti.AddIndex(indexName)
-			currentName = indexName
+	/*
+		indexes, err := conn.Execute(fmt.Sprintf("show index from `%s`", ti.Name))
+		if err != nil {
+			log.Error(err)
+			return errors.Trace(err)
 		}
-		var cardinality uint64
-		if row[6] != nil {
-			cardinality, err = strconv.ParseUint(string(row[6].([]byte)), 0, 64)
+
+		log.Debugf("%+v", indexes.Values)
+
+		var currentIndex *schema.Index
+		currentName := ""
+		for _, row := range indexes.Values {
+			indexName, err := mysql.Raw(row[2])
+			if err != nil {
+				log.Error(err)
+				return errors.Trace(err)
+			}
+
+			if currentName != string(indexName) {
+				currentIndex = ti.AddIndex(string(indexName))
+				currentName = string(indexName)
+			}
+
+			var cardinality string
+			if row[6] != nil {
+				v, err := mysql.Raw(row[6])
+				if err != nil {
+					log.Warningf("%s", err)
+					return errors.Trace(err)
+				}
+				cardinality = string(v)
+
+			}
+			val, err := strconv.ParseUint(cardinality, 0, 64)
 			if err != nil {
 				log.Warningf("%s", err)
+				return errors.Trace(err)
+			}
+			currentIndex.AddColumn(string(row[4].([]byte)), val)
+		}
+
+		log.Debugf("table: %s, indexes: %+v", ti.Name, ti.Indexes)
+
+		if len(ti.Indexes) == 0 {
+			return nil
+		}
+
+		pkIndex := ti.Indexes[0]
+		if pkIndex.Name != "PRIMARY" {
+			return nil
+		}
+		ti.PKColumns = make([]int, len(pkIndex.Columns))
+		for i, pkCol := range pkIndex.Columns {
+			ti.PKColumns[i] = ti.FindColumn(pkCol)
+		}
+		// Primary key contains all table columns
+		for _, col := range ti.Columns {
+			pkIndex.DataColumns = append(pkIndex.DataColumns, col.Name)
+		}
+		// Secondary indices contain all primary key columns
+		for i := 1; i < len(ti.Indexes); i++ {
+			for _, c := range ti.Indexes[i].Columns {
+				ti.Indexes[i].DataColumns = append(ti.Indexes[i].DataColumns, c)
+			}
+			for _, c := range pkIndex.Columns {
+				// pk columns may already be part of the index. So,
+				// check before adding.
+				if ti.Indexes[i].FindDataColumn(c) != -1 {
+					continue
+				}
+				ti.Indexes[i].DataColumns = append(ti.Indexes[i].DataColumns, c)
 			}
 		}
-		currentIndex.AddColumn(string(row[4].([]byte)), cardinality)
-	}
-	if len(ti.Indexes) == 0 {
-		return nil
-	}
-	pkIndex := ti.Indexes[0]
-	if pkIndex.Name != "PRIMARY" {
-		return nil
-	}
-	ti.PKColumns = make([]int, len(pkIndex.Columns))
-	for i, pkCol := range pkIndex.Columns {
-		ti.PKColumns[i] = ti.FindColumn(pkCol)
-	}
-	// Primary key contains all table columns
-	for _, col := range ti.Columns {
-		pkIndex.DataColumns = append(pkIndex.DataColumns, col.Name)
-	}
-	// Secondary indices contain all primary key columns
-	for i := 1; i < len(ti.Indexes); i++ {
-		for _, c := range ti.Indexes[i].Columns {
-			ti.Indexes[i].DataColumns = append(ti.Indexes[i].DataColumns, c)
-		}
-		for _, c := range pkIndex.Columns {
-			// pk columns may already be part of the index. So,
-			// check before adding.
-			if ti.Indexes[i].FindDataColumn(c) != -1 {
-				continue
-			}
-			ti.Indexes[i].DataColumns = append(ti.Indexes[i].DataColumns, c)
-		}
-	}
 	*/
+
 	return nil
 }
 
