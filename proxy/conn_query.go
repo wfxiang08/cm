@@ -406,14 +406,16 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 }
 
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
-	log.Debug("handleSelect", sql)
 	// handle cache
 	plan, ti, err := c.getPlanAndTableInfo(sql)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
+	log.Debugf("handleSelect %s, %+v", sql, plan.PKValues)
+
 	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
+		//todo: composed primary key support
 		keys := pkValuesToStrings(plan.PKValues)
 		items := ti.Cache.Get(keys)
 		count := 0
