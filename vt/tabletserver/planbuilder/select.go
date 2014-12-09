@@ -7,6 +7,7 @@ package planbuilder
 import (
 	"fmt"
 
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
@@ -82,6 +83,7 @@ func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan,
 		panic("unexpected")
 	}
 
+	log.Debugf("%+v", tableInfo.Indexes[0])
 	pkValues, err := getPKValues(conditions, tableInfo.Indexes[0])
 	if err != nil {
 		return nil, err

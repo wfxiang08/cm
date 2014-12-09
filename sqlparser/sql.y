@@ -1026,7 +1026,8 @@ using_opt:
 sql_id:
   ID
   {
-    $$ = bytes.ToLower($1)
+//comment by liuqi    $$ = bytes.ToLower($1)
+    $$ = $1  //add by liuqi
   }
 
 force_eof:

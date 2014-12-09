@@ -1766,10 +1766,11 @@ yydefault:
 	case 201:
 		//line sql.y:1028
 		{
-			yyVAL.bytes = bytes.ToLower(yyS[yypt-0].bytes)
+			//comment by liuqi    $$ = bytes.ToLower($1)
+			yyVAL.bytes = yyS[yypt-0].bytes //add by liuqi
 		}
 	case 202:
-		//line sql.y:1033
+		//line sql.y:1034
 		{
 			ForceEOF(yylex)
 		}

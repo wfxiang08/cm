@@ -62,28 +62,35 @@ func (ti *TableInfo) fetchColumns(conn *mysql.MySqlConn) error {
 		ti.AddColumn(string(row[0].([]byte)), string(row[1].([]byte)),
 			v, string(row[5].([]byte)))
 	}
+
+	log.Debugf("%s %+v", ti.Name, ti.Columns)
+
 	return nil
 }
 
 func (ti *TableInfo) SetPK(colnames []string) error {
+	log.Debugf("SetPK %s", colnames)
 	pkIndex := schema.NewIndex("PRIMARY")
 	colnums := make([]int, len(colnames))
 	for i, colname := range colnames {
 		colnums[i] = ti.FindColumn(colname)
 		if colnums[i] == -1 {
-			return fmt.Errorf("column %s not found", colname)
+			return errors.Errorf("column %s not found, %+v", colname, ti.Columns)
 		}
 		pkIndex.AddColumn(colname, 1)
 	}
+
 	for _, col := range ti.Columns {
 		pkIndex.DataColumns = append(pkIndex.DataColumns, col.Name)
 	}
+
 	if len(ti.Indexes) == 0 {
 		ti.Indexes = make([]*schema.Index, 1)
 	} else if ti.Indexes[0].Name != "PRIMARY" {
 		ti.Indexes = append(ti.Indexes, nil)
 		copy(ti.Indexes[1:], ti.Indexes[:len(ti.Indexes)-1])
 	} // else we replace the currunt primary key
+
 	ti.Indexes[0] = pkIndex
 	ti.PKColumns = colnums
 	return nil

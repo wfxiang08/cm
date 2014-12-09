@@ -57,7 +57,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		var overrides []tabletserver.SchemaOverride
 		for _, sc := range rc.ShardRule {
 			or := tabletserver.SchemaOverride{Name: sc.Table}
-			or.PKColumns = append(or.PKColumns, sc.Key)
+			pks := strings.Split(sc.Key, ",")
+			for _, pk := range pks {
+				or.PKColumns = append(or.PKColumns, strings.TrimSpace(pk))
+			}
 			or.Cache = &tabletserver.OverrideCacheDesc{Type: sc.RowCacheType, Prefix: or.Name, Table: or.Name}
 			overrides = append(overrides, or)
 		}

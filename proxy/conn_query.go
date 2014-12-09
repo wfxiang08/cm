@@ -406,6 +406,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 }
 
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+	log.Debug("handleSelect", sql)
 	// handle cache
 	plan, ti, err := c.getPlanAndTableInfo(sql)
 	if err != nil {
@@ -426,6 +427,8 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 			log.Info("hit cache!", sql, items, keys)
 			return c.writeCacheResults(plan, ti, keys, items)
 		}
+
+		log.Debug(count, len(keys), keys)
 
 		if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
 			log.Infof("%s, %+v, %+v", sql, plan, stmt)
@@ -471,8 +474,8 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 				return errors.Errorf("pk not exist, sql: %s", sql)
 			}
 
-			log.Debugf("%s %+v", sql, plan)
-
+			log.Debugf("%s %+v, %+v", sql, plan, plan.PKValues)
+			//todo: test composed pk
 			keys := pkValuesToStrings(plan.PKValues)
 			invalidCache(ti, keys)
 		}

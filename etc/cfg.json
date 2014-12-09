@@ -34,6 +34,12 @@
                         "key": "id",
                         "node": "node1",
 		        "row_cache_type":"RW"		
+                    },
+		    {
+                        "table":"INFO",
+                        "key": "t1ID, t2ID",
+                        "node": "node1",
+		        "row_cache_type":"RW"		
                     }
                 ]
             }

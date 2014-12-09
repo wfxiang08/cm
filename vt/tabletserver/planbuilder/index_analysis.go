@@ -5,6 +5,7 @@
 package planbuilder
 
 import (
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
@@ -27,6 +28,7 @@ func NewIndexScore(index *schema.Index) *IndexScore {
 }
 
 func (is *IndexScore) FindMatch(columnName string) int {
+	log.Debugf("FindMatch %s, %+v", columnName, is.Index.Columns)
 	if is.MatchFailed {
 		return -1
 	}
@@ -68,6 +70,7 @@ func NewIndexScoreList(indexes []*schema.Index) []*IndexScore {
 func getPKValues(conditions []sqlparser.BoolExpr, pkIndex *schema.Index) (pkValues []interface{}, err error) {
 	pkIndexScore := NewIndexScore(pkIndex)
 	pkValues = make([]interface{}, len(pkIndexScore.ColumnMatch))
+	log.Debugf("%+v", conditions)
 	for _, condition := range conditions {
 		condition, ok := condition.(*sqlparser.ComparisonExpr)
 		if !ok {
@@ -91,9 +94,11 @@ func getPKValues(conditions []sqlparser.BoolExpr, pkIndex *schema.Index) (pkValu
 			panic("unreachable")
 		}
 	}
+
 	if pkIndexScore.GetScore() == PERFECT_SCORE {
 		return pkValues, nil
 	}
+
 	return nil, nil
 }
 

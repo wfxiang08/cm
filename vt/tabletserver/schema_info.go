@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqltypes"
@@ -138,7 +139,7 @@ func (si *SchemaInfo) override() {
 		if override.PKColumns != nil {
 			log.Infof("SetPK Table name %s, pk %v", override.Name, override.PKColumns)
 			if err := table.SetPK(override.PKColumns); err != nil {
-				log.Warningf("%v: %v", err, override)
+				log.Errorf("%s: %v", errors.ErrorStack(err), override)
 				continue
 			}
 		}
