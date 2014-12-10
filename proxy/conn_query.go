@@ -260,15 +260,32 @@ func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletse
 	return plan, ti, nil
 }
 
-func pkValuesToStrings(pkValues []interface{}) []string {
+func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
+	composedPkCnt := len(PKColumns)
 	s := make([]string, 0)
-	for _, values := range pkValues {
+	var composedPk string
+	for i, values := range pkValues {
 		switch v := values.(type) {
 		case sqltypes.Value:
-			s = append(s, v.String())
+			//todo: optimization
+			composedPk += v.String()
+			composedPk += "--"
+			log.Debugf("pkValue:%v", values)
+			if i%composedPkCnt == composedPkCnt-1 {
+				s = append(s, composedPk)
+				composedPk = "" //reset
+			}
 		case []interface{}:
 			for _, value := range v {
-				s = append(s, value.(sqltypes.Value).String())
+				//todo: optimization
+				composedPk += value.(sqltypes.Value).String()
+				composedPk += "--"
+			}
+
+			log.Debugf("pkValue:%v", values)
+			if i%composedPkCnt == composedPkCnt-1 {
+				s = append(s, composedPk)
+				composedPk = ""
 			}
 		default:
 			log.Fatal(v, reflect.TypeOf(v))
@@ -356,9 +373,9 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 
 	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
-		pkvalue := plan.PKValues[0].(sqltypes.Value).String()
-		log.Debug("fill cache", pkvalue)
-		ti.Cache.Set(pkvalue, result.Values[0], 0)
+		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+		log.Debug("fill cache", pkValue)
+		ti.Cache.Set(pkValue[0], result.Values[0], 0)
 	}
 
 	var values []RowValue
@@ -419,7 +436,8 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 
 	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
 		//todo: composed primary key support
-		keys := pkValuesToStrings(plan.PKValues)
+		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+		log.Debug("pkvalue-key", keys)
 		items := ti.Cache.Get(keys)
 		count := 0
 		for _, item := range items {
@@ -481,7 +499,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 
 			log.Debugf("%s %+v, %+v", sql, plan, plan.PKValues)
 			//todo: test composed pk
-			keys := pkValuesToStrings(plan.PKValues)
+			keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
 			invalidCache(ti, keys)
 		}
 	}
