@@ -385,6 +385,9 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 	var rs []*Result
 	rs, err = c.executeInShard(conns, sql, args)
 	c.closeShardConns(conns, false)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
 	r := rs[0].Resultset
 	status := c.status | rs[0].Status
