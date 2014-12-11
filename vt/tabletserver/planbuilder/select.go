@@ -7,6 +7,7 @@ package planbuilder
 import (
 	"fmt"
 
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
@@ -14,10 +15,9 @@ import (
 func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan, err error) {
 	// Default plan
 	plan = &ExecPlan{
-		PlanId: PLAN_PASS_SELECT,
-		//todo: comment by liuqi, we do not need it now
-		//FieldQuery: GenerateFieldQuery(sel),
-		//FullQuery:  GenerateSelectLimitQuery(sel),
+		PlanId:     PLAN_PASS_SELECT,
+		FieldQuery: GenerateFieldQuery(sel),
+		FullQuery:  GenerateSelectLimitQuery(sel),
 	}
 
 	// from
@@ -83,7 +83,7 @@ func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan,
 		panic("unexpected")
 	}
 
-	//log.Debugf("%+v", tableInfo.Indexes[0])
+	log.Debugf("%+v", tableInfo.Indexes[0])
 	pkValues, err := getPKValues(conditions, tableInfo.Indexes[0])
 	if err != nil {
 		return nil, err
@@ -135,8 +135,8 @@ func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan,
 		return plan, nil
 	}
 	plan.PlanId = PLAN_SELECT_SUBQUERY
-	//plan.OuterQuery = GenerateSelectOuterQuery(sel, tableInfo)
-	//plan.Subquery = GenerateSelectSubquery(sel, tableInfo, plan.IndexUsed)
+	plan.OuterQuery = GenerateSelectOuterQuery(sel, tableInfo)
+	plan.Subquery = GenerateSelectSubquery(sel, tableInfo, plan.IndexUsed)
 	return plan, nil
 }
 
