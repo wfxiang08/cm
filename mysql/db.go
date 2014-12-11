@@ -125,6 +125,8 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 	db.Unlock()
 
 	if co != nil {
+		return co, err
+		/* comment by liuqi todo: reconsider this
 		if err := co.Ping(); err == nil {
 			if err := db.tryReuse(co); err == nil {
 				//connection may alive
@@ -132,6 +134,7 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 			}
 		}
 		co.Close()
+		*/
 	}
 
 	co, err = db.newConn()

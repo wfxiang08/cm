@@ -74,6 +74,7 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 	if len(names) > 0 {
 		n = append(n, c.server.getNode(names[0]))
 	}
+
 	return n, nil
 }
 
