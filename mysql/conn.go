@@ -32,6 +32,14 @@ type MySqlConn struct {
 	pkgErr     error
 }
 
+func (c *MySqlConn) LastDb() string {
+	return c.db
+}
+
+func (c *MySqlConn) LastCharset() string {
+	return c.charset
+}
+
 func (c *MySqlConn) Connect(addr string, user string, password string, db string) error {
 	c.addr = addr
 	c.user = user

@@ -108,12 +108,16 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 		}
 	}
 
-	if err = co.UseDB(c.schema.db); err != nil {
-		return
+	if co.LastDb() != c.schema.db {
+		if err = co.UseDB(c.schema.db); err != nil {
+			return
+		}
 	}
 
-	if err = co.SetCharset(c.charset); err != nil {
-		return
+	if co.LastCharset() != c.charset {
+		if err = co.SetCharset(c.charset); err != nil {
+			return
+		}
 	}
 
 	return

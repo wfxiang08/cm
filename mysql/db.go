@@ -138,6 +138,7 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 	if err == nil {
 		atomic.AddInt32(&db.connCount, 1)
 	}
+
 	return
 }
 

@@ -249,10 +249,11 @@ func (s *Server) getNode(name string) *Node {
 }
 
 func (s *Server) getNodeNames() []string {
-	var ret []string
+	ret := make([]string, 0, len(s.nodes))
 	for name, _ := range s.nodes {
 		ret = append(ret, name)
 	}
+
 	return ret
 }
 
