@@ -6,7 +6,7 @@ import (
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
-	"github.com/ngaut/mixer/hack"
+	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )

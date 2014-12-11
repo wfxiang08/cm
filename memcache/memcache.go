@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ngaut/mixer/hack"
+	"github.com/wandoulabs/cm/hack"
 )
 
 type Connection struct {
