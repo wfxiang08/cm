@@ -6,6 +6,7 @@ import (
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
+	"github.com/ngaut/mixer/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )
@@ -90,16 +91,23 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 
 func (c *Conn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
-	table := string(data[0:index])
-	wildcard := string(data[index+1:])
+	table := hack.String(data[0:index])
+	wildcard := hack.String(data[index+1:])
 
 	if c.schema == nil {
 		return errors.Trace(NewDefaultError(ER_NO_DB_ERROR))
 	}
 
 	nodeName := c.schema.rule.GetRule(table).Node
+	//todo: pass through
+	if len(nodeName) == 0 {
+		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
+	}
 
 	n := c.server.getNode(nodeName)
+	if n == nil {
+		return errors.Errorf("node %s not found, %+v", nodeName, c.schema)
+	}
 
 	co, err := n.getMasterConn()
 	if err != nil {

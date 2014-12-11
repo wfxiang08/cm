@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ngaut/mixer/hack"
 )
 
 type Connection struct {
@@ -213,6 +215,7 @@ func (mc *Connection) store(command, key string, flags uint16, timeout uint64, v
 	mc.write(value)
 	mc.writestring("\r\n")
 	reply := mc.readline()
+	//todo: liuqi, optimization by decode protocol
 	if strings.Contains(reply, "ERROR") {
 		panic(NewMemcacheError("Server error"))
 	}
@@ -249,7 +252,8 @@ func (mc *Connection) readline() string {
 	if isPrefix || err != nil {
 		panic(NewMemcacheError("Prefix: %v, %s", isPrefix, err))
 	}
-	return string(l)
+
+	return hack.String(l)
 }
 
 func (mc *Connection) read(count int) []byte {

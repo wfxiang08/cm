@@ -100,7 +100,8 @@ func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan,
 		}
 		plan.Limit = rowcount
 		plan.PlanId = PLAN_PK_IN
-		plan.OuterQuery = GenerateSelectOuterQuery(sel, tableInfo)
+		//todo:comment by liuqi, we do not need OuterQuery right now
+		//plan.OuterQuery = GenerateSelectOuterQuery(sel, tableInfo)
 		plan.PKValues = pkValues
 		return plan, nil
 	}

@@ -58,17 +58,17 @@ func DecodeRaw(raw []byte, t byte) (v Value, err error) {
 	case MYSQL_TYPE_STRING, MYSQL_TYPE_ENUM, MYSQL_TYPE_VARCHAR:
 		v = raw
 	case MYSQL_TYPE_SHORT, MYSQL_TYPE_LONG, MYSQL_TYPE_INT24, MYSQL_TYPE_LONGLONG:
-		v, _ = strconv.ParseInt(string(raw), 10, 64)
+		v, _ = strconv.ParseInt(hack.String(raw), 10, 64)
 	case MYSQL_TYPE_DOUBLE, MYSQL_TYPE_FLOAT:
 		bits := binary.LittleEndian.Uint64(raw)
 		v = math.Float64frombits(bits)
 	case MYSQL_TYPE_DATETIME:
-		v, err = time.Parse("2006-01-02 15:04:05", string(raw))
+		v, err = time.Parse("2006-01-02 15:04:05", hack.String(raw))
 		if err != nil {
 			v = "0000-00-00 00:00:00"
 		}
 	case MYSQL_TYPE_DATE:
-		v, err = time.Parse("2006-01-02", string(raw))
+		v, err = time.Parse("2006-01-02", hack.String(raw))
 		if err != nil {
 			v = "0000-00-00"
 		}
