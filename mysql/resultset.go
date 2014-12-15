@@ -12,9 +12,12 @@ type Value interface{}
 type RowValue []Value
 
 func Raw(t byte, val Value, isUnsigned bool) []byte {
+	if val == nil {
+		return nil
+	}
 	var ret []byte
 	switch t {
-	case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
+	case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24, MYSQL_TYPE_LONG,
 		MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
 		if isUnsigned {
 			ret = []byte(strconv.FormatUint(val.(uint64), 10))
@@ -36,7 +39,6 @@ func (p RowData) Parse(f []*Field, binary bool) (RowValue, error) {
 
 func (p RowData) ParseText(f []*Field) (RowValue, error) {
 	data := make([]Value, len(f))
-
 	var err error
 	var v []byte
 	var isNull, isUnsigned bool
@@ -57,7 +59,7 @@ func (p RowData) ParseText(f []*Field) (RowValue, error) {
 			isUnsigned = (f[i].Flag&UNSIGNED_FLAG > 0)
 
 			switch f[i].Type {
-			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
+			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24, MYSQL_TYPE_LONG,
 				MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
 				if isUnsigned {
 					data[i], err = strconv.ParseUint(string(v), 10, 64)

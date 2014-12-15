@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/hack"
@@ -22,10 +21,9 @@ func formatField(field *Field, value interface{}) error {
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
 	case string, []byte:
 		field.Charset = 33
-		field.Type = MYSQL_TYPE_VAR_STRING
-	case time.Time:
-		field.Charset = 33
-		field.Type = MYSQL_TYPE_DATETIME
+		field.Type = MYSQL_TYPE_VARCHAR
+	case nil:
+		return nil
 	default:
 		return fmt.Errorf("unsupport type %T for resultset", value)
 	}
@@ -44,25 +42,23 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 		}
 
 		var row []byte
-		field := &Field{}
 		for j, value := range vs {
+			field := &Field{}
 			if i == 0 {
 				r.Fields[j] = field
 				field.Name = hack.Slice(nameTypes[j].Name)
-				field.Type = nameTypes[i].Category
-
 				if err = formatField(field, value); err != nil {
 					return nil, errors.Trace(err)
 				}
+				field.Type = nameTypes[j].Category
 			}
 
-			b = Raw(byte(field.Type), value, false)
-
-			if err != nil {
-				return nil, errors.Trace(err)
+			if value == nil {
+				row = append(row, "\xfb"...)
+			} else {
+				b = Raw(byte(field.Type), value, false)
+				row = append(row, PutLengthEncodedString(b)...)
 			}
-
-			row = append(row, PutLengthEncodedString(b)...)
 		}
 
 		r.RowDatas = append(r.RowDatas, row)

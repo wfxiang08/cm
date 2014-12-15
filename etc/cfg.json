@@ -1,8 +1,8 @@
 {
-    "addr": "127.0.0.1:4000",
+    "addr": "127.0.0.1:3306",
     "user": "root",
     "password": "",
-    "log_level" : "error",
+    "log_level" : "debug",
 
     "nodes" : [
         {
@@ -10,7 +10,7 @@
             "down_after_noalive" : 0,
             "idle_conns" : 16,
             "rw_split" : false,
-            "master" : "127.0.0.1:3306",
+            "master" : "127.0.0.1:3307",
             "slave" : "",
             "user" : "root",
             "password": ""
