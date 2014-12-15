@@ -238,11 +238,13 @@ func (c *Conn) dispatch(data []byte) error {
 	case COM_PING:
 		return c.writeOK(nil)
 	case COM_INIT_DB:
+		log.Debug(cmd, hack.String(data))
 		if err := c.useDB(hack.String(data)); err != nil {
-			return err
+			return errors.Trace(err)
 		} else {
 			return c.writeOK(nil)
 		}
+
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
@@ -272,6 +274,7 @@ func (c *Conn) useDB(db string) error {
 		c.schema = s
 		c.db = db
 	}
+
 	return nil
 }
 

@@ -19,7 +19,7 @@
 
     "schemas" : [
         {
-            "db": "benchmark",
+            "db": "test",
             "nodes" : ["node1"],
             "rules" : {
                 "default" : "node1",
@@ -29,9 +29,27 @@
                         "key": "id",
                         "node": "node1",
 		        "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"person",
+                        "key": "id",
+                        "node": "node1"
+                    },
+                    {
+                        "table":"t1",
+                        "key": "id",
+                        "node": "node1",
+		        "row_cache_type":"RW"		
+                    },
+		    {
+                        "table":"INFO",
+                        "key": "t1ID, t2ID",
+                        "node": "node1",
+		        "row_cache_type":"RW"		
                     }
+ 
                 ]
             }
         }
-    ]
+   ]
 }
