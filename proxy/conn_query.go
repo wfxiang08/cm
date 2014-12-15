@@ -300,11 +300,10 @@ func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
 	return s
 }
 
-func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []string {
-	fields := make([]string, 0, len(plan.ColumnNumbers)) //construct field name
+func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []schema.TableColumn {
+	fields := make([]schema.TableColumn, 0, len(plan.ColumnNumbers)) //construct field name
 	for _, i := range plan.ColumnNumbers {
-		c := ti.Columns[i]
-		fields = append(fields, c.Name)
+		fields = append(fields, ti.Columns[i])
 	}
 
 	return fields

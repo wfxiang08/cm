@@ -7,6 +7,7 @@ import (
 	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/vt/schema"
 )
 
 func formatField(field *Field, value interface{}) error {
@@ -31,8 +32,8 @@ func formatField(field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, error) {
-	r := &Resultset{Fields: make([]*Field, len(names))}
+func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue) (*Resultset, error) {
+	r := &Resultset{Fields: make([]*Field, len(nameTypes))}
 
 	var b []byte
 	var err error
@@ -47,14 +48,15 @@ func (c *Conn) buildResultset(names []string, values []RowValue) (*Resultset, er
 			if i == 0 {
 				field := &Field{}
 				r.Fields[j] = field
-				field.Name = hack.Slice(names[j])
+				field.Name = hack.Slice(nameTypes[j].Name)
+				field.Type = nameTypes[i].Category
 
 				if err = formatField(field, value); err != nil {
 					return nil, errors.Trace(err)
 				}
 			}
-			b, err = Raw(value)
 
+			b, err = Raw(value)
 			if err != nil {
 				return nil, errors.Trace(err)
 			}
