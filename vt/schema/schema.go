@@ -45,6 +45,23 @@ func NewTable(name string) *Table {
 	}
 }
 
+var typesMap = map[string]byte{
+	"int": mysql.MYSQL_TYPE_LONG,
+}
+
+func init() {
+
+}
+
+func str2mysqlType(columnType string) byte {
+	b, ok := typesMap[columnType]
+	if !ok {
+		log.Fatalf("%s not exist", columnType)
+	}
+
+	return b
+}
+
 func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, extra string) {
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
