@@ -44,9 +44,9 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 		}
 
 		var row []byte
+		field := &Field{}
 		for j, value := range vs {
 			if i == 0 {
-				field := &Field{}
 				r.Fields[j] = field
 				field.Name = hack.Slice(nameTypes[j].Name)
 				field.Type = nameTypes[i].Category
@@ -56,7 +56,8 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 				}
 			}
 
-			b, err = Raw(value)
+			b = Raw(byte(field.Type), val, true)
+
 			if err != nil {
 				return nil, errors.Trace(err)
 			}

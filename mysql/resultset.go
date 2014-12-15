@@ -13,6 +13,25 @@ type RowData []byte
 type Value interface{}
 type RowValue []Value
 
+func Raw(t byte, val Value, isUnsigned bool) []byte {
+	var ret []byte
+	switch t {
+	case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24,
+		MYSQL_TYPE_LONGLONG, MYSQL_TYPE_YEAR:
+		if isUnsigned {
+			ret = []byte(strconv.FormatUint(val.(uint64), 10))
+		} else {
+			ret = []byte(strconv.FormatInt(val.(int64), 10))
+		}
+
+	case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
+		ret = []byte(strconv.FormatFloat(val.(float64), 'f', 7, 10))
+	default:
+		ret = val.([]byte)
+	}
+	return ret
+}
+
 func (p RowData) Parse(f []*Field, binary bool) ([]Value, error) {
 	if binary {
 		return p.ParseBinary(f)
