@@ -2,7 +2,7 @@
     "addr": "127.0.0.1:4000",
     "user": "root",
     "password": "",
-    "log_level" : "debug",
+    "log_level" : "error",
 
     "nodes" : [
         {
@@ -28,7 +28,7 @@
                         "table":"autoincr_test",
                         "key": "id",
                         "node": "node1",
-		                "row_cache_type":"RW"
+		        "row_cache_type":"RW"
                     }
                 ]
             }
