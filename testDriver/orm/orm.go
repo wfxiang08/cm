@@ -13,10 +13,24 @@ import (
 	"github.com/coopernurse/gorp"
 )
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func NewDbMap() *gorp.DbMap {
 	dsn := "root:@tcp(127.0.0.1:4000)/benchmark"
 	dbType := "mysql"
 	db, err := sql.Open(dbType, dsn)
+
+	db.SetMaxIdleConns(100)
+	db.SetMaxOpenConns(100)
+
 	if err != nil {
 		panic(err.Error())
 	}
@@ -28,16 +42,6 @@ func NewDbMap() *gorp.DbMap {
 		panic(err.Error())
 	}
 	return dbmap
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
 }
 
 type TestData struct {
@@ -101,7 +105,6 @@ func ReadTest() {
 	}
 
 	wg.Wait()
-
 }
 
 func main() {
