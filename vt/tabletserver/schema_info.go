@@ -220,7 +220,7 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 	*/
 
 	if len(tables.Values) == 0 { //table not exist
-		log.Warning("table %s not exist", tableName)
+		log.Warningf("table %s not exist", tableName)
 		return
 	}
 
