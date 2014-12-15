@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"time"
 
 	"github.com/wandoulabs/cm/hack"
 )
@@ -13,70 +12,6 @@ import (
 type RowData []byte
 type Value interface{}
 type RowValue []Value
-
-func Raw(val Value) (v []byte, err error) {
-	switch bindVal := val.(type) {
-	case nil:
-	case int:
-		v = strconv.AppendInt(nil, int64(bindVal), 10)
-	case int8:
-		v = strconv.AppendInt(nil, int64(bindVal), 10)
-	case int16:
-		v = strconv.AppendInt(nil, int64(bindVal), 10)
-	case int32:
-		v = strconv.AppendInt(nil, int64(bindVal), 10)
-	case int64:
-		v = strconv.AppendInt(nil, int64(bindVal), 10)
-	case uint:
-		v = strconv.AppendUint(nil, uint64(bindVal), 10)
-	case uint8:
-		v = strconv.AppendUint(nil, uint64(bindVal), 10)
-	case uint16:
-		v = strconv.AppendUint(nil, uint64(bindVal), 10)
-	case uint32:
-		v = strconv.AppendUint(nil, uint64(bindVal), 10)
-	case uint64:
-		v = strconv.AppendUint(nil, uint64(bindVal), 10)
-	case float64:
-		v = make([]byte, 8)
-		bits := math.Float64bits(bindVal)
-		binary.LittleEndian.PutUint64(v, bits)
-	case string:
-		v = []byte(bindVal)
-	case []byte:
-		v = bindVal
-	case time.Time:
-		v = []byte(bindVal.Format("2006-01-02 15:04:05"))
-	default:
-		return nil, fmt.Errorf("unsupported bind variable type %T: %v", v, v)
-	}
-	return v, nil
-}
-
-func DecodeRaw(raw []byte, t byte) (v Value, err error) {
-	switch t {
-	case MYSQL_TYPE_STRING, MYSQL_TYPE_ENUM, MYSQL_TYPE_VARCHAR:
-		v = raw
-	case MYSQL_TYPE_SHORT, MYSQL_TYPE_LONG, MYSQL_TYPE_INT24, MYSQL_TYPE_LONGLONG:
-		v, _ = strconv.ParseInt(hack.String(raw), 10, 64)
-	case MYSQL_TYPE_DOUBLE, MYSQL_TYPE_FLOAT:
-		bits := binary.LittleEndian.Uint64(raw)
-		v = math.Float64frombits(bits)
-	case MYSQL_TYPE_DATETIME:
-		v, err = time.Parse("2006-01-02 15:04:05", hack.String(raw))
-		if err != nil {
-			v = "0000-00-00 00:00:00"
-		}
-	case MYSQL_TYPE_DATE:
-		v, err = time.Parse("2006-01-02", hack.String(raw))
-		if err != nil {
-			v = "0000-00-00"
-		}
-	default:
-		return nil, fmt.Errorf("unsupported type: %v", t)
-	}
-	return v, nil
-}
 
 func (p RowData) Parse(f []*Field, binary bool) ([]Value, error) {
 	if binary {
