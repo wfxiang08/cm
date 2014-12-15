@@ -19,27 +19,16 @@
 
     "schemas" : [
         {
-            "db": "test",
+            "db": "benchmark",
             "nodes" : ["node1"],
             "rules" : {
                 "default" : "node1",
                 "shard" : [
                     {
-                        "table":"person",
-                        "key": "id",
-                        "node": "node1"
-                    },
-                    {
-                        "table":"t1",
+                        "table":"autoincr_test",
                         "key": "id",
                         "node": "node1",
-		        "row_cache_type":"RW"		
-                    },
-		    {
-                        "table":"INFO",
-                        "key": "t1ID, t2ID",
-                        "node": "node1",
-		        "row_cache_type":"RW"		
+		                "row_cache_type":"RW"
                     }
                 ]
             }
