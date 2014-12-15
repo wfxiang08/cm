@@ -12,6 +12,7 @@ import (
 	log "github.com/ngaut/logging"
 
 	"github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/youtube/vitess/go/stats"
 )
 
@@ -45,7 +46,7 @@ func NewRowCache(tableInfo *TableInfo, cachePool *CachePool) *RowCache {
 	return &RowCache{tableInfo, prefix, cachePool}
 }
 
-func (rc *RowCache) Get(keys []string) (results map[string]RCResult) {
+func (rc *RowCache) Get(keys []string, tcs []schema.TableColumn) (results map[string]RCResult) {
 	mkeys := make([]string, 0, len(keys))
 	for _, key := range keys {
 		if len(key) > MAX_KEY_LEN {
@@ -74,7 +75,7 @@ func (rc *RowCache) Get(keys []string) (results map[string]RCResult) {
 			results[mcresult.Key[prefixlen:]] = RCResult{Cas: mcresult.Cas}
 			continue
 		}
-		row := rc.decodeRow(mcresult.Value)
+		row := rc.decodeRow(mcresult.Value, tcs)
 		if row == nil {
 			log.Fatalf("Corrupt data for %s", mcresult.Key)
 		}
@@ -83,14 +84,11 @@ func (rc *RowCache) Get(keys []string) (results map[string]RCResult) {
 	return
 }
 
-func (rc *RowCache) Set(key string, row mysql.RowValue, cas uint64) {
+func (rc *RowCache) Set(key string, row []byte, cas uint64) {
 	if len(key) > MAX_KEY_LEN {
 		return
 	}
-	b := rc.encodeRow(row)
-	if b == nil {
-		return
-	}
+
 	conn := rc.cachePool.Get(0)
 	defer func() { rc.cachePool.Put(conn) }()
 	mkey := rc.prefix + key
@@ -99,10 +97,10 @@ func (rc *RowCache) Set(key string, row mysql.RowValue, cas uint64) {
 	if cas == 0 {
 		// Either caller didn't find the value at all
 		// or they didn't look for it in the first place.
-		_, err = conn.Add(mkey, 0, 0, b)
+		_, err = conn.Add(mkey, 0, 0, row)
 	} else {
 		// Caller is trying to update a row that recently changed.
-		_, err = conn.Cas(mkey, 0, 0, b, cas)
+		_, err = conn.Cas(mkey, 0, 0, row, cas)
 	}
 	if err != nil {
 		conn.Close()
@@ -127,37 +125,7 @@ func (rc *RowCache) Delete(key string) {
 	}
 }
 
-func (rc *RowCache) encodeRow(row mysql.RowValue) (b []byte) {
-	length := 0
-	for _, v := range row {
-		raw, err := mysql.Raw(v)
-		if err != nil {
-			log.Error(err)
-			return nil
-		}
-		length += len(raw)
-		if length > MAX_DATA_LEN {
-			return nil
-		}
-	}
-	datastart := 4 + len(row)*4
-	b = make([]byte, datastart+length)
-	data := b[datastart:datastart]
-	pack.PutUint32(b, uint32(len(row)))
-	for i, v := range row {
-		raw, _ := mysql.Raw(v)
-
-		if raw == nil {
-			pack.PutUint32(b[4+i*4:], 0xFFFFFFFF)
-			continue
-		}
-		data = append(data, raw...)
-		pack.PutUint32(b[4+i*4:], uint32(len(raw)))
-	}
-	return b
-}
-
-func (rc *RowCache) decodeRow(b []byte) (row mysql.RowValue) {
+func (rc *RowCache) decodeRow(b []byte, tcs []schema.TableColumn) (row mysql.RowValue) {
 	rowlen := pack.Uint32(b)
 	data := b[4+rowlen*4:]
 	row = mysql.RowValue(make([]mysql.Value, rowlen))

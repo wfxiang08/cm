@@ -375,19 +375,19 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 	//log.Debug(len(retValues), len(keys))
 
-	//just do simple cache now
-	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
-		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("fill cache", pkValue)
-		ti.Cache.Set(pkValue[0], result.Values[0], 0)
-	}
-
 	var values []RowValue
 	values = append(values, retValues)
 	r, err := c.buildResultset(getFieldNames(plan, ti), values)
 	if err != nil {
 		log.Error(err)
 		return errors.Trace(err)
+	}
+
+	//just do simple cache now
+	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
+		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+		log.Debug("fill cache", pkValue)
+		ti.Cache.Set(pkValue[0], r.RowDatas[0], 0)
 	}
 
 	return c.writeResultset(c.status, r)
@@ -442,7 +442,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		//todo: composed primary key support
 		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
 		log.Debug("pkvalue-key", keys)
-		items := ti.Cache.Get(keys)
+		items := ti.Cache.Get(keys, getFieldNames(plan, ti))
 		count := 0
 		for _, item := range items {
 			if item.Row != nil {
