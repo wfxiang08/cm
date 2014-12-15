@@ -15,7 +15,7 @@ import (
 var (
 	mysqlHost = flag.String("h", "127.0.0.1", "mysql host")
 	mysqlPort = flag.Int("p", 4000, "mysql port")
-	dbName    = flag.String("db", "benchmark", "db name")
+	dbName    = flag.String("db", "test", "db name")
 
 	testType = flag.String("t", "read", "test type: read | write | init")
 	N        = flag.Int("n", 10000, "test row count")
