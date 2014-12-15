@@ -80,10 +80,7 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 	formatField(field, value)
 
 	r := &Resultset{Fields: []*Field{field}}
-	row, err := Raw(value)
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
+	row := Raw(byte(field.Type), value, false)
 	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
 
 	return r, nil

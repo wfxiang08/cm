@@ -125,22 +125,20 @@ func (rc *RowCache) Delete(key string) {
 	}
 }
 
-func (rc *RowCache) decodeRow(b []byte, tcs []schema.TableColumn) (row mysql.RowValue) {
-	rowlen := pack.Uint32(b)
-	data := b[4+rowlen*4:]
-	row = mysql.RowValue(make([]mysql.Value, rowlen))
-	for i := range row {
-		length := pack.Uint32(b[4+i*4:])
-		if length == 0xFFFFFFFF {
-			continue
-		}
-		if length > uint32(len(data)) {
-			// Corrupt data
-			return nil
-		}
+func (rc *RowCache) decodeRow(b []byte, tcs []schema.TableColumn) mysql.RowValue {
+	var fs []*mysql.Field
 
-		row[i], _ = mysql.DecodeRaw(data[:length], rc.tableInfo.Columns[i].Category)
-		data = data[length:]
+	for _, tc := range tcs {
+		f := &mysql.Field{
+			Type: uint8(tc.Category),
+		}
+		fs = append(fs, f)
 	}
+
+	row, err := mysql.RowData(b).ParseText(fs)
+	if err != nil {
+		log.Error(err)
+	}
+
 	return row
 }

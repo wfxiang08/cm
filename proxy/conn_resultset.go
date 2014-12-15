@@ -56,7 +56,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 				}
 			}
 
-			b = Raw(byte(field.Type), val, true)
+			b = Raw(byte(field.Type), value, false)
 
 			if err != nil {
 				return nil, errors.Trace(err)
