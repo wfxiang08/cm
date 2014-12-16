@@ -96,8 +96,8 @@ func NewDb() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxIdleConns(50)
-	db.SetMaxOpenConns(30)
+	db.SetMaxIdleConns(100)
+	db.SetMaxOpenConns(100)
 	return db, nil
 }
 
