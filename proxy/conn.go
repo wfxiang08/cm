@@ -68,6 +68,8 @@ func (c *Conn) Handshake() error {
 		return errors.Trace(err)
 	}
 
+	c.flush()
+
 	if err := c.readHandshakeResponse(); err != nil {
 		log.Errorf("recv handshake response error %s", err.Error())
 
@@ -80,6 +82,8 @@ func (c *Conn) Handshake() error {
 
 		return errors.Trace(err)
 	}
+
+	c.flush()
 
 	c.pkg.Sequence = 0
 
@@ -138,6 +142,10 @@ func (c *Conn) readPacket() ([]byte, error) {
 
 func (c *Conn) writePacket(data []byte) error {
 	return c.pkg.WritePacket(data)
+}
+
+func (c *Conn) flush() error {
+	return c.pkg.Flush()
 }
 
 func (c *Conn) readHandshakeResponse() error {
@@ -241,10 +249,9 @@ func (c *Conn) dispatch(data []byte) error {
 		log.Debug(cmd, hack.String(data))
 		if err := c.useDB(hack.String(data)); err != nil {
 			return errors.Trace(err)
-		} else {
-			return c.writeOK(nil)
 		}
 
+		return c.writeOK(nil)
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
@@ -291,7 +298,12 @@ func (c *Conn) writeOK(r *Result) error {
 		data = append(data, 0, 0)
 	}
 
-	return errors.Trace(c.writePacket(data))
+	err := c.writePacket(data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) writeError(e error) error {
@@ -311,7 +323,12 @@ func (c *Conn) writeError(e error) error {
 
 	data = append(data, m.Message...)
 
-	return errors.Trace(c.writePacket(data))
+	err := c.writePacket(data)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) writeEOF(status uint16) error {
@@ -323,5 +340,7 @@ func (c *Conn) writeEOF(status uint16) error {
 		data = append(data, byte(status), byte(status>>8))
 	}
 
-	return errors.Trace(c.writePacket(data))
+	err := c.writePacket(data)
+
+	return errors.Trace(err)
 }

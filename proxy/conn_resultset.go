@@ -97,5 +97,9 @@ func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 	}
 
 	err := c.writeEOF(status)
-	return errors.Trace(err)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }

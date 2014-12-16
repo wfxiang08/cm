@@ -53,6 +53,10 @@ func (c *MySqlConn) Connect(addr string, user string, password string, db string
 	return c.ReConnect()
 }
 
+func (c *MySqlConn) Flush() error {
+	return c.pkg.Flush()
+}
+
 func (c *MySqlConn) ReConnect() error {
 	if c.conn != nil {
 		c.conn.Close()
@@ -76,10 +80,14 @@ func (c *MySqlConn) ReConnect() error {
 		return err
 	}
 
+	c.Flush()
+
 	if err := c.writeAuthHandshake(); err != nil {
 		c.conn.Close()
 		return err
 	}
+
+	c.Flush()
 
 	if _, err := c.readOK(); err != nil {
 		c.conn.Close()
@@ -315,6 +323,8 @@ func (c *MySqlConn) Ping() error {
 			return err
 		}
 
+		c.Flush()
+
 		if _, err := c.readOK(); err != nil {
 			return err
 		}
@@ -333,6 +343,8 @@ func (c *MySqlConn) UseDB(dbName string) error {
 	if err := c.writeCommandStr(COM_INIT_DB, dbName); err != nil {
 		return err
 	}
+
+	c.Flush()
 
 	if _, err := c.readOK(); err != nil {
 		return err
@@ -400,6 +412,8 @@ func (c *MySqlConn) FieldList(table string, wildcard string) ([]*Field, error) {
 		return nil, err
 	}
 
+	c.Flush()
+
 	data, err := c.readPacket()
 	if err != nil {
 		return nil, err
@@ -434,6 +448,8 @@ func (c *MySqlConn) exec(query string) (*Result, error) {
 	if err := c.writeCommandStr(COM_QUERY, query); err != nil {
 		return nil, err
 	}
+
+	c.Flush()
 
 	return c.readResult(false)
 }

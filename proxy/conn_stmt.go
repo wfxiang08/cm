@@ -156,7 +156,8 @@ func (c *Conn) writePrepare(s *Stmt) error {
 		}
 
 	}
-	return nil
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) handleStmtExecute(data []byte) error {
@@ -410,8 +411,9 @@ func (c *Conn) handleStmtReset(data []byte) error {
 	}
 
 	s.ResetParams()
+	err := c.writeOK(nil)
 
-	return errors.Trace(c.writeOK(nil))
+	return errors.Trace(err)
 }
 
 func (c *Conn) handleStmtClose(data []byte) error {

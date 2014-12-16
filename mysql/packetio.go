@@ -9,7 +9,7 @@ import (
 
 type PacketIO struct {
 	rb *bufio.Reader
-	wb io.Writer
+	wb *bufio.Writer
 
 	Sequence uint8
 }
@@ -17,8 +17,8 @@ type PacketIO struct {
 func NewPacketIO(conn net.Conn) *PacketIO {
 	p := new(PacketIO)
 
-	p.rb = bufio.NewReaderSize(conn, 1024)
-	p.wb = conn
+	p.rb = bufio.NewReaderSize(conn, 2048)
+	p.wb = bufio.NewWriterSize(conn, 2048)
 	p.Sequence = 0
 
 	return p
@@ -96,4 +96,8 @@ func (p *PacketIO) WritePacket(data []byte) error {
 		p.Sequence++
 		return nil
 	}
+}
+
+func (p *PacketIO) Flush() error {
+	return p.wb.Flush()
 }

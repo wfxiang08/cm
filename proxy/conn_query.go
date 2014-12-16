@@ -415,7 +415,12 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 
 	//todo: handle set command when sharding
 	if stmt == nil { //hack for "set names utf8"
-		return errors.Trace(c.writeOK(rs[0]))
+		err := c.writeOK(rs[0])
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return errors.Trace(c.flush())
 	}
 
 	for i := 1; i < len(rs); i++ {
@@ -513,7 +518,11 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	if err != nil {
 		return errors.Trace(err)
 	} else if conns == nil {
-		return c.writeOK(nil)
+		err := c.writeOK(nil)
+		if err != nil {
+			return err
+		}
+		return errors.Trace(c.flush())
 	}
 
 	var rs []*Result
@@ -533,7 +542,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 }
 
 func (c *Conn) mergeExecResult(rs []*Result) error {
-	r := new(Result)
+	r := &Result{}
 
 	for _, v := range rs {
 		r.Status |= v.Status
@@ -551,7 +560,12 @@ func (c *Conn) mergeExecResult(rs []*Result) error {
 
 	c.affectedRows = int64(r.AffectedRows)
 
-	return c.writeOK(r)
+	err := c.writeOK(r)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {

@@ -41,7 +41,12 @@ func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
 		return errors.Errorf("invalid autocommit flag %s", value)
 	}
 
-	return c.writeOK(nil)
+	err := c.writeOK(nil)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) handleSetNames(val sqlparser.ValExpr) error {
@@ -59,5 +64,10 @@ func (c *Conn) handleSetNames(val sqlparser.ValExpr) error {
 	c.charset = charset
 	c.collation = cid
 
-	return c.writeOK(nil)
+	err := c.writeOK(nil)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }

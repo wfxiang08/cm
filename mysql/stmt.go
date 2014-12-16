@@ -28,6 +28,8 @@ func (s *MySqlStmt) Execute(args ...interface{}) (*Result, error) {
 		return nil, err
 	}
 
+	s.conn.Flush()
+
 	return s.conn.readResult(true)
 }
 
@@ -35,6 +37,8 @@ func (s *MySqlStmt) Close() error {
 	if err := s.conn.writeCommandUint32(COM_STMT_CLOSE, s.id); err != nil {
 		return err
 	}
+
+	s.conn.Flush()
 
 	return nil
 }
@@ -165,6 +169,8 @@ func (c *MySqlConn) Prepare(query string) (*MySqlStmt, error) {
 	if err := c.writeCommandStr(COM_STMT_PREPARE, query); err != nil {
 		return nil, err
 	}
+
+	c.Flush()
 
 	data, err := c.readPacket()
 	if err != nil {

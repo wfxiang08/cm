@@ -154,19 +154,22 @@ func (si *SchemaInfo) override() {
 			table.Cache = NewRowCache(table, si.cachePool)
 		case "W":
 			table.CacheType = schema.CACHE_W
-			if override.Cache.Table == "" {
+			if len(override.Cache.Table) == 0 {
 				log.Warningf("Incomplete cache specs: %v", override)
 				continue
 			}
+
 			totable, ok := si.tables[override.Cache.Table]
 			if !ok {
 				log.Warningf("Table not found: %v", override)
 				continue
 			}
+
 			if totable.Cache == nil {
 				log.Warningf("Table has no cache: %v", override)
 				continue
 			}
+
 			table.Cache = totable.Cache
 		default:
 			log.Warningf("Ignoring cache override: %v", override)

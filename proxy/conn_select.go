@@ -137,5 +137,9 @@ func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
 	}
 
 	err := c.writeEOF(status)
-	return errors.Trace(err)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
