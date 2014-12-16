@@ -48,10 +48,11 @@ func NewTable(name string) *Table {
 var typesMap = map[string]byte{
 	"int":       mysql.MYSQL_TYPE_LONG,
 	"long":      mysql.MYSQL_TYPE_LONG,
+	"short":     mysql.MYSQL_TYPE_SHORT,
 	"tiny":      mysql.MYSQL_TYPE_TINY,
 	"varbinary": mysql.MYSQL_TYPE_VARCHAR,
 	"blob":      mysql.MYSQL_TYPE_BLOB,
-	"datatime":  mysql.MYSQL_TYPE_DATETIME,
+	"datetime":  mysql.MYSQL_TYPE_DATETIME,
 	"timestamp": mysql.MYSQL_TYPE_TIMESTAMP,
 	"data":      mysql.MYSQL_TYPE_DATE,
 	"float":     mysql.MYSQL_TYPE_FLOAT,
@@ -60,10 +61,6 @@ var typesMap = map[string]byte{
 	"varchar":   mysql.MYSQL_TYPE_VARCHAR,
 	"string":    mysql.MYSQL_TYPE_STRING,
 	"char":      mysql.MYSQL_TYPE_STRING,
-}
-
-func init() {
-
 }
 
 func str2mysqlType(columnType string) byte {
@@ -78,23 +75,14 @@ func str2mysqlType(columnType string) byte {
 func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, extra string) {
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
-	if strings.Contains(columnType, "int") || strings.Contains(columnType, "long") || strings.Contains(columnType, "tiny") || strings.Contains(columnType, "short") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_LONGLONG
-	} else if strings.HasPrefix(columnType, "varbinary") || strings.Contains(columnType, "blob") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_VARCHAR
-	} else if strings.HasPrefix(columnType, "datetime") || strings.HasPrefix(columnType, "timestamp") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_DATETIME
-	} else if strings.HasPrefix(columnType, "date") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_DATE
-	} else if strings.Contains(columnType, "float") || strings.Contains(columnType, "double") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_DOUBLE
-	} else if strings.HasPrefix(columnType, "enum") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_ENUM
-	} else if strings.Contains(columnType, "text") || strings.Contains(columnType, "varchar") || strings.Contains(columnType, "string") || strings.Contains(columnType, "char") {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_STRING
-	} else {
-		log.Fatalf("not support type: %s", columnType)
+
+	endPos := strings.Index(columnType, "(") //handle something like: int(11)
+	if endPos > 0 {
+		columnType = strings.ToLower(strings.TrimSpace(columnType[:endPos]))
 	}
+
+	ta.Columns[index].Category = str2mysqlType(columnType)
+
 	if extra == "auto_increment" {
 		ta.Columns[index].IsAuto = true
 		// Ignore default value, if any

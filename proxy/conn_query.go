@@ -460,8 +460,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 			return c.writeCacheResults(plan, ti, keys, items)
 		}
 
-		log.Debug(count, len(keys), keys)
-
 		if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
 			log.Infof("%s, %+v, %+v", sql, plan, stmt)
 			return c.fillCacheAndReturnResults(plan, ti, keys)

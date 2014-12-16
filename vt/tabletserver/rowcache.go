@@ -126,7 +126,7 @@ func (rc *RowCache) Delete(key string) {
 }
 
 func (rc *RowCache) decodeRow(b []byte, tcs []schema.TableColumn) mysql.RowValue {
-	var fs []*mysql.Field
+	fs := make([]*mysql.Field, 0, len(tcs))
 
 	for _, tc := range tcs {
 		f := &mysql.Field{

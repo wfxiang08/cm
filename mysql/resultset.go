@@ -17,6 +17,7 @@ func Raw(t byte, val Value, isUnsigned bool) []byte {
 	if val == nil {
 		return nil
 	}
+
 	var ret []byte
 	switch t {
 	case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24, MYSQL_TYPE_LONG,
@@ -32,6 +33,7 @@ func Raw(t byte, val Value, isUnsigned bool) []byte {
 	default:
 		ret = val.([]byte)
 	}
+
 	return ret
 }
 
