@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -24,7 +23,7 @@ func randSeq(n int) string {
 }
 
 func NewDbMap() *gorp.DbMap {
-	dsn := "root:@tcp(127.0.0.1:4000)/benchmark"
+	dsn := "root:@tcp(127.0.0.1:4000)/test"
 	dbType := "mysql"
 	db, err := sql.Open(dbType, dsn)
 
@@ -46,8 +45,8 @@ func NewDbMap() *gorp.DbMap {
 
 type TestData struct {
 	Id       int    `db:"id"`
-	DateTime string `db:"datetime"`
 	Data     string `db:"data"`
+	Datetime []byte `db:"datetime"`
 }
 
 var n = flag.Int("n", 20000, "n")
@@ -88,10 +87,8 @@ func ReadTest() {
 			m := NewDbMap()
 			t := TestData{}
 			for _ = range c {
-				x := rand.Intn(2000) + 1
-				err := m.SelectOne(&t, "select * from autoincr_test where id = ?", x)
+				err := m.SelectOne(&t, "select * from autoincr_test where id = ?", 1)
 				if err != nil {
-					fmt.Println(x)
 					panic(err)
 				}
 				wg.Done()

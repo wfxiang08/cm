@@ -16,7 +16,7 @@ import (
 
 var (
 	mysqlHost = flag.String("h", "127.0.0.1", "mysql host")
-	mysqlPort = flag.Int("p", 3306, "mysql port")
+	mysqlPort = flag.Int("p", 4000, "mysql port")
 	dbName    = flag.String("db", "test", "db name")
 
 	testType = flag.String("t", "read", "test type: read | write | init")
@@ -184,11 +184,38 @@ func testConcurrentInsert(db *sql.DB) error {
 func testRead(db *sql.DB) error {
 	for i := 0; i < *N; i++ {
 		x := rand.Intn(2000) + 1
-		_, err := db.Query("select * from autoincr_test where id = ?", x)
+		r, err := db.Query("select * from autoincr_test where id = ?", x)
 		if err != nil {
 			return err
 		}
+		r.Close()
 	}
+	return nil
+}
+
+func testConcurrentRead(db *sql.DB) error {
+	wg := sync.WaitGroup{}
+	c := make(chan struct{})
+	e := make(chan error)
+	for i := 0; i < *C; i++ {
+		go func() {
+			for _ = range c {
+				x := rand.Intn(2000) + 1
+				r, err := db.Query("select * from autoincr_test where id = ?", x)
+				if err != nil {
+					e <- err
+				}
+				r.Close()
+				wg.Done()
+			}
+		}()
+	}
+
+	wg.Add(*N)
+	for i := 0; i < *N; i++ {
+		c <- struct{}{}
+	}
+	wg.Wait()
 	return nil
 }
 
@@ -215,7 +242,11 @@ func main() {
 			fmt.Println(run(db, testConcurrentInsert))
 		}
 	case "read":
-		fmt.Println(run(db, testRead))
+		if *C == 0 {
+			fmt.Println(run(db, testRead))
+		} else {
+			fmt.Println(run(db, testConcurrentRead))
+		}
 	default:
 		fmt.Printf("no such type")
 	}
