@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
+	log "github.com/ngaut/logging"
 	"github.com/youtube/vitess/go/stats"
 	"github.com/youtube/vitess/go/timer"
 )

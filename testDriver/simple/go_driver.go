@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"runtime"
 	"sync"
 	"time"
@@ -14,7 +16,7 @@ import (
 
 var (
 	mysqlHost = flag.String("h", "127.0.0.1", "mysql host")
-	mysqlPort = flag.Int("p", 4000, "mysql port")
+	mysqlPort = flag.Int("p", 3306, "mysql port")
 	dbName    = flag.String("db", "test", "db name")
 
 	testType = flag.String("t", "read", "test type: read | write | init")
@@ -94,8 +96,8 @@ func NewDb() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxIdleConns(100)
-	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(50)
+	db.SetMaxOpenConns(30)
 	return db, nil
 }
 
@@ -197,6 +199,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	go func() {
+		http.ListenAndServe(":8889", nil)
+	}()
 
 	switch *testType {
 	case "init":

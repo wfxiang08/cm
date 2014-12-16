@@ -10,7 +10,7 @@
             "down_after_noalive" : 0,
             "idle_conns" : 16,
             "rw_split" : false,
-            "master" : "127.0.0.1:3307",
+            "master" : "127.0.0.1:3306",
             "slave" : "",
             "user" : "root",
             "password": ""
@@ -27,8 +27,7 @@
                     {
                         "table":"autoincr_test",
                         "key": "id",
-                        "node": "node1",
-		        "row_cache_type":"RW"
+                        "node": "node1"
                     },
                     {
                         "table":"person",
