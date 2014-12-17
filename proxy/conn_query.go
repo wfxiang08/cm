@@ -446,7 +446,6 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
 		//todo: composed primary key support
 		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("pkvalue-key", keys)
 		items := ti.Cache.Get(keys, getFieldNames(plan, ti))
 		count := 0
 		for _, item := range items {
