@@ -158,7 +158,7 @@ func (s *Server) Close() {
 	s.rwlock.Lock()
 	defer s.rwlock.Unlock()
 
-	atomic.SwapInt32(&s.running, 0)
+	atomic.StoreInt32(&s.running, 0)
 	if s.listener != nil {
 		s.listener.Close()
 	}
