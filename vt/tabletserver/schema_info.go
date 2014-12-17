@@ -19,7 +19,6 @@ import (
 	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 	"github.com/youtube/vitess/go/cache"
-	"github.com/youtube/vitess/go/stats"
 )
 
 const base_show_tables = "select table_name, table_type, unix_timestamp(create_time), table_comment from information_schema.tables where table_schema = database()"
@@ -110,22 +109,22 @@ func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, 
 
 	si.override()
 
-	stats.Publish("QueryCacheLength", stats.IntFunc(si.queries.Length))
-	stats.Publish("QueryCacheSize", stats.IntFunc(si.queries.Size))
-	stats.Publish("QueryCacheCapacity", stats.IntFunc(si.queries.Capacity))
-	stats.Publish("QueryCacheOldest", stats.StringFunc(func() string {
-		return fmt.Sprintf("%v", si.queries.Oldest())
-	}))
-	_ = stats.NewMultiCountersFunc("TableStats", []string{"Table", "Stats"}, si.getTableStats)
-	_ = stats.NewMultiCountersFunc("TableInvalidations", []string{"Table"}, si.getTableInvalidations)
-	_ = stats.NewMultiCountersFunc("QueryCounts", []string{"Table", "Plan"}, si.getQueryCount)
-	_ = stats.NewMultiCountersFunc("QueryTimesNs", []string{"Table", "Plan"}, si.getQueryTime)
-	_ = stats.NewMultiCountersFunc("QueryRowCounts", []string{"Table", "Plan"}, si.getQueryRowCount)
-	_ = stats.NewMultiCountersFunc("QueryErrorCounts", []string{"Table", "Plan"}, si.getQueryErrorCount)
-	http.Handle("/debug/query_plans", si)
-	http.Handle("/debug/query_stats", si)
-	http.Handle("/debug/table_stats", si)
-	http.Handle("/debug/schema", si)
+	//	stats.Publish("QueryCacheLength", stats.IntFunc(si.queries.Length))
+	//	stats.Publish("QueryCacheSize", stats.IntFunc(si.queries.Size))
+	//	stats.Publish("QueryCacheCapacity", stats.IntFunc(si.queries.Capacity))
+	//	stats.Publish("QueryCacheOldest", stats.StringFunc(func() string {
+	//		return fmt.Sprintf("%v", si.queries.Oldest())
+	//	}))
+	//	_ = stats.NewMultiCountersFunc("TableStats", []string{"Table", "Stats"}, si.getTableStats)
+	//	_ = stats.NewMultiCountersFunc("TableInvalidations", []string{"Table"}, si.getTableInvalidations)
+	//	_ = stats.NewMultiCountersFunc("QueryCounts", []string{"Table", "Plan"}, si.getQueryCount)
+	//	_ = stats.NewMultiCountersFunc("QueryTimesNs", []string{"Table", "Plan"}, si.getQueryTime)
+	//	_ = stats.NewMultiCountersFunc("QueryRowCounts", []string{"Table", "Plan"}, si.getQueryRowCount)
+	//	_ = stats.NewMultiCountersFunc("QueryErrorCounts", []string{"Table", "Plan"}, si.getQueryErrorCount)
+	//	http.Handle("/debug/query_plans", si)
+	//	http.Handle("/debug/query_stats", si)
+	//	http.Handle("/debug/table_stats", si)
+	//	http.Handle("/debug/schema", si)
 	return si
 }
 
@@ -172,7 +171,7 @@ func (si *SchemaInfo) override() {
 
 			table.Cache = totable.Cache
 		default:
-			log.Warningf("Ignoring cache override: %v", override)
+			log.Warningf("Ignoring cache override: %+v", override)
 		}
 	}
 }
@@ -181,6 +180,7 @@ func (si *SchemaInfo) Close() {
 	si.tables = nil
 	si.overrides = nil
 	si.queries.Clear()
+	si.cachePool.Close()
 }
 
 func (si *SchemaInfo) Exec(sql string) (result *mysql.Result, err error) {

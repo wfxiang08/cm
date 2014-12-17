@@ -237,6 +237,9 @@ func (c *Conn) dispatch(data []byte) error {
 
 	log.Debug(cmd, hack.String(data))
 
+	c.server.rwlock.RLock()
+	defer c.server.rwlock.RUnlock()
+
 	switch cmd {
 	case COM_QUIT:
 		c.Close()

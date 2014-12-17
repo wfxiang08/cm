@@ -35,7 +35,7 @@ func main() {
 	log.SetLevelByString(cfg.LogLevel)
 
 	var svr *proxy.Server
-	svr, err = proxy.NewServer(cfg)
+	svr, err = proxy.NewServer(*configFile)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -56,5 +56,7 @@ func main() {
 	}()
 
 	go svr.Run()
+
+	http.HandleFunc("/api/reload", svr.HandleReload)
 	http.ListenAndServe(":8888", nil)
 }

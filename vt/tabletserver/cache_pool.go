@@ -17,7 +17,6 @@ import (
 	"github.com/youtube/vitess/go/acl"
 	"github.com/youtube/vitess/go/memcache"
 	"github.com/youtube/vitess/go/pools"
-	"github.com/youtube/vitess/go/stats"
 	"github.com/youtube/vitess/go/sync2"
 )
 
@@ -80,16 +79,16 @@ type CachePool struct {
 
 func NewCachePool(name string, rowCacheConfig RowCacheConfig, queryTimeout time.Duration, idleTimeout time.Duration) *CachePool {
 	cp := &CachePool{name: name, idleTimeout: idleTimeout}
-	if name != "" {
-		cp.memcacheStats = NewMemcacheStats(cp, true, false, false)
-		stats.Publish(name+"ConnPoolCapacity", stats.IntFunc(cp.Capacity))
-		stats.Publish(name+"ConnPoolAvailable", stats.IntFunc(cp.Available))
-		stats.Publish(name+"ConnPoolMaxCap", stats.IntFunc(cp.MaxCap))
-		stats.Publish(name+"ConnPoolWaitCount", stats.IntFunc(cp.WaitCount))
-		stats.Publish(name+"ConnPoolWaitTime", stats.DurationFunc(cp.WaitTime))
-		stats.Publish(name+"ConnPoolIdleTimeout", stats.DurationFunc(cp.IdleTimeout))
-	}
-	http.Handle(statsURL, cp)
+	//	if name != "" {
+	//		cp.memcacheStats = NewMemcacheStats(cp, true, false, false)
+	//		stats.Publish(name+"ConnPoolCapacity", stats.IntFunc(cp.Capacity))
+	//		stats.Publish(name+"ConnPoolAvailable", stats.IntFunc(cp.Available))
+	//		stats.Publish(name+"ConnPoolMaxCap", stats.IntFunc(cp.MaxCap))
+	//		stats.Publish(name+"ConnPoolWaitCount", stats.IntFunc(cp.WaitCount))
+	//		stats.Publish(name+"ConnPoolWaitTime", stats.DurationFunc(cp.WaitTime))
+	//		stats.Publish(name+"ConnPoolIdleTimeout", stats.DurationFunc(cp.IdleTimeout))
+	//	}
+	//	http.Handle(statsURL, cp)
 
 	if rowCacheConfig.Binary == "" {
 		return cp

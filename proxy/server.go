@@ -1,9 +1,12 @@
 package proxy
 
 import (
+	"io"
 	"net"
+	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
@@ -13,6 +16,7 @@ import (
 )
 
 type Server struct {
+	configFile  string
 	cfg         *config.Config
 	addr        string
 	user        string
@@ -22,6 +26,7 @@ type Server struct {
 	nodes       map[string]*Node
 	schemas     map[string]*Schema
 	autoSchamas map[string]*tabletserver.SchemaInfo
+	rwlock      sync.RWMutex
 }
 
 func GetRowCacheType(rowCacheType string) int {
@@ -35,21 +40,13 @@ func GetRowCacheType(rowCacheType string) int {
 	}
 }
 
-func NewServer(cfg *config.Config) (*Server, error) {
-	s := &Server{
-		cfg:         cfg,
-		addr:        cfg.Addr,
-		user:        cfg.User,
-		password:    cfg.Password,
-		autoSchamas: make(map[string]*tabletserver.SchemaInfo),
-	}
-
+func (s *Server) loadSchemaInfo() error {
 	if err := s.parseNodes(); err != nil {
-		return nil, errors.Trace(err)
+		return errors.Trace(err)
 	}
 
 	if err := s.parseSchemas(); err != nil {
-		return nil, errors.Trace(err)
+		return errors.Trace(err)
 	}
 
 	for _, v := range s.cfg.Schemas {
@@ -69,11 +66,38 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(128*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
 	}
 
-	var err error
+	return nil
+}
+
+func makeServer(configFile string) *Server {
+	cfg, err := config.ParseConfigFile(configFile)
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	s := &Server{
+		configFile:  configFile,
+		cfg:         cfg,
+		addr:        cfg.Addr,
+		user:        cfg.User,
+		password:    cfg.Password,
+		autoSchamas: make(map[string]*tabletserver.SchemaInfo),
+	}
+
+	return s
+}
+
+func NewServer(configFile string) (*Server, error) {
+	s := makeServer(configFile)
+	s.loadSchemaInfo()
+
 	netProto := "tcp"
 	if strings.Contains(netProto, "/") {
 		netProto = "unix"
 	}
+
+	var err error
 	s.listener, err = net.Listen(netProto, s.addr)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -81,6 +105,32 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	log.Infof("Server run MySql Protocol Listen(%s) at [%s]", netProto, s.addr)
 	return s, nil
+}
+
+func (s *Server) resetSchemaInfo() {
+	for _, si := range s.autoSchamas {
+		si.Close()
+	}
+
+	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
+	s.nodes = nil
+	s.schemas = nil
+
+	cfg, err := config.ParseConfigFile(s.configFile)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	s.cfg = cfg
+	s.loadSchemaInfo()
+}
+
+func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
+	s.rwlock.Lock()
+	defer s.rwlock.Unlock()
+	s.resetSchemaInfo()
+
+	io.WriteString(w, "ok")
 }
 
 func (s *Server) Run() error {
@@ -127,5 +177,4 @@ func (s *Server) onConn(c net.Conn) {
 	}
 
 	conn.Run()
-
 }
