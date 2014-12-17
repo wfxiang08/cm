@@ -267,7 +267,7 @@ func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletse
 
 func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
 	composedPkCnt := len(PKColumns)
-	s := make([]string, 0)
+	s := make([]string, 0, len(pkValues))
 	var composedPk string
 	for i, values := range pkValues {
 		switch v := values.(type) {
@@ -310,7 +310,7 @@ func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []sch
 }
 
 func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string, items map[string]tabletserver.RCResult) error {
-	var values []RowValue
+	values := make([]RowValue, 0, len(keys))
 	for _, key := range keys {
 		row, ok := items[key]
 		if !ok {
@@ -558,12 +558,7 @@ func (c *Conn) mergeExecResult(rs []*Result) error {
 
 	c.affectedRows = int64(r.AffectedRows)
 
-	err := c.writeOK(r)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	return errors.Trace(c.flush())
+	return errors.Trace(c.writeOK(r))
 }
 
 func (c *Conn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {

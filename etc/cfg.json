@@ -33,13 +33,14 @@
                     {
                         "table":"person",
                         "key": "id",
-                        "node": "node1"
+                        "node": "node1",
+						"row_cache_type":"RW"
                     },
                     {
                         "table":"t1",
                         "key": "id",
-                        "node": "node1",
-		        "row_cache_type":"RW"		
+                        "node": "node1"
+		        		   		
                     },
 		    {
                         "table":"INFO",

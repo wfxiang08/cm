@@ -112,8 +112,10 @@ func (c *Conn) handleFieldList(data []byte) error {
 	}
 	defer co.Close()
 
-	if err = co.UseDB(c.schema.db); err != nil {
-		return errors.Trace(err)
+	if co.GetDB() != c.schema.db {
+		if err = co.UseDB(c.schema.db); err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	if fs, err := co.FieldList(table, wildcard); err != nil {

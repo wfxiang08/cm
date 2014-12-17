@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
@@ -21,7 +22,7 @@ type Server struct {
 	addr        string
 	user        string
 	password    string
-	running     bool
+	running     int32
 	listener    net.Listener
 	nodes       map[string]*Node
 	schemas     map[string]*Schema
@@ -107,11 +108,14 @@ func NewServer(configFile string) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) resetSchemaInfo() {
+func (s *Server) cleanup() {
 	for _, si := range s.autoSchamas {
 		si.Close()
 	}
+}
 
+func (s *Server) resetSchemaInfo() {
+	s.cleanup()
 	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
 	s.nodes = nil
 	s.schemas = nil
@@ -128,15 +132,16 @@ func (s *Server) resetSchemaInfo() {
 func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
 	s.rwlock.Lock()
 	defer s.rwlock.Unlock()
+
 	s.resetSchemaInfo()
 
 	io.WriteString(w, "ok")
 }
 
 func (s *Server) Run() error {
-	s.running = true
+	atomic.StoreInt32(&s.running, 1)
 
-	for s.running {
+	for atomic.LoadInt32(&s.running) == 1 {
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Errorf("accept error %s", err.Error())
@@ -150,10 +155,15 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) Close() {
-	s.running = false
+	s.rwlock.Lock()
+	defer s.rwlock.Unlock()
+
+	atomic.SwapInt32(&s.running, 0)
 	if s.listener != nil {
 		s.listener.Close()
 	}
+
+	s.cleanup()
 }
 
 func (s *Server) onConn(c net.Conn) {
