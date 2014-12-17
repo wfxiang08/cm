@@ -42,7 +42,7 @@ type RCResult struct {
 }
 
 func NewRowCache(tableInfo *TableInfo, cachePool *CachePool) *RowCache {
-	prefix := strconv.FormatInt(cachePool.maxPrefix.Add(1), 36) + "."
+	prefix := strconv.FormatInt(GetMaxPrefix(), 36) + "."
 	return &RowCache{tableInfo, prefix, cachePool}
 }
 

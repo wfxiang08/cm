@@ -63,10 +63,15 @@ func (c *RowCacheConfig) GetSubprocessFlags() []string {
 	return cmd
 }
 
+var maxPrefix sync2.AtomicInt64
+
+func GetMaxPrefix() int64 {
+	return maxPrefix.Add(1)
+}
+
 type CachePool struct {
 	name           string
 	pool           *pools.ResourcePool
-	maxPrefix      sync2.AtomicInt64
 	cmd            *exec.Cmd
 	rowCacheConfig RowCacheConfig
 	capacity       int
