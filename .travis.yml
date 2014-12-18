@@ -12,7 +12,7 @@ services:
 install: go get -d -v ./... && go build -v ./... && make
 
 before_script:
-    - mysql -e 'create database test'
+    - mysql -e "create database IF NOT EXISTS test;" -uroot
     - cm-proxy &
 
 script: "./run_test.sh"
