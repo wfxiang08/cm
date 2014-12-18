@@ -6,13 +6,11 @@ go:
 services:
     - memcached
 
-before_script:
-  - mysql -e 'create database test;'
 
 install: go get -d -v ./... && go build -v ./... && make
 
+before_script:  mysql -e 'create database test;' && cm-proxy &
 
-before_script: "cm-proxy &"
 script: "./run_test.sh"
 
 branches:
