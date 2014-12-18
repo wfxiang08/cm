@@ -387,8 +387,8 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
 		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("fill cache", pkValue)
-		ti.Cache.Set(pkValue[0], r.RowDatas[0], 0)
+		log.Debug("fill cache ", pkValue, result.RowDatas[0])
+		ti.Cache.Set(pkValue[0], result.RowDatas[0], 0)
 	}
 
 	return c.writeResultset(c.status, r)
@@ -447,7 +447,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
 		//todo: composed primary key support
 		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		items := ti.Cache.Get(keys, getFieldNames(plan, ti))
+		items := ti.Cache.Get(keys, ti.Columns)
 		count := 0
 		for _, item := range items {
 			if item.Row != nil {

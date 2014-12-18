@@ -129,6 +129,7 @@ func LengthEnodedString(b []byte) ([]byte, bool, int, error) {
 	if len(b) >= n {
 		return b[n-int(num) : n], false, n, nil
 	}
+
 	return nil, false, n, io.EOF
 }
 

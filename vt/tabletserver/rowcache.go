@@ -54,6 +54,7 @@ func (rc *RowCache) Get(keys []string, tcs []schema.TableColumn) (results map[st
 		}
 		mkeys = append(mkeys, rc.prefix+key)
 	}
+
 	prefixlen := len(rc.prefix)
 	conn := rc.cachePool.Get(0)
 	// This is not the same as defer rc.cachePool.Put(conn)
