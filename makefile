@@ -1,4 +1,4 @@
-all: build
+all: clean build integration_test
 
 build:
 	go install ./...
@@ -6,5 +6,5 @@ build:
 clean:
 	go clean -i ./...
 
-test:
-	go test ./...
+integration_test:
+	sh run_test.sh
