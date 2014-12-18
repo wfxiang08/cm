@@ -236,6 +236,10 @@ func intTest(db *sql.DB) error {
 	if ret != x {
 		return fmt.Errorf("int test failed %d != %d", ret, x)
 	}
+
+	if ret != cret {
+		return fmt.Errorf("int test cache failed %d != %d", ret, cret)
+	}
 	return nil
 }
 
@@ -251,6 +255,11 @@ func doubleTest(db *sql.DB) error {
 	if math.Abs(ret-x) > 1e-7 {
 		return fmt.Errorf("double test failed %v != %v", ret, x)
 	}
+
+	if math.Abs(ret-cret) > 1e-7 {
+		return fmt.Errorf("double test cache failed %v != %v", ret, cret)
+	}
+
 	return nil
 }
 
@@ -265,6 +274,11 @@ func varcharTest(db *sql.DB) error {
 	if ret != s {
 		return fmt.Errorf("var char test failed %v != %v", ret, s)
 	}
+
+	if ret != cret {
+		return fmt.Errorf("var char cache test failed %v != %v", ret, cret)
+	}
+
 	return nil
 }
 
@@ -278,6 +292,10 @@ func textTest(db *sql.DB) error {
 
 	if ret != s {
 		return fmt.Errorf("text test failed %v != %v", ret, s)
+	}
+
+	if ret != cret {
+		return fmt.Errorf("text test cache failed %v != %v", ret, cret)
 	}
 	return nil
 }
@@ -294,15 +312,21 @@ func blobTest(db *sql.DB) error {
 
 	s1 := fmt.Sprintf("%x", ret)
 	s2 := fmt.Sprintf("%x", blob)
+	s3 := fmt.Sprintf("%x", cret)
 	if s1 != s2 {
 		return fmt.Errorf("blob test failed %v != %v", s1, s2)
 	}
+
+	if s1 != s3 {
+		return fmt.Errorf("blob test cache failed %v != %v", s1, s3)
+	}
+
 	return nil
 }
 
 func datetimeTest(db *sql.DB) error {
 	d := time.Now()
-	ds := d.Format("2006-01-02 03:04:05")
+	ds := d.Format("2006-01-02 15:04:05")
 	var ret, cret []byte
 	err := insertDataAndQueryBack(db, "datetime_test", d, &ret, &cret)
 	if err != nil {
@@ -311,9 +335,12 @@ func datetimeTest(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-
 	if string(ret) != ds {
 		return fmt.Errorf("datetime test failed %v != %v", string(ret), ds)
+	}
+
+	if string(cret) != string(ret) {
+		return fmt.Errorf("datetime test cache failed %v != %v", string(ret), string(cret))
 	}
 
 	return nil
@@ -332,6 +359,10 @@ func dateTest(db *sql.DB) error {
 
 	if string(ret) != ds {
 		return fmt.Errorf("date test failed %v != %v", string(ret), ds)
+	}
+
+	if string(ret) != string(cret) {
+		return fmt.Errorf("date test cache failed %v != %v", string(ret), string(cret))
 	}
 
 	return nil
