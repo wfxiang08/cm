@@ -9,7 +9,7 @@ services:
 before_script:
   - mysql -e 'create database test;'
 
-install: make get-deps
+install: go get -d -v ./... && go build -v ./...
 
 scripts:
 - ./run.sh &
