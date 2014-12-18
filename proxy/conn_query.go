@@ -455,7 +455,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		}
 
 		if count == len(keys) { //all cache hint
-			log.Info("hit cache!", sql, items, keys)
+			log.Info("hit cache!", sql, keys)
 			return c.writeCacheResults(plan, ti, keys, items)
 		}
 

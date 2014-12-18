@@ -11,9 +11,9 @@ import (
 
 	log "github.com/ngaut/logging"
 
+	stats "github.com/ngaut/vstats"
 	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
-	"github.com/youtube/vitess/go/stats"
 )
 
 var cacheStats = stats.NewTimings("Rowcache")

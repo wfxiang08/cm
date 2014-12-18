@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/juju/errors"
+	"github.com/ngaut/cache"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
-	"github.com/youtube/vitess/go/cache"
 )
 
 const base_show_tables = "select table_name, table_type, unix_timestamp(create_time), table_comment from information_schema.tables where table_schema = database()"

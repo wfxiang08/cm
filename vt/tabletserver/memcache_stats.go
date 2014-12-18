@@ -13,8 +13,8 @@ import (
 	"time"
 
 	log "github.com/ngaut/logging"
-	"github.com/youtube/vitess/go/stats"
-	"github.com/youtube/vitess/go/timer"
+	"github.com/ngaut/timer"
+	stats "github.com/ngaut/vstats"
 )
 
 var interval = 5 * time.Second

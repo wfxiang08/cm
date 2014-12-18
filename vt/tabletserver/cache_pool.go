@@ -14,10 +14,9 @@ import (
 	"time"
 
 	log "github.com/ngaut/logging"
-	"github.com/youtube/vitess/go/acl"
-	"github.com/youtube/vitess/go/memcache"
-	"github.com/youtube/vitess/go/pools"
-	"github.com/youtube/vitess/go/sync2"
+	"github.com/ngaut/memcache"
+	"github.com/ngaut/pools"
+	"github.com/ngaut/sync2"
 )
 
 const statsURL = "/debug/memcache/"
@@ -226,7 +225,7 @@ func (cp *CachePool) Get(timeout time.Duration) *memcache.Connection {
 	if pool == nil {
 		log.Fatal("cache pool is not open")
 	}
-	r, err := pool.Get(timeout)
+	r, err := pool.Get()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -302,10 +301,6 @@ func (cp *CachePool) IdleTimeout() time.Duration {
 }
 
 func (cp *CachePool) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	if err := acl.CheckAccessHTTP(request, acl.MONITORING); err != nil {
-		acl.SendError(response, err)
-		return
-	}
 	defer func() {
 		if x := recover(); x != nil {
 			response.Write(([]byte)(x.(error).Error()))
