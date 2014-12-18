@@ -11,9 +11,7 @@ before_script:
 
 install: go get -d -v ./... && go build -v ./...
 
-scripts:
-- ./run.sh &
-- ./run_test.sh
+script: "./run_test.sh"
 
 branches:
   only:
