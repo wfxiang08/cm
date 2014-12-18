@@ -19,6 +19,8 @@ func formatField(field *Field, value interface{}) error {
 		field.Charset = 63
 		field.Type = MYSQL_TYPE_LONGLONG
 		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+	case float32, float64:
+		field.Charset = 63
 	case string, []byte:
 		field.Charset = 33
 		field.Type = MYSQL_TYPE_VARCHAR

@@ -29,7 +29,7 @@ func Raw(t byte, val Value, isUnsigned bool) []byte {
 		}
 
 	case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
-		ret = []byte(strconv.FormatFloat(val.(float64), 'f', 7, 10))
+		ret = []byte(strconv.FormatFloat(val.(float64), 'f', 16, 64))
 	default:
 		ret = val.([]byte)
 	}

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -114,6 +115,7 @@ func isTblExists(db *sql.DB, tblName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var table string
 		err = rows.Scan(&table)
@@ -131,17 +133,208 @@ func createTestTbls(db *sql.DB) {
 	if b, err := isTblExists(db, "autoincr_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE autoincr_test(id INT NOT NULL AUTO_INCREMENT, data VARCHAR(1024), datetime DATETIME, primary KEY(id))`)
 	}
+
+	if b, err := isTblExists(db, "int_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE int_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data INT)`)
+	}
+
+	if b, err := isTblExists(db, "double_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE double_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data DOUBLE)`)
+	}
+
+	if b, err := isTblExists(db, "varchar_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE varchar_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data VARCHAR(1024))`)
+	}
+
+	if b, err := isTblExists(db, "text_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE text_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data TEXT)`)
+	}
+
+	if b, err := isTblExists(db, "blob_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE blob_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data BLOB)`)
+	}
+
+	if b, err := isTblExists(db, "datetime_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE datetime_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data DATETIME)`)
+	}
+
+	if b, err := isTblExists(db, "date_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE date_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data DATE)`)
+	}
 }
 
 func dropTestTbls(db *sql.DB) {
-	if b, err := isTblExists(db, "autoincr_test"); b && err == nil {
-		mustExec(db, `DROP TABLE autoincr_test`)
+	rows, err := db.Query("SHOW TABLES")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+	var tbls []string
+	for rows.Next() {
+		var table string
+		err = rows.Scan(&table)
+		if err != nil {
+			panic(err)
+		}
+		tbls = append(tbls, table)
+	}
+
+	for _, t := range tbls {
+		mustExec(db, "DROP TABLE "+t)
 	}
 }
 
 func insertAutoIncrIdData(db *sql.DB, data string) (int64, error) {
 	res := mustExec(db, "INSERT INTO autoincr_test(data) VALUES(?)", data)
 	return res.LastInsertId()
+}
+
+func insertDataAndQueryBack(db *sql.DB, tblName string, val interface{}, ret interface{}, cachedRet interface{}) error {
+	r := mustExec(db, "INSERT INTO "+tblName+"(data) VALUES(?)", val)
+	id, err := r.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	res, err := db.Query("SELECT data FROM "+tblName+" WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	defer res.Close()
+
+	for res.Next() {
+		res.Scan(ret)
+		if err != nil {
+			return err
+		}
+	}
+
+	cachedRes, err := db.Query("SELECT data FROM "+tblName+" WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	defer cachedRes.Close()
+
+	for cachedRes.Next() {
+		cachedRes.Scan(cachedRet)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+func intTest(db *sql.DB) error {
+	x := rand.Intn(1024) + 1
+	var ret, cret int
+	err := insertDataAndQueryBack(db, "int_test", x, &ret, &cret)
+	if err != nil {
+		return err
+	}
+	if ret != x {
+		return fmt.Errorf("int test failed %d != %d", ret, x)
+	}
+	return nil
+}
+
+func doubleTest(db *sql.DB) error {
+	x := rand.Float64()
+	var ret, cret float64
+
+	err := insertDataAndQueryBack(db, "double_test", x, &ret, &cret)
+	if err != nil {
+		return err
+	}
+
+	if math.Abs(ret-x) > 1e-7 {
+		return fmt.Errorf("double test failed %v != %v", ret, x)
+	}
+	return nil
+}
+
+func varcharTest(db *sql.DB) error {
+	s := randSeq(1024)
+	var ret, cret string
+	err := insertDataAndQueryBack(db, "varchar_test", s, &ret, &cret)
+	if err != nil {
+		return err
+	}
+
+	if ret != s {
+		return fmt.Errorf("var char test failed %v != %v", ret, s)
+	}
+	return nil
+}
+
+func textTest(db *sql.DB) error {
+	s := randSeq(4096)
+	var ret, cret string
+	err := insertDataAndQueryBack(db, "text_test", s, &ret, &cret)
+	if err != nil {
+		return err
+	}
+
+	if ret != s {
+		return fmt.Errorf("text test failed %v != %v", ret, s)
+	}
+	return nil
+}
+
+func blobTest(db *sql.DB) error {
+	blob := []byte{
+		0xff, 0x00, 0x01, 0x02, 0x03,
+	}
+	var ret, cret []byte
+	err := insertDataAndQueryBack(db, "blob_test", blob, &ret, &cret)
+	if err != nil {
+		return err
+	}
+
+	s1 := fmt.Sprintf("%x", ret)
+	s2 := fmt.Sprintf("%x", blob)
+	if s1 != s2 {
+		return fmt.Errorf("blob test failed %v != %v", s1, s2)
+	}
+	return nil
+}
+
+func datetimeTest(db *sql.DB) error {
+	d := time.Now()
+	ds := d.Format("2006-01-02 03:04:05")
+	var ret, cret []byte
+	err := insertDataAndQueryBack(db, "datetime_test", d, &ret, &cret)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	if string(ret) != ds {
+		return fmt.Errorf("datetime test failed %v != %v", string(ret), ds)
+	}
+
+	return nil
+}
+func dateTest(db *sql.DB) error {
+	d := time.Now()
+	ds := d.Format("2006-01-02")
+	var ret, cret []byte
+	err := insertDataAndQueryBack(db, "date_test", d, &ret, &cret)
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	if string(ret) != ds {
+		return fmt.Errorf("date test failed %v != %v", string(ret), ds)
+	}
+
+	return nil
 }
 
 /* insert test */
@@ -222,6 +415,7 @@ func testConcurrentRead(db *sql.DB) error {
 func main() {
 	flag.Parse()
 	db, err := NewDb()
+	rand.Seed(time.Now().UnixNano())
 
 	if err != nil {
 		panic(err)
@@ -247,6 +441,15 @@ func main() {
 		} else {
 			fmt.Println(run(db, testConcurrentRead))
 		}
+	case "type-test":
+		fmt.Println(run(db, intTest))
+		fmt.Println(run(db, doubleTest))
+		fmt.Println(run(db, varcharTest))
+		fmt.Println(run(db, textTest))
+		fmt.Println(run(db, blobTest))
+		fmt.Println(run(db, datetimeTest))
+		fmt.Println(run(db, dateTest))
+
 	default:
 		fmt.Printf("no such type")
 	}

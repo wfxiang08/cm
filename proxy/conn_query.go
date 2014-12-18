@@ -23,6 +23,7 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 	output = make(RowValue, len(columnNumbers))
 	for colIndex, colPointer := range columnNumbers {
 		if colPointer >= 0 {
+			log.Info(output, input, colIndex, colPointer)
 			output[colIndex] = input[colPointer]
 		}
 	}
