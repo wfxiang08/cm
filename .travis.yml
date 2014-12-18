@@ -9,6 +9,8 @@ services:
 before_script:
   - mysql -e 'create database test;'
 
+install: make get-deps
+
 scripts:
 - ./run.sh &
 - ./run_test.sh
