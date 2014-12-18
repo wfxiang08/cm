@@ -9,7 +9,7 @@ services:
 before_script:
   - mysql -e 'create database test;'
 
-install: go get -d -v ./... && go build -v ./...
+install: go get -d -v ./... && go build -v ./... && make
 
 
 before_script: "cm-proxy &"

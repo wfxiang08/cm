@@ -1,4 +1,4 @@
-all: clean build integration_test
+all: clean build
 
 build:
 	go install ./...
