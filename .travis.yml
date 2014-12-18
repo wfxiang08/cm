@@ -11,7 +11,9 @@ before_script:
 
 install: go get -d -v ./... && go build -v ./...
 
-script: "cm-proxy &; ./run_test.sh"
+
+before_script: "cm-proxy &"
+script: "./run_test.sh"
 
 branches:
   only:
