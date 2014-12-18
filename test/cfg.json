@@ -24,13 +24,7 @@
             "rules" : {
                 "default" : "node1",
                 "shard" : [
-                    {
-                        "table":"autoincr_test",
-                        "key": "id",
-                        "node": "node1",
-		                "row_cache_type":"RW"
-                    },
-                    {
+                   {
                         "table":"int_test",
                         "key": "id",
                         "node": "node1",

@@ -24,31 +24,48 @@
             "rules" : {
                 "default" : "node1",
                 "shard" : [
-                    {
-                        "table":"autoincr_test",
+                   {
+                        "table":"int_test",
                         "key": "id",
                         "node": "node1",
-		        "row_cache_type":"RW"		
+		                "row_cache_type":"RW"
                     },
                     {
-                        "table":"person",
+                        "table":"double_test",
                         "key": "id",
                         "node": "node1",
-						"row_cache_type":"RW"
+		                "row_cache_type":"RW"
                     },
                     {
-                        "table":"t1",
+                        "table":"varchar_test",
                         "key": "id",
-                        "node": "node1"
-		        		   		
-                    },
-		    {
-                        "table":"INFO",
-                        "key": "t1ID, t2ID",
                         "node": "node1",
-		        "row_cache_type":"RW"		
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"text_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"blob_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"datetime_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"date_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
                     }
- 
                 ]
             }
         }
