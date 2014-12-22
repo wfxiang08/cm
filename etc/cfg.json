@@ -21,6 +21,7 @@
         {
             "db": "test",
             "nodes" : ["node1"],
+	    "cache_size":"128",
             "rules" : {
                 "default" : "node1",
                 "shard" : [

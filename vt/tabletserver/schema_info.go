@@ -80,14 +80,14 @@ type SchemaInfo struct {
 	lastChange time.Time
 }
 
-func NewSchemaInfo(queryCacheSize int, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
+func NewSchemaInfo(cacheSize int, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
 	//todo: make all configurable
-	rowCacheConf := RowCacheConfig{Memory: 128 * 1024 * 1024, TcpPort: 11211, Connections: 1024, Threads: -1}
+	rowCacheConf := RowCacheConfig{Memory: cacheSize, TcpPort: 11211, Connections: 1024, Threads: -1}
 	rowCacheConf.Binary = "/usr/bin/memcached"
 	//rowCacheConf.Socket = "memcache.sock"
 
 	si := &SchemaInfo{
-		queries:   cache.NewLRUCache(int64(queryCacheSize)),
+		queries:   cache.NewLRUCache(128 * 1024 * 1024),
 		tables:    make(map[string]*TableInfo),
 		cachePool: NewCachePool(dbName, rowCacheConf, 3*time.Second, 3*time.Second),
 	}

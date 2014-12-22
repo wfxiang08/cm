@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 
+	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/router"
 )
 
@@ -17,10 +18,10 @@ func (s *Server) parseSchemas() error {
 
 	for _, schemaCfg := range s.cfg.Schemas {
 		if _, ok := s.schemas[schemaCfg.DB]; ok {
-			return fmt.Errorf("duplicate schema [%s].", schemaCfg.DB)
+			return errors.Errorf("duplicate schema [%s].", schemaCfg.DB)
 		}
 		if len(schemaCfg.Nodes) == 0 {
-			return fmt.Errorf("schema [%s] must have a node.", schemaCfg.DB)
+			return errors.Errorf("schema [%s] must have a node.", schemaCfg.DB)
 		}
 
 		nodes := make(map[string]*Node)

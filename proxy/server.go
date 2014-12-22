@@ -64,7 +64,8 @@ func (s *Server) loadSchemaInfo() error {
 		}
 
 		//fix hard code node
-		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(128*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
+		log.Info("cache_size:", v.CacheSize)
+		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(v.CacheSize*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
 	}
 
 	return nil
