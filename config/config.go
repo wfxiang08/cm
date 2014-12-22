@@ -22,7 +22,7 @@ type SchemaConfig struct {
 	DB          string      `json:"db"`
 	Nodes       []string    `json:"nodes"`
 	RulesConifg RulesConfig `json:"rules"`
-	CacheSize   int         `json:"cache_size"` //m
+	CacheSize   int         `json:"cache_size,string"` //m
 }
 
 type RulesConfig struct {
