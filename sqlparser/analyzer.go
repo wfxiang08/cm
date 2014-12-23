@@ -9,6 +9,7 @@ package sqlparser
 import (
 	"fmt"
 
+	"github.com/wandoulabs/cm/hack"
 	"github.com/wandoulabs/cm/sqltypes"
 )
 
@@ -16,7 +17,7 @@ import (
 // only if it's a simple expression. Otherwise, it returns "".
 func GetTableName(node SimpleTableExpr) string {
 	if n, ok := node.(*TableName); ok && n.Qualifier == nil {
-		return string(n.Name)
+		return hack.String(n.Name)
 	}
 	// sub-select or '.' expression
 	return ""
@@ -26,7 +27,7 @@ func GetTableName(node SimpleTableExpr) string {
 // it's a simple expression. Otherwise, it returns "".
 func GetColName(node Expr) string {
 	if n, ok := node.(*ColName); ok {
-		return string(n.Name)
+		return hack.String(n.Name)
 	}
 	return ""
 }
@@ -92,13 +93,13 @@ func AsInterface(node ValExpr) (interface{}, error) {
 		}
 		return vals, nil
 	case ValArg:
-		return string(node), nil
+		return hack.String(node), nil
 	case ListArg:
-		return string(node), nil
+		return hack.String(node), nil
 	case StrVal:
 		return sqltypes.MakeString(node), nil
 	case NumVal:
-		n, err := sqltypes.BuildNumeric(string(node))
+		n, err := sqltypes.BuildNumeric(hack.String(node))
 		if err != nil {
 			return nil, fmt.Errorf("type mismatch: %s", err)
 		}

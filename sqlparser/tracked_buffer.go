@@ -7,6 +7,8 @@ package sqlparser
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/wandoulabs/cm/hack"
 )
 
 // TrackedBuffer is used to rebuild a query from the ast.
@@ -24,7 +26,7 @@ type TrackedBuffer struct {
 
 func NewTrackedBuffer(nodeFormatter func(buf *TrackedBuffer, node SQLNode)) *TrackedBuffer {
 	buf := &TrackedBuffer{
-		Buffer:        bytes.NewBuffer(make([]byte, 0, 128)),
+		Buffer:        bytes.NewBuffer(make([]byte, 0, 256)),
 		bindLocations: make([]bindLocation, 0, 4),
 		nodeFormatter: nodeFormatter,
 	}
@@ -99,7 +101,7 @@ func (buf *TrackedBuffer) WriteArg(arg string) {
 }
 
 func (buf *TrackedBuffer) ParsedQuery() *ParsedQuery {
-	return &ParsedQuery{Query: buf.String(), bindLocations: buf.bindLocations}
+	return &ParsedQuery{Query: hack.String(buf.Bytes()), bindLocations: buf.bindLocations}
 }
 
 func (buf *TrackedBuffer) HasBindVars() bool {

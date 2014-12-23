@@ -5,10 +5,7 @@
 package tabletserver
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
@@ -71,7 +68,6 @@ type SchemaOverride struct {
 }
 
 type SchemaInfo struct {
-	mu         sync.Mutex
 	tables     map[string]*TableInfo
 	overrides  []SchemaOverride
 	queries    *cache.LRUCache
@@ -199,9 +195,6 @@ func (si *SchemaInfo) Exec(sql string) (result *mysql.Result, err error) {
 }
 
 func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
-	si.mu.Lock()
-	defer si.mu.Unlock()
-
 	conn, err := si.connPool.PopConn()
 	if err != nil {
 		log.Fatal(err)
@@ -264,9 +257,6 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 }
 
 func (si *SchemaInfo) DropTable(tableName string) {
-	si.mu.Lock()
-	defer si.mu.Unlock()
-
 	delete(si.tables, tableName)
 	si.queries.Clear()
 	log.Infof("Table %s forgotten", tableName)
@@ -277,8 +267,6 @@ func (si *SchemaInfo) DropTable(tableName string) {
 func (si *SchemaInfo) GetStreamPlan(sql string) *ExecPlan {
 	var tableInfo *TableInfo
 	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		si.mu.Lock()
-		defer si.mu.Unlock()
 		tableInfo, ok = si.tables[tableName]
 		if !ok {
 			return nil, false
@@ -294,18 +282,16 @@ func (si *SchemaInfo) GetStreamPlan(sql string) *ExecPlan {
 }
 
 func (si *SchemaInfo) GetTable(tableName string) *TableInfo {
-	si.mu.Lock()
-	defer si.mu.Unlock()
-	return si.tables[tableName]
+	ti := si.tables[tableName]
+	return ti
 }
 
 func (si *SchemaInfo) GetSchema() []*schema.Table {
-	si.mu.Lock()
-	defer si.mu.Unlock()
 	tables := make([]*schema.Table, 0, len(si.tables))
 	for _, v := range si.tables {
 		tables = append(tables, v.Table)
 	}
+
 	return tables
 }
 
@@ -313,6 +299,7 @@ func (si *SchemaInfo) getQuery(sql string) *ExecPlan {
 	if cacheResult, ok := si.queries.Get(sql); ok {
 		return cacheResult.(*ExecPlan)
 	}
+
 	return nil
 }
 
@@ -324,8 +311,6 @@ func (si *SchemaInfo) SetQueryCacheSize(size int) {
 }
 
 func (si *SchemaInfo) getTableStats() map[string]int64 {
-	si.mu.Lock()
-	defer si.mu.Unlock()
 	tstats := make(map[string]int64)
 	for k, v := range si.tables {
 		if v.CacheType != schema.CACHE_NONE {
@@ -339,8 +324,6 @@ func (si *SchemaInfo) getTableStats() map[string]int64 {
 }
 
 func (si *SchemaInfo) getTableInvalidations() map[string]int64 {
-	si.mu.Lock()
-	defer si.mu.Unlock()
 	tstats := make(map[string]int64)
 	for k, v := range si.tables {
 		if v.CacheType != schema.CACHE_NONE {
@@ -410,62 +393,4 @@ type perQueryStats struct {
 	Time       time.Duration
 	RowCount   int64
 	ErrorCount int64
-}
-
-func (si *SchemaInfo) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	if request.URL.Path == "/debug/query_plans" {
-		keys := si.queries.Keys()
-		response.Header().Set("Content-Type", "text/plain")
-		response.Write([]byte(fmt.Sprintf("Length: %d\n", len(keys))))
-		for _, v := range keys {
-			response.Write([]byte(fmt.Sprintf("%#v\n", v)))
-			if plan := si.getQuery(v); plan != nil {
-				if b, err := json.MarshalIndent(plan.ExecPlan, "", "  "); err != nil {
-					response.Write([]byte(err.Error()))
-				} else {
-					response.Write(b)
-				}
-				response.Write(([]byte)("\n\n"))
-			}
-		}
-	} else if request.URL.Path == "/debug/query_stats" {
-		response.Header().Set("Content-Type", "application/json; charset=utf-8")
-	} else if request.URL.Path == "/debug/table_stats" {
-		response.Header().Set("Content-Type", "application/json; charset=utf-8")
-		tstats := make(map[string]struct{ hits, absent, misses, invalidations int64 })
-		var temp, totals struct{ hits, absent, misses, invalidations int64 }
-		func() {
-			si.mu.Lock()
-			defer si.mu.Unlock()
-			for k, v := range si.tables {
-				if v.CacheType != schema.CACHE_NONE {
-					temp.hits, temp.absent, temp.misses, temp.invalidations = v.Stats()
-					tstats[k] = temp
-					totals.hits += temp.hits
-					totals.absent += temp.absent
-					totals.misses += temp.misses
-					totals.invalidations += temp.invalidations
-				}
-			}
-		}()
-		response.Write([]byte("{\n"))
-		for k, v := range tstats {
-			fmt.Fprintf(response, "\"%s\": {\"Hits\": %v, \"Absent\": %v, \"Misses\": %v, \"Invalidations\": %v},\n", k, v.hits, v.absent, v.misses, v.invalidations)
-		}
-		fmt.Fprintf(response, "\"Totals\": {\"Hits\": %v, \"Absent\": %v, \"Misses\": %v, \"Invalidations\": %v}\n", totals.hits, totals.absent, totals.misses, totals.invalidations)
-		response.Write([]byte("}\n"))
-	} else if request.URL.Path == "/debug/schema" {
-		response.Header().Set("Content-Type", "application/json; charset=utf-8")
-		tables := si.GetSchema()
-		b, err := json.MarshalIndent(tables, "", " ")
-		if err != nil {
-			response.Write([]byte(err.Error()))
-			return
-		}
-		buf := bytes.NewBuffer(nil)
-		json.HTMLEscape(buf, b)
-		response.Write(buf.Bytes())
-	} else {
-		response.WriteHeader(http.StatusNotFound)
-	}
 }
