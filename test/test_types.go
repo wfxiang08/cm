@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"time"
@@ -13,31 +14,52 @@ import (
 func createTypeTestTbls(db *sql.DB) {
 	if b, err := isTblExists(db, "int_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE int_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data INT)`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
 
 	if b, err := isTblExists(db, "double_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE double_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data DOUBLE)`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
 
 	if b, err := isTblExists(db, "varchar_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE varchar_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data VARCHAR(1024))`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
 
 	if b, err := isTblExists(db, "text_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE text_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data TEXT)`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
 
 	if b, err := isTblExists(db, "blob_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE blob_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data BLOB)`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
 
 	if b, err := isTblExists(db, "datetime_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE datetime_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data DATETIME)`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
 
 	if b, err := isTblExists(db, "date_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE date_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data DATE)`)
+	} else if err != nil {
+		log.Fatal(err)
 	}
+
+	if b, err := isTblExists(db, "multi_primary_key_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE multi_primary_key_test(id1 INT, id2 INT, PRIMARY KEY(id1, id2), data INT)`)
+	} else if err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func dropTypeTestTbls(db *sql.DB) {
@@ -88,6 +110,50 @@ func insertDataAndQueryBack(db *sql.DB, tblName string, val interface{}, ret int
 		cachedRes.Scan(cachedRet)
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func multiPKeyTest(db *sql.DB) error {
+	x := rand.Intn(1024)
+	id1 := rand.Intn(1024)
+	id2 := rand.Intn(1024)
+	tblName := "multi_primary_key_test"
+
+	mustExec(db, "INSERT INTO multi_primary_key_test(id1, id2, data) VALUES(?, ?, ?)", id1, id2, x)
+
+	res, err := db.Query("SELECT data FROM "+tblName+" WHERE id1 = ? and id2 = ?", id1, id2)
+	if err != nil {
+		return err
+	}
+	defer res.Close()
+
+	for res.Next() {
+		var ret int
+		res.Scan(&ret)
+		if err != nil {
+			return err
+		}
+		if ret != x {
+			return fmt.Errorf("multi pkey test failed %d != %d", x, ret)
+		}
+	}
+
+	cachedRes, err := db.Query("SELECT data FROM "+tblName+" WHERE id1 = ? and id2 = ?", id1, id2)
+	if err != nil {
+		return err
+	}
+	defer cachedRes.Close()
+
+	for cachedRes.Next() {
+		var ret int
+		cachedRes.Scan(&ret)
+		if err != nil {
+			return err
+		}
+		if ret != x {
+			return fmt.Errorf("multi pkey test cache failed %d != %d", ret, x)
 		}
 	}
 	return nil

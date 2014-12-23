@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
-	"sync"
 	"time"
 
 	_ "github.com/c4pt0r/mysql"
@@ -36,92 +35,13 @@ func NewDb(dsn string) (*sql.DB, error) {
 }
 
 func NewMysqlDb() (*sql.DB, error) {
-	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=true", *mysqlHost, *mysqlPort, *dbName)
+	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s", *mysqlHost, *mysqlPort, *dbName)
 	return NewDb(dsn)
 }
 
 func NewProxyDb() (*sql.DB, error) {
-	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s", *mysqlProxyHost, *mysqlProxyPort, *dbName)
+	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false", *mysqlProxyHost, *mysqlProxyPort, *dbName)
 	return NewDb(dsn)
-}
-
-func insertAutoIncrIdData(db *sql.DB, data string) (int64, error) {
-	return -1, fmt.Errorf("not implement")
-}
-
-/* insert test */
-func testInsertData(db *sql.DB) error {
-	for i := 0; i < *N; i++ {
-		_, err := insertAutoIncrIdData(db, randSeq(100))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func testConcurrentInsert(db *sql.DB) error {
-	wg := sync.WaitGroup{}
-	c := make(chan struct{})
-	e := make(chan error)
-	for i := 0; i < *C; i++ {
-		go func() {
-			for _ = range c {
-				_, err := insertAutoIncrIdData(db, randSeq(100))
-				if err != nil {
-					e <- err
-				}
-				wg.Done()
-			}
-		}()
-	}
-
-	wg.Add(*N)
-	for i := 0; i < *N; i++ {
-		c <- struct{}{}
-	}
-	wg.Wait()
-	return nil
-}
-
-/* read test */
-
-func testRead(db *sql.DB) error {
-	for i := 0; i < *N; i++ {
-		x := rand.Intn(2000) + 1
-		r, err := db.Query("select * from autoincr_test where id = ?", x)
-		if err != nil {
-			return err
-		}
-		r.Close()
-	}
-	return nil
-}
-
-func testConcurrentRead(db *sql.DB) error {
-	wg := sync.WaitGroup{}
-	c := make(chan struct{})
-	e := make(chan error)
-	for i := 0; i < *C; i++ {
-		go func() {
-			for _ = range c {
-				x := rand.Intn(2000) + 1
-				r, err := db.Query("select * from autoincr_test where id = ?", x)
-				if err != nil {
-					e <- err
-				}
-				r.Close()
-				wg.Done()
-			}
-		}()
-	}
-
-	wg.Add(*N)
-	for i := 0; i < *N; i++ {
-		c <- struct{}{}
-	}
-	wg.Wait()
-	return nil
 }
 
 func main() {
@@ -146,19 +66,25 @@ func main() {
 	case "init":
 		dropTypeTestTbls(mysqlDb)
 		createTypeTestTbls(mysqlDb)
+		dropBenchTbls(mysqlDb)
+		createBenchTbls(mysqlDb)
+	case "bench":
+		createBenchTbls(mysqlDb)
+		defer dropBenchTbls(mysqlDb)
 
-	case "write":
-		if *C == 0 {
-			fmt.Println(run("write test", db, testInsertData))
-		} else {
-			fmt.Println(run("concurrent write test", db, testConcurrentInsert))
+		fmt.Println(run("insert bench data", db, insertBenchData).String())
+		if *C > 0 {
+			fmt.Println(run("insert bench data async", db, concurrentInsertBenchData).String())
 		}
-	case "read":
-		if *C == 0 {
-			fmt.Println(run("read test", db, testRead))
-		} else {
-			fmt.Println(run("concurrent read test", db, testConcurrentRead))
+		fmt.Println(run("read bench data", db, readBenchData).String())
+		if *C > 0 {
+			fmt.Println(run("read bench data async", db, concurrentReadBenchData).String())
 		}
+		fmt.Println(run("read bench data on cache", db, readBenchData).String())
+		if *C > 0 {
+			fmt.Println(run("read bench data async on cache", db, concurrentReadBenchData).String())
+		}
+
 	case "type-test":
 		createTypeTestTbls(mysqlDb)
 		defer dropTypeTestTbls(mysqlDb)
@@ -169,6 +95,7 @@ func main() {
 		fmt.Printf(run("blob type test", db, blobTest).String())
 		fmt.Printf(run("datetime type test", db, datetimeTest).String())
 		fmt.Printf(run("date type test", db, dateTest).String())
+		fmt.Printf(run("multi pkey test", db, multiPKeyTest).String())
 
 	default:
 		fmt.Printf("no such type")
