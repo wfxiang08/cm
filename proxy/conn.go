@@ -334,16 +334,28 @@ func (c *Conn) writeError(e error) error {
 	return errors.Trace(c.flush())
 }
 
-func (c *Conn) writeEOF(status uint16) error {
+func status2Buf(status uint16) []byte {
 	data := make([]byte, 4, 9)
 
 	data = append(data, EOF_HEADER)
-	if c.capability&CLIENT_PROTOCOL_41 > 0 {
+	if (DEFAULT_CAPABILITY>>8)&CLIENT_PROTOCOL_41 > 0 {
 		data = append(data, 0, 0)
 		data = append(data, byte(status), byte(status>>8))
 	}
 
-	err := c.writePacket(data)
+	return data
+}
 
-	return errors.Trace(err)
+var statusBufMap = map[uint16][]byte{
+	2:  status2Buf(2),
+	34: status2Buf(34),
+}
+
+func (c *Conn) writeEOF(status uint16) error {
+	data, ok := statusBufMap[status]
+	if ok {
+		return errors.Trace(c.writePacket(data))
+	}
+
+	return c.writePacket(status2Buf(status))
 }

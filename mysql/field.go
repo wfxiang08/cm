@@ -115,6 +115,8 @@ func (p FieldData) Parse() (f *Field, err error) {
 	return
 }
 
+var defCache []byte
+
 func (f *Field) Dump() []byte {
 	if f.Data != nil {
 		return []byte(f.Data)
@@ -124,7 +126,7 @@ func (f *Field) Dump() []byte {
 
 	data := make([]byte, 0, l)
 
-	data = append(data, PutLengthEncodedString([]byte("def"))...)
+	data = append(data, defCache...)
 
 	data = append(data, PutLengthEncodedString(f.Schema)...)
 

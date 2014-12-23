@@ -64,7 +64,6 @@ func RandomBuf(size int) ([]byte, error) {
 
 func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 	switch b[0] {
-
 	// 251: NULL
 	case 0xfb:
 		n = 1
@@ -101,7 +100,7 @@ func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 func PutLengthEncodedInt(n uint64) []byte {
 	switch {
 	case n <= 250:
-		return []byte{byte(n)}
+		return tinyIntCache[n]
 
 	case n <= 0xffff:
 		return []byte{0xfc, byte(n), byte(n >> 8)}
@@ -113,6 +112,7 @@ func PutLengthEncodedInt(n uint64) []byte {
 		return []byte{0xfe, byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24),
 			byte(n >> 32), byte(n >> 40), byte(n >> 48), byte(n >> 56)}
 	}
+
 	return nil
 }
 
@@ -266,9 +266,9 @@ func FormatBinaryTime(n int, data []byte) ([]byte, error) {
 }
 
 var (
-	DONTESCAPE = byte(255)
-
-	EncodeMap [256]byte
+	DONTESCAPE   = byte(255)
+	EncodeMap    [256]byte
+	tinyIntCache [251][]byte
 )
 
 func Escape(sql string) string {
@@ -300,12 +300,19 @@ var encodeRef = map[byte]byte{
 }
 
 func init() {
+	for i := 0; i < len(tinyIntCache); i++ {
+		tinyIntCache[i] = []byte{byte(i)}
+	}
+
 	for i := range EncodeMap {
 		EncodeMap[i] = DONTESCAPE
 	}
+
 	for i := range EncodeMap {
 		if to, ok := encodeRef[byte(i)]; ok {
 			EncodeMap[byte(i)] = to
 		}
 	}
+
+	defCache = PutLengthEncodedString([]byte("def"))
 }
