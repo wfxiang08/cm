@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/wandoulabs/cm/hack"
 	"github.com/wandoulabs/cm/sqltypes"
 )
 
@@ -239,20 +240,21 @@ func (tkn *Tokenizer) skipBlank() {
 }
 
 func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 64))
 	buffer.WriteByte(byte(tkn.lastChar))
 	for tkn.next(); isLetter(tkn.lastChar) || isDigit(tkn.lastChar); tkn.next() {
 		buffer.WriteByte(byte(tkn.lastChar))
 	}
 	lowered := bytes.ToLower(buffer.Bytes())
-	if keywordId, found := keywords[string(lowered)]; found {
+	if keywordId, found := keywords[hack.String(lowered)]; found {
 		return keywordId, lowered
 	}
+
 	return ID, buffer.Bytes()
 }
 
 func (tkn *Tokenizer) scanLiteralIdentifier() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 48))
 	buffer.WriteByte(byte(tkn.lastChar))
 	if !isLetter(tkn.lastChar) {
 		return LEX_ERROR, buffer.Bytes()
@@ -268,7 +270,7 @@ func (tkn *Tokenizer) scanLiteralIdentifier() (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanBindVar() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 48))
 	buffer.WriteByte(byte(tkn.lastChar))
 	token := VALUE_ARG
 	tkn.next()
@@ -294,7 +296,7 @@ func (tkn *Tokenizer) scanMantissa(base int, buffer *bytes.Buffer) {
 }
 
 func (tkn *Tokenizer) scanNumber(seenDecimalPoint bool) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 48))
 	if seenDecimalPoint {
 		buffer.WriteByte('.')
 		tkn.scanMantissa(10, buffer)
@@ -351,7 +353,7 @@ exit:
 }
 
 func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 64))
 	for {
 		ch := tkn.lastChar
 		tkn.next()
@@ -381,7 +383,7 @@ func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 48))
 	buffer.WriteString(prefix)
 	for tkn.lastChar != EOFCHAR {
 		if tkn.lastChar == '\n' {
@@ -394,7 +396,7 @@ func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanCommentType2() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 8))
+	buffer := bytes.NewBuffer(make([]byte, 0, 48))
 	buffer.WriteString("/*")
 	for {
 		if tkn.lastChar == '*' {
