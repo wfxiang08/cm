@@ -4,7 +4,10 @@ package sqlparser
 import __yyfmt__ "fmt"
 
 //line sql.y:6
-import "bytes"
+import (
+	"bytes"
+	"sync"
+)
 
 func SetParseTree(yylex interface{}, stmt Statement) {
 	yylex.(*Tokenizer).ParseTree = stmt
@@ -609,11 +612,30 @@ out:
 	return c
 }
 
+var yysPool = sync.Pool{
+	New: func() interface{} {
+		return make([]yySymType, yyMaxDepth)
+	},
+}
+
+func allocValTuple(count int) ValTuple {
+	return make(ValTuple, 0, count)
+}
+
+func allocCols(count int) Columns {
+	return make(Columns, 0, count)
+}
+
+func allocYYS() []yySymType {
+	return yysPool.Get().([]yySymType)
+}
+
 func yyParse(yylex yyLexer) int {
 	var yyn int
 	var yylval yySymType
 	var yyVAL yySymType
-	yyS := make([]yySymType, yyMaxDepth)
+	yyS := allocYYS()
+	yysOrg := yyS
 
 	Nerrs := 0   /* number of errors */
 	Errflag := 0 /* error recovery flag */
@@ -623,9 +645,11 @@ func yyParse(yylex yyLexer) int {
 	goto yystack
 
 ret0:
+	yysPool.Put(yysOrg)
 	return 0
 
 ret1:
+	yysPool.Put(yysOrg)
 	return 1
 
 yystack:
@@ -820,8 +844,8 @@ yydefault:
 	case 17:
 		//line sql.y:191
 		{
-			cols := make(Columns, 0, len(yyS[yypt-1].updateExprs))
-			vals := make(ValTuple, 0, len(yyS[yypt-1].updateExprs))
+			cols := allocCols(len(yyS[yypt-1].updateExprs))
+			vals := allocValTuple(len(yyS[yypt-1].updateExprs))
 			for _, col := range yyS[yypt-1].updateExprs {
 				cols = append(cols, &NonStarExpr{Expr: col.Name})
 				vals = append(vals, col.Expr)
