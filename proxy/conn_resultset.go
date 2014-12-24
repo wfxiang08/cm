@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -38,6 +39,8 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 	var b []byte
 	var err error
 
+	log.Errorf("%+v", values)
+
 	for i, vs := range values {
 		if len(vs) != len(r.Fields) {
 			return nil, fmt.Errorf("row %d has %d column not equal %d", i, len(vs), len(r.Fields))
@@ -48,11 +51,13 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 			field := &Field{}
 			if i == 0 {
 				r.Fields[j] = field
+				log.Warningf("%+v", nameTypes[i])
 				field.Name = hack.Slice(nameTypes[j].Name)
 				if err = formatField(field, value); err != nil {
 					return nil, errors.Trace(err)
 				}
 				field.Type = nameTypes[j].Category
+				field.Charset = uint16(CollationNames[nameTypes[j].Collation])
 			}
 
 			if value == nil {
@@ -80,6 +85,7 @@ func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 
 	for _, v := range r.Fields {
 		data = data[0:4]
+		log.Error("charset", v.Charset)
 		data = append(data, v.Dump()...)
 		if err := c.writePacket(data); err != nil {
 			return errors.Trace(err)

@@ -77,6 +77,12 @@
                         "key":"id",
                         "node":"node1",
                         "row_cache_type":"RW"
+                    },
+ 		    {
+                        "table":"emoji_test",
+                        "key": "id",
+                        "node": "node1",
+                        "row_cache_type":"RW"
                     }
                 ]
             }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 )
 
 var (
@@ -34,10 +35,6 @@ type MySqlConn struct {
 
 func (c *MySqlConn) LastDb() string {
 	return c.db
-}
-
-func (c *MySqlConn) LastCharset() string {
-	return c.charset
 }
 
 func (c *MySqlConn) Connect(addr string, user string, password string, db string) error {
@@ -159,7 +156,8 @@ func (c *MySqlConn) readInitialHandshake() error {
 
 	if len(data) > pos {
 		//skip server charset
-		//c.charset = data[pos]
+		//c.charset = data[pos : pos+1]
+		log.Errorf("%+v", data[pos:pos+1])
 		pos += 1
 
 		c.status = binary.LittleEndian.Uint16(data[pos : pos+2])
@@ -396,10 +394,12 @@ func (c *MySqlConn) SetCharset(charset string) error {
 
 	cid, ok := CharsetIds[charset]
 	if !ok {
-		return fmt.Errorf("invalid charset %s", charset)
+		return errors.Errorf("invalid charset %s", charset)
 	}
 
-	if _, err := c.exec(fmt.Sprintf("set names %s", charset)); err != nil {
+	charsetSql := fmt.Sprintf("set names %s", charset)
+	log.Warning(charsetSql)
+	if _, err := c.exec(charsetSql); err != nil {
 		return err
 	} else {
 		c.collation = cid

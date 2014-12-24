@@ -49,18 +49,26 @@ func loadTableInfo(conn *mysql.MySqlConn, tableName string) (ti *TableInfo, err 
 }
 
 func (ti *TableInfo) fetchColumns(conn *mysql.MySqlConn) error {
-	columns, err := conn.Execute(fmt.Sprintf("describe `%s`", ti.Name))
+	columns, err := conn.Execute(fmt.Sprintf("show full columns from `%s`", ti.Name))
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	for _, row := range columns.Values {
-		v, err := sqltypes.BuildValue(row[4])
+		v, err := sqltypes.BuildValue(row[5])
 		if err != nil {
 			return errors.Trace(err)
 		}
-		ti.AddColumn(string(row[0].([]byte)), string(row[1].([]byte)),
-			v, string(row[5].([]byte)))
+
+		var collation string
+		if row[2] != nil {
+			collation = string(row[2].([]byte))
+		}
+		extra := string(row[6].([]byte))
+		columnType := string(row[1].([]byte))
+		columnName := string(row[0].([]byte))
+		ti.AddColumn(columnName, columnType, collation,
+			v, extra)
 	}
 
 	log.Debugf("%s %+v", ti.Name, ti.Columns)

@@ -23,10 +23,11 @@ const (
 )
 
 type TableColumn struct {
-	Name     string
-	Category byte
-	IsAuto   bool
-	Default  mysql.Value
+	Name      string
+	Category  byte
+	IsAuto    bool
+	Default   mysql.Value
+	Collation string
 }
 
 type Table struct {
@@ -74,7 +75,7 @@ func str2mysqlType(columnType string) byte {
 	return b
 }
 
-func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, extra string) {
+func (ta *Table) AddColumn(name string, columnType string, collation string, defval mysql.Value, extra string) {
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
 
@@ -83,7 +84,15 @@ func (ta *Table) AddColumn(name string, columnType string, defval mysql.Value, e
 		columnType = strings.ToLower(strings.TrimSpace(columnType[:endPos]))
 	}
 
+	ta.Columns[index].Collation = collation
 	ta.Columns[index].Category = str2mysqlType(columnType)
+
+	//todo:fix this ugly hack
+	if ta.Columns[index].Category == mysql.MYSQL_TYPE_VARCHAR && collation == "utf8mb4_unicode_ci" {
+		ta.Columns[index].Category = mysql.MYSQL_TYPE_VAR_STRING
+	}
+
+	log.Info(name, ta.Columns[index].Category, columnType)
 
 	if extra == "auto_increment" {
 		ta.Columns[index].IsAuto = true

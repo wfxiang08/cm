@@ -34,6 +34,8 @@ func main() {
 
 	log.SetLevelByString(cfg.LogLevel)
 
+	log.CrashLog("./cm-proxy.dump")
+
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(*configFile)
 	if err != nil {

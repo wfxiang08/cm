@@ -40,7 +40,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		//return errors.Errorf(`parse sql "%s" error: %s`, sql, err)
 	}
 
-	log.Debugf("statement %T , %+v, %s", stmt, stmt, sql)
+	log.Debugf("statement %T , %s", stmt, sql)
 
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
@@ -109,16 +109,12 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 		}
 	}
 
-	if co.LastDb() != c.schema.db {
-		if err = co.UseDB(c.schema.db); err != nil {
-			return
-		}
+	if err = co.UseDB(c.schema.db); err != nil {
+		return
 	}
 
-	if co.LastCharset() != c.charset {
-		if err = co.SetCharset(c.charset); err != nil {
-			return
-		}
+	if err = co.SetCharset(c.charset); err != nil {
+		return
 	}
 
 	return
@@ -155,7 +151,12 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 	rs := make([]interface{}, len(conns))
 
 	for i, co := range conns {
-		c.server.AsynExec(&execTask{wg: wg, rs: rs, idx: i, co: co, sql: sql, args: args})
+		c.server.AsynExec(
+			&execTask{
+				wg: wg, rs: rs,
+				idx: i, co: co,
+				sql: sql, args: args,
+			})
 	}
 
 	wg.Wait()
@@ -352,15 +353,28 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	rowsql, err := generateSelectSql(ti, plan)
 	log.Info(rowsql)
 
-	result, err := c.server.autoSchamas[c.db].Exec(rowsql)
+	conns, err := c.getShardConns(true, nil, nil)
+	if err != nil {
+		return errors.Trace(err)
+	} else if conns == nil {
+		return errors.Errorf("not enough connection for %s", rowsql)
+	}
+
+	rs, err := c.executeInShard(conns, rowsql, nil)
+	defer c.closeShardConns(conns, false)
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	//todo:fix hard code
+	result := rs[0]
 
 	if len(result.Values) == 0 {
 		log.Debug("empty set")
 		return c.writeResultset(result.Status, result.Resultset)
 	}
+
+	log.Debugf("%+v", result.Values[0])
 
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 	//log.Debug(len(retValues), len(keys))
@@ -376,7 +390,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
 		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("fill cache ", pkValue, result.RowDatas[0])
+		log.Debug("fill cache ")
 		ti.Cache.Set(pkValue[0], result.RowDatas[0], 0)
 	}
 
@@ -395,7 +409,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 
 	var rs []*Result
 	rs, err = c.executeInShard(conns, sql, args)
-	c.closeShardConns(conns, false)
+	defer c.closeShardConns(conns, false)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -404,10 +418,15 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 	status := c.status | rs[0].Status
 
 	//todo: handle set command when sharding
-	if stmt == nil { //hack for "set names utf8"
+	if stmt == nil { //hack for "set names utf8" ...
+		log.Error(sql)
 		err := c.writeOK(rs[0])
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if strings.Index(strings.ToLower(sql), "set names utf8mb4") == 0 { //set charset
+			c.charset = "utf8mb4"
 		}
 
 		return errors.Trace(c.flush())
