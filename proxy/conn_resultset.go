@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"fmt"
-
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
@@ -28,7 +26,7 @@ func formatField(field *Field, value interface{}) error {
 	case nil:
 		return nil
 	default:
-		return fmt.Errorf("unsupport type %T for resultset", value)
+		return errors.Errorf("unsupport type %T for resultset", value)
 	}
 	return nil
 }
@@ -39,11 +37,9 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 	var b []byte
 	var err error
 
-	log.Errorf("%+v", values)
-
 	for i, vs := range values {
 		if len(vs) != len(r.Fields) {
-			return nil, fmt.Errorf("row %d has %d column not equal %d", i, len(vs), len(r.Fields))
+			return nil, errors.Errorf("row %d has %d column not equal %d", i, len(vs), len(r.Fields))
 		}
 
 		var row []byte
@@ -85,7 +81,7 @@ func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 
 	for _, v := range r.Fields {
 		data = data[0:4]
-		log.Error("charset", v.Charset)
+		log.Debug("charset", v.Charset)
 		data = append(data, v.Dump()...)
 		if err := c.writePacket(data); err != nil {
 			return errors.Trace(err)

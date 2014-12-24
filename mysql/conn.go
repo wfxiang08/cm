@@ -157,7 +157,7 @@ func (c *MySqlConn) readInitialHandshake() error {
 	if len(data) > pos {
 		//skip server charset
 		//c.charset = data[pos : pos+1]
-		log.Errorf("%+v", data[pos:pos+1])
+		log.Debugf("charset %+v", data[pos:pos+1])
 		pos += 1
 
 		c.status = binary.LittleEndian.Uint16(data[pos : pos+2])
