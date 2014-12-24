@@ -9,6 +9,7 @@ import (
 	"time"
 
 	_ "github.com/c4pt0r/mysql"
+	"github.com/kyokomi/emoji"
 )
 
 func createTypeTestTbls(db *sql.DB) {
@@ -56,6 +57,12 @@ func createTypeTestTbls(db *sql.DB) {
 
 	if b, err := isTblExists(db, "multi_primary_key_test"); !b && err == nil {
 		mustExec(db, `CREATE TABLE multi_primary_key_test(id1 INT, id2 INT, PRIMARY KEY(id1, id2), data INT)`)
+	} else if err != nil {
+		log.Fatal(err)
+	}
+
+	if b, err := isTblExists(db, "emoji_test"); !b && err == nil {
+		mustExec(db, `CREATE TABLE emoji_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data VARCHAR(1024))`)
 	} else if err != nil {
 		log.Fatal(err)
 	}
@@ -194,6 +201,26 @@ func doubleTest(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func emojiTest(db *sql.DB) error {
+	s := emoji.Sprint("I like a :pizza: and :sushi:!!")
+	var ret, cret []byte
+	err := insertDataAndQueryBack(db, "emoji_test", s, &ret, &cret)
+	if err != nil {
+		return err
+	}
+
+	if len(ret) != len(s) {
+		return fmt.Errorf("emoji test failed %v != %v", ret, []byte(s))
+	}
+
+	if len(ret) != len(cret) {
+		return fmt.Errorf("emoji cache test failed %v != %v", ret, cret)
+	}
+
+	return nil
+
 }
 
 func varcharTest(db *sql.DB) error {

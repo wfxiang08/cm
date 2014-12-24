@@ -40,7 +40,7 @@ func NewMysqlDb() (*sql.DB, error) {
 }
 
 func NewProxyDb() (*sql.DB, error) {
-	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false", *mysqlProxyHost, *mysqlProxyPort, *dbName)
+	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false&charset=utf8mb4", *mysqlProxyHost, *mysqlProxyPort, *dbName)
 	return NewDb(dsn)
 }
 
@@ -87,7 +87,7 @@ func main() {
 
 	case "type-test":
 		createTypeTestTbls(mysqlDb)
-		defer dropTypeTestTbls(mysqlDb)
+		//defer dropTypeTestTbls(mysqlDb)
 		fmt.Printf(run("int type test", db, intTest).String())
 		fmt.Printf(run("double type test", db, doubleTest).String())
 		fmt.Printf(run("varchar type test", db, varcharTest).String())
@@ -96,6 +96,7 @@ func main() {
 		fmt.Printf(run("datetime type test", db, datetimeTest).String())
 		fmt.Printf(run("date type test", db, dateTest).String())
 		fmt.Printf(run("multi pkey test", db, multiPKeyTest).String())
+		fmt.Printf(run("emoji test", db, emojiTest).String())
 
 	default:
 		fmt.Printf("no such type")
