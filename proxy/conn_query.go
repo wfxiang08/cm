@@ -149,23 +149,13 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 }
 
 func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) ([]*Result, error) {
-	var wg sync.WaitGroup
+	wg := &sync.WaitGroup{}
 	wg.Add(len(conns))
 
 	rs := make([]interface{}, len(conns))
-	f := func(rs []interface{}, i int, co *SqlConn) {
-		r, err := co.Execute(sql, args...)
-		if err != nil {
-			rs[i] = err
-		} else {
-			rs[i] = r
-		}
-
-		wg.Done()
-	}
 
 	for i, co := range conns {
-		go f(rs, i, co)
+		c.server.AsynExec(&execTask{wg: wg, rs: rs, idx: i, co: co, sql: sql, args: args})
 	}
 
 	wg.Wait()

@@ -62,6 +62,10 @@ func (s *Server) newConn(co net.Conn) *Conn {
 	return c
 }
 
+func (s *Server) AsynExec(task *execTask) {
+	s.taskQ <- task
+}
+
 func (c *Conn) Handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
 		log.Errorf("send initial handshake error %s", err.Error())

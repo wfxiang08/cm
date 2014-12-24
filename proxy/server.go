@@ -12,9 +12,19 @@ import (
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/config"
+	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/wandoulabs/cm/vt/tabletserver"
 )
+
+type execTask struct {
+	wg   *sync.WaitGroup
+	rs   []interface{}
+	idx  int
+	co   *SqlConn
+	sql  string
+	args []interface{}
+}
 
 type Server struct {
 	configFile  string
@@ -28,6 +38,7 @@ type Server struct {
 	schemas     map[string]*Schema
 	autoSchamas map[string]*tabletserver.SchemaInfo
 	rwlock      sync.RWMutex
+	taskQ       chan *execTask
 }
 
 func GetRowCacheType(rowCacheType string) int {
@@ -85,6 +96,25 @@ func makeServer(configFile string) *Server {
 		user:        cfg.User,
 		password:    cfg.Password,
 		autoSchamas: make(map[string]*tabletserver.SchemaInfo),
+		taskQ:       make(chan *execTask, 100),
+	}
+
+	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
+		r, err := co.Execute(sql, args...)
+		if err != nil {
+			rs[i] = err
+		} else {
+			rs[i] = r
+		}
+		wg.Done()
+	}
+
+	for i := 0; i < 100; i++ {
+		go func() {
+			for task := range s.taskQ {
+				f(task.wg, task.rs, task.idx, task.co, task.sql, task.args)
+			}
+		}()
 	}
 
 	return s
