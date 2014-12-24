@@ -62,7 +62,7 @@ func createTypeTestTbls(db *sql.DB) {
 	}
 
 	if b, err := isTblExists(db, "emoji_test"); !b && err == nil {
-		mustExec(db, `CREATE TABLE emoji_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data VARCHAR(1024))`)
+		mustExec(db, `CREATE TABLE emoji_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)`)
 	} else if err != nil {
 		log.Fatal(err)
 	}
@@ -78,6 +78,7 @@ func dropTypeTestTbls(db *sql.DB) {
 		"blob_test",
 		"datetime_test",
 		"date_test",
+		"emoji_test",
 	}
 
 	for _, t := range tbls {
