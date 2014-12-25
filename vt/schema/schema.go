@@ -87,11 +87,6 @@ func (ta *Table) AddColumn(name string, columnType string, collation string, def
 	ta.Columns[index].Collation = collation
 	ta.Columns[index].Category = str2mysqlType(columnType)
 
-	//todo:fix this ugly hack
-	if ta.Columns[index].Category == mysql.MYSQL_TYPE_VARCHAR && collation == "utf8mb4_unicode_ci" {
-		ta.Columns[index].Category = mysql.MYSQL_TYPE_VAR_STRING
-	}
-
 	log.Info(name, ta.Columns[index].Category, columnType)
 
 	if extra == "auto_increment" {

@@ -425,8 +425,17 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 			return errors.Trace(err)
 		}
 
-		if strings.Index(strings.ToLower(sql), "set names utf8mb4") == 0 { //set charset
-			c.charset = "utf8mb4"
+		lowerSql := strings.ToLower(sql)
+		if strings.Index(lowerSql, "set names ") == 0 { //set charset
+			namesStart := len("set names ")
+			namesEnd := strings.Index(lowerSql[len("set names "):], "_")
+			var names string
+			if namesEnd != -1 {
+				names = strings.TrimSpace(lowerSql[namesStart:namesEnd])
+			} else {
+				names = strings.TrimSpace(lowerSql[namesStart:])
+			}
+			c.charset = names
 		}
 
 		return errors.Trace(c.flush())
