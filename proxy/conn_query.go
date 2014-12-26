@@ -153,9 +153,12 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 	for i, co := range conns {
 		c.server.AsynExec(
 			&execTask{
-				wg: wg, rs: rs,
-				idx: i, co: co,
-				sql: sql, args: args,
+				wg:   wg,
+				rs:   rs,
+				idx:  i,
+				co:   co,
+				sql:  sql,
+				args: args,
 			})
 	}
 
@@ -397,6 +400,21 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	return c.writeResultset(c.status, r)
 }
 
+func (c *Conn) handleCharset(sql string) {
+	lowerSql := strings.ToLower(sql)
+	if strings.Index(lowerSql, "set names ") == 0 { //set charset
+		namesStart := len("set names ")
+		namesEnd := strings.Index(lowerSql[len("set names "):], "_")
+		var names string
+		if namesEnd != -1 {
+			names = strings.TrimSpace(lowerSql[namesStart:namesEnd])
+		} else {
+			names = strings.TrimSpace(lowerSql[namesStart:])
+		}
+		c.charset = names
+	}
+}
+
 func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args []interface{}) error {
 	log.Debug(sql)
 	bindVars := makeBindVars(args)
@@ -419,25 +437,13 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 
 	//todo: handle set command when sharding
 	if stmt == nil { //hack for "set names utf8" ...
-		log.Error(sql)
+		log.Warning(sql)
 		err := c.writeOK(rs[0])
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		lowerSql := strings.ToLower(sql)
-		if strings.Index(lowerSql, "set names ") == 0 { //set charset
-			namesStart := len("set names ")
-			namesEnd := strings.Index(lowerSql[len("set names "):], "_")
-			var names string
-			if namesEnd != -1 {
-				names = strings.TrimSpace(lowerSql[namesStart:namesEnd])
-			} else {
-				names = strings.TrimSpace(lowerSql[namesStart:])
-			}
-			c.charset = names
-		}
-
+		c.handleCharset(sql)
 		return errors.Trace(c.flush())
 	}
 

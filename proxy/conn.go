@@ -166,7 +166,6 @@ func (c *Conn) readHandshakeResponse() error {
 	//skip max packet size
 	pos += 4
 	//charset, skip, if you want to use another charset, use set names
-	log.Error(string(data[pos]), CollationId(data[pos]))
 	c.collation = CollationId(data[pos])
 	pos++
 	//skip reserved 23[00]

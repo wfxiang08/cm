@@ -636,6 +636,7 @@ func yyParse(yylex yyLexer) int {
 	var yyVAL yySymType
 	yyS := allocYYS()
 	yysOrg := yyS
+	var flag bool
 
 	Nerrs := 0   /* number of errors */
 	Errflag := 0 /* error recovery flag */
@@ -664,7 +665,12 @@ yystack:
 		copy(nyys, yyS)
 		yyS = nyys
 	}
-	yyS[yyp] = yyVAL
+	if flag {
+		yyS[yyp] = yylval
+		flag = false
+	} else {
+		yyS[yyp] = yyVAL
+	}
 	yyS[yyp].yys = yystate
 
 yynewstate:
@@ -682,11 +688,13 @@ yynewstate:
 	yyn = yyAct[yyn]
 	if yyChk[yyn] == yychar { /* valid shift */
 		yychar = -1
-		yyVAL = yylval
+		//yyVAL = yylval
 		yystate = yyn
 		if Errflag > 0 {
 			Errflag--
 		}
+
+		flag = true
 		goto yystack
 	}
 
