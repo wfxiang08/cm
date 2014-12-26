@@ -73,7 +73,19 @@
 		                "row_cache_type":"RW"
                     },
                     {
-                        "table":"emoji_test",
+                        "table":"utf8mb4_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"gb2312_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"gbk_test",
                         "key": "id",
                         "node": "node1",
 		                "row_cache_type":"RW"

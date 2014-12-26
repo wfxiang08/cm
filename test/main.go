@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -44,6 +45,11 @@ func NewProxyDb() (*sql.DB, error) {
 	return NewDb(dsn)
 }
 
+func NewProxyDbWithCharset(charsetName string) (*sql.DB, error) {
+	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false&charset=%s", *mysqlProxyHost, *mysqlProxyPort, *dbName, charsetName)
+	return NewDb(dsn)
+}
+
 func main() {
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
@@ -68,6 +74,8 @@ func main() {
 		createTypeTestTbls(mysqlDb)
 		dropBenchTbls(mysqlDb)
 		createBenchTbls(mysqlDb)
+		dropCharsetTestTbls(mysqlDb)
+		createCharsetTestTbls(mysqlDb)
 	case "bench":
 		createBenchTbls(mysqlDb)
 		defer dropBenchTbls(mysqlDb)
@@ -96,7 +104,21 @@ func main() {
 		fmt.Printf(run("datetime type test", db, datetimeTest).String())
 		fmt.Printf(run("date type test", db, dateTest).String())
 		fmt.Printf(run("multi pkey test", db, multiPKeyTest).String())
-		fmt.Printf(run("emoji test", db, emojiTest).String())
+	case "charset-test":
+		if db, err = NewProxyDbWithCharset("utf8mb4"); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf(run("utf8mb4 test", db, utf8mb4Test).String())
+
+		if db, err = NewProxyDbWithCharset("gb2312"); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf(run("gb2312 test", db, gb2312Test).String())
+
+		if db, err = NewProxyDbWithCharset("gbk"); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf(run("gbk test", db, gbkTest).String())
 
 	default:
 		fmt.Printf("no such type")

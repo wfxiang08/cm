@@ -9,7 +9,6 @@ import (
 	"time"
 
 	_ "github.com/c4pt0r/mysql"
-	"github.com/kyokomi/emoji"
 )
 
 func createTypeTestTbls(db *sql.DB) {
@@ -60,13 +59,6 @@ func createTypeTestTbls(db *sql.DB) {
 	} else if err != nil {
 		log.Fatal(err)
 	}
-
-	if b, err := isTblExists(db, "emoji_test"); !b && err == nil {
-		mustExec(db, `CREATE TABLE emoji_test(id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(id), data VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)`)
-	} else if err != nil {
-		log.Fatal(err)
-	}
-
 }
 
 func dropTypeTestTbls(db *sql.DB) {
@@ -78,7 +70,6 @@ func dropTypeTestTbls(db *sql.DB) {
 		"blob_test",
 		"datetime_test",
 		"date_test",
-		"emoji_test",
 	}
 
 	for _, t := range tbls {
@@ -204,26 +195,6 @@ func doubleTest(db *sql.DB) error {
 	return nil
 }
 
-func emojiTest(db *sql.DB) error {
-	s := emoji.Sprint("I like a :pizza: and :sushi:!!")
-	var ret, cret []byte
-	err := insertDataAndQueryBack(db, "emoji_test", s, &ret, &cret)
-	if err != nil {
-		return err
-	}
-
-	if len(ret) != len(s) {
-		return fmt.Errorf("emoji test failed %v != %v", ret, []byte(s))
-	}
-
-	if len(ret) != len(cret) {
-		return fmt.Errorf("emoji cache test failed %v != %v", ret, cret)
-	}
-
-	return nil
-
-}
-
 func varcharTest(db *sql.DB) error {
 	s := randSeq(1024)
 	var ret, cret string
@@ -306,6 +277,7 @@ func datetimeTest(db *sql.DB) error {
 
 	return nil
 }
+
 func dateTest(db *sql.DB) error {
 	d := time.Now()
 	ds := d.Format("2006-01-02")
