@@ -229,7 +229,12 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
-	ti := c.server.autoSchamas[c.db].GetTable(tableName)
+	schema, ok := c.server.autoSchamas[c.db]
+	if !ok {
+		return nil, false
+	}
+
+	ti := schema.GetTable(tableName)
 	if ti == nil {
 		return nil, false
 	}
@@ -240,7 +245,12 @@ func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
 }
 
 func (c *Conn) getTableInfo(tableName string) *tabletserver.TableInfo {
-	return c.server.autoSchamas[c.db].GetTable(tableName)
+	schema, ok := c.server.autoSchamas[c.db]
+	if !ok {
+		return nil
+	}
+
+	return schema.GetTable(tableName)
 }
 
 func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletserver.TableInfo, error) {
