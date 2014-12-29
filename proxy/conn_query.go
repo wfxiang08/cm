@@ -366,6 +366,9 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	rowsql, err := generateSelectSql(ti, plan)
 	log.Info(rowsql)
 
+	ti.Lock.Lock(hack.Slice(keys[0]))
+	defer ti.Lock.Unlock(hack.Slice(keys[0]))
+
 	conns, err := c.getShardConns(true, nil, nil)
 	if err != nil {
 		return errors.Trace(err)
@@ -532,6 +535,11 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 			return errors.Trace(err)
 		}
 
+		if len(plan.PKValues) != 1 {
+			return errors.Errorf("updated/delete without primary key not allowed %+v", plan.PKValues)
+
+		}
+
 		if ti.CacheType != schema.CACHE_NONE {
 			if len(plan.PKValues) == 0 {
 				return errors.Errorf("pk not exist, sql: %s", sql)
@@ -540,6 +548,10 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 			log.Debugf("%s %+v, %+v", sql, plan, plan.PKValues)
 			//todo: test composed pk
 			keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+
+			ti.Lock.Lock(hack.Slice(keys[0]))
+			defer ti.Lock.Unlock(hack.Slice(keys[0]))
+
 			invalidCache(ti, keys)
 		}
 	}

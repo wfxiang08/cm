@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/juju/errors"
+	"github.com/ngaut/lockring"
 	log "github.com/ngaut/logging"
 	"github.com/ngaut/sync2"
 	"github.com/wandoulabs/cm/mysql"
@@ -17,6 +18,7 @@ import (
 )
 
 type TableInfo struct {
+	Lock *lockring.LockRing
 	*schema.Table
 	Cache *RowCache
 	// stats updated by sqlquery.go
@@ -31,6 +33,7 @@ func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, cre
 	}
 
 	ti.initRowCache(tableType, createTime, comment, cachePool)
+	ti.Lock = lockring.New(65536)
 
 	return ti, nil
 }
