@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 )
 
@@ -30,8 +31,14 @@ func Raw(t byte, val Value, isUnsigned bool) []byte {
 
 	case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
 		ret = []byte(strconv.FormatFloat(val.(float64), 'f', 16, 64))
+	case MYSQL_TYPE_VARCHAR:
+		ret = hack.Slice(val.(string))
 	default:
-		ret = val.([]byte)
+		var ok bool
+		ret, ok = val.([]byte)
+		if !ok {
+			log.Errorf("%v, %+v, %T", t, val, val)
+		}
 	}
 
 	return ret
