@@ -216,7 +216,7 @@ func (c *Conn) Run() {
 	for {
 		data, err := c.readPacket()
 		if err != nil {
-			log.Error(err)
+			log.Info(err)
 			return
 		}
 
