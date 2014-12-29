@@ -32,7 +32,13 @@ func Raw(t byte, val Value, isUnsigned bool) []byte {
 	case MYSQL_TYPE_FLOAT, MYSQL_TYPE_DOUBLE:
 		ret = []byte(strconv.FormatFloat(val.(float64), 'f', 16, 64))
 	case MYSQL_TYPE_VARCHAR:
-		ret = hack.Slice(val.(string))
+		str, ok := val.(string)
+		if ok {
+			ret = hack.Slice(str)
+			break
+		}
+
+		fallthrough
 	default:
 		var ok bool
 		ret, ok = val.([]byte)
