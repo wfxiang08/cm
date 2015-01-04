@@ -49,8 +49,11 @@ func NewTable(name string) *Table {
 var typesMap = map[string]byte{
 	"int":       mysql.MYSQL_TYPE_LONG,
 	"long":      mysql.MYSQL_TYPE_LONG,
+	"bigint":    mysql.MYSQL_TYPE_LONGLONG,
 	"short":     mysql.MYSQL_TYPE_SHORT,
 	"tiny":      mysql.MYSQL_TYPE_TINY,
+	"tinyint":   mysql.MYSQL_TYPE_TINY,
+	"smallint":  mysql.MYSQL_TYPE_TINY,
 	"varbinary": mysql.MYSQL_TYPE_VARCHAR,
 	"blob":      mysql.MYSQL_TYPE_BLOB,
 	"datetime":  mysql.MYSQL_TYPE_DATETIME,

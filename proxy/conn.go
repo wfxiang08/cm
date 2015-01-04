@@ -262,9 +262,7 @@ func (c *Conn) dispatch(data []byte) error {
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:
-		//todo: disable prepare
-		log.Debug("prepare")
-		return c.handleStmtPrepare(hack.String(data))
+		// not support server side prepare yet
 	case COM_STMT_EXECUTE:
 		return c.handleStmtExecute(data)
 	case COM_STMT_CLOSE:

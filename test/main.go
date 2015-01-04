@@ -41,7 +41,7 @@ func NewMysqlDb() (*sql.DB, error) {
 }
 
 func NewProxyDb() (*sql.DB, error) {
-	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false&charset=utf8mb4", *mysqlProxyHost, *mysqlProxyPort, *dbName)
+	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false", *mysqlProxyHost, *mysqlProxyPort, *dbName)
 	return NewDb(dsn)
 }
 
@@ -74,8 +74,6 @@ func main() {
 		createTypeTestTbls(mysqlDb)
 		dropBenchTbls(mysqlDb)
 		createBenchTbls(mysqlDb)
-		dropCharsetTestTbls(mysqlDb)
-		createCharsetTestTbls(mysqlDb)
 	case "bench":
 		createBenchTbls(mysqlDb)
 		defer dropBenchTbls(mysqlDb)
