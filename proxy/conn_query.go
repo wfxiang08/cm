@@ -79,34 +79,19 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 }
 
 func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
-	if !c.needBeginTx() {
-		if isSelect {
-			co, err = n.getSelectConn()
-		} else {
-			co, err = n.getMasterConn()
-		}
-		if err != nil {
-			return
-		}
+	if isSelect {
+		co, err = n.getSelectConn()
 	} else {
-		var ok bool
-		c.Lock()
-		co, ok = c.txConns[n]
-		c.Unlock()
+		co, err = n.getMasterConn()
+	}
+	if err != nil {
+		return
+	}
 
-		if !ok {
-			if co, err = n.getMasterConn(); err != nil {
-				return
-			}
+	log.Debugf("%+v, %+v", co, c)
 
-			if err = co.Begin(); err != nil {
-				return
-			}
-
-			c.Lock()
-			c.txConns[n] = co
-			c.Unlock()
-		}
+	if co == nil || co.MySqlConn == nil {
+		return nil, errors.Errorf("schema not found")
 	}
 
 	if err = co.UseDB(c.schema.db); err != nil {
@@ -134,7 +119,7 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 	for _, n := range nodes {
 		co, err = c.getConn(n, isSelect)
 		if err != nil {
-			log.Info(err)
+			log.Error(errors.ErrorStack(err))
 			break
 		}
 
@@ -372,7 +357,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	conns, err := c.getShardConns(true, nil, nil)
 	if err != nil {
 		return errors.Trace(err)
-	} else if conns == nil {
+	} else if len(conns) == 0 {
 		return errors.Errorf("not enough connection for %s", rowsql)
 	}
 
@@ -434,7 +419,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 	conns, err := c.getShardConns(true, stmt, bindVars)
 	if err != nil {
 		return errors.Trace(err)
-	} else if conns == nil {
+	} else if len(conns) == 0 {
 		return errors.Errorf("not enough connection for %s", sql)
 	}
 
@@ -506,7 +491,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	conns, err := c.getShardConns(true, stmt, bindVars)
 	if err != nil {
 		return errors.Trace(err)
-	} else if conns == nil {
+	} else if len(conns) == 0 { //todo:handle error
 		r := c.newEmptyResultset(stmt)
 		return c.writeResultset(c.status, r)
 	}
@@ -535,9 +520,8 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 			return errors.Trace(err)
 		}
 
-		if len(plan.PKValues) != 1 {
+		if len(ti.PKColumns) != len(plan.PKValues) {
 			return errors.Errorf("updated/delete without primary key not allowed %+v", plan.PKValues)
-
 		}
 
 		if ti.CacheType != schema.CACHE_NONE {
@@ -560,7 +544,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	conns, err := c.getShardConns(false, stmt, bindVars)
 	if err != nil {
 		return errors.Trace(err)
-	} else if conns == nil {
+	} else if len(conns) == 0 { //todo:handle error
 		err := c.writeOK(nil)
 		if err != nil {
 			return err

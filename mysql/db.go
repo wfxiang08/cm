@@ -178,6 +178,10 @@ type SqlConn struct {
 	db *DB
 }
 
+func (p *SqlConn) String() string {
+	return fmt.Sprintf("{MySqlConn:%+v, db:%+v}", p.MySqlConn, p.db)
+}
+
 func (p *SqlConn) Close() {
 	if p.MySqlConn != nil {
 		p.db.PushConn(p.MySqlConn, p.MySqlConn.pkgErr)
