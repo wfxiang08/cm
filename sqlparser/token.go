@@ -136,8 +136,38 @@ func (tkn *Tokenizer) Error(err string) {
 	tkn.LastError = buf.String()
 }
 
-func (tkn *Tokenizer) scanHexValue() (int, []byte) {
-	return 0, nil
+func (tkn *Tokenizer) scanHexValue(delim uint16, typ int) (int, []byte) {
+	buffer := bytes.NewBuffer(make([]byte, 0, 64))
+	buffer.WriteString(`x'`)
+
+	tkn.next()
+	for {
+		ch := tkn.lastChar
+		tkn.next()
+		if ch == delim {
+			if tkn.lastChar == delim {
+				tkn.next()
+			} else {
+				buffer.WriteByte(byte(ch))
+				break
+			}
+		} else if ch == '\'' {
+			if tkn.lastChar == EOFCHAR {
+				return LEX_ERROR, buffer.Bytes()
+			}
+			if decodedChar := sqltypes.SqlDecodeMap[byte(tkn.lastChar)]; decodedChar == sqltypes.DONTESCAPE {
+				ch = tkn.lastChar
+			} else {
+				ch = uint16(decodedChar)
+			}
+			tkn.next()
+		}
+		if ch == EOFCHAR {
+			return LEX_ERROR, buffer.Bytes()
+		}
+		buffer.WriteByte(byte(ch))
+	}
+	return typ, buffer.Bytes()
 }
 
 // Scan scans the tokenizer for the next token and returns
@@ -157,8 +187,10 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			tkn.next()
 			c := tkn.lastChar
 			if c == '\'' {
-				return tkn.scanHexValue()
+				return tkn.scanHexValue('\'', STRING)
 			}
+
+			tkn.unReadByte()
 		}
 		return tkn.scanIdentifier()
 	case isDigit(ch):
@@ -433,6 +465,10 @@ func (tkn *Tokenizer) ConsumeNext(buffer *bytes.Buffer) {
 	}
 	buffer.WriteByte(byte(tkn.lastChar))
 	tkn.next()
+}
+
+func (tkn *Tokenizer) unReadByte() {
+	tkn.InStream.UnreadByte()
 }
 
 func (tkn *Tokenizer) next() {
