@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -79,9 +80,48 @@ func dropTypeTestTbls(db *sql.DB) {
 	}
 }
 
-func insertDataAndQueryBack(db *sql.DB, tblName string, val interface{}, ret interface{}, cachedRet interface{}) error {
+func insertDataAndQueryBack(db *sql.DB, tblName string, val interface{}, ret interface{}, cachedRet interface{}) (uint64, error) {
 	r := mustExec(db, "INSERT INTO "+tblName+"(data) VALUES(?)", val)
 	id, err := r.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	res, err := db.Query("SELECT data FROM "+tblName+" WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	defer res.Close()
+
+	for res.Next() {
+		res.Scan(ret)
+		if err != nil {
+			return err
+		}
+	}
+
+	cachedRes, err := db.Query("SELECT data FROM "+tblName+" WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	defer cachedRes.Close()
+
+	for cachedRes.Next() {
+		cachedRes.Scan(cachedRet)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func updateDataAndQueryBack(db *sql.DB, tblName string, id interface{}, newVal interface{}, ret interface{}, cachedRet interface{}) error {
+	r := mustExec(db, "UPDATE "+tblName+" SET data = ? WHERE id = ?", newVal, id)
+	rowsAffected, err := r.RowsAffected()
+	if rowsAffected <= 0 {
+		return errors.New("update error")
+	}
+
 	if err != nil {
 		return err
 	}
@@ -172,6 +212,7 @@ func intTest(db *sql.DB) error {
 	if ret != cret {
 		return fmt.Errorf("int test cache failed %d != %d", ret, cret)
 	}
+
 	return nil
 }
 

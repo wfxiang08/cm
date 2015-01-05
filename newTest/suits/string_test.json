@@ -1,0 +1,9 @@
+{
+	"suit_name" : "string_test",
+	"table_name" : "tbl_string_test",
+	"data_type" : "TEXT",
+	"data_type_go" : "string",
+	"id" : "1",
+	"data" : "\"hello world\"",
+	"data_updated" : "\"hello world!\""
+}
