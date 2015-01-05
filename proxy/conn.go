@@ -241,6 +241,9 @@ func (c *Conn) dispatch(data []byte) error {
 
 	log.Debug(cmd, hack.String(data))
 
+	token := c.server.concurrentLimiter.Get()
+	defer c.server.concurrentLimiter.Put(token)
+
 	c.server.rwlock.RLock()
 	defer c.server.rwlock.RUnlock()
 

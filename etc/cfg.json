@@ -2,13 +2,13 @@
     "addr": "127.0.0.1:4000",
     "user": "root",
     "password": "",
-    "log_level" : "debug",
+    "log_level" : "warning",
 
     "nodes" : [
         {
             "name" : "node1",
             "down_after_noalive" : 0,
-            "idle_conns" : 16,
+            "idle_conns" : 32,
             "rw_split" : false,
             "master" : "127.0.0.1:3306",
             "slave" : "",
@@ -23,7 +23,7 @@
             "nodes" : ["node1"],
             "rules" : {
                 "default" : "node1",
-                "shard": [{"row_cache_type": "R", "table": "DefaultSubscribe", "key": "_auto_id"}, {"row_cache_type": "R", "table": "EntityTopic", "key": "_auto_id"}, {"row_cache_type": "R", "table": "FeedTime", "key": "subscriberId"}, {"row_cache_type": "R", "table": "Item", "key": "id"}, {"row_cache_type": "R", "table": "Publisher", "key": "id"}, {"row_cache_type": "R", "table": "Statistic", "key": "id"}, {"row_cache_type": "R", "table": "Subscribe", "key": "subscriberId,publisherId"}, {"row_cache_type": "R", "table": "Subscriber", "key": "id"}, {"row_cache_type": "R", "table": "category", "key": "id"}, {"row_cache_type": "R", "table": "invalid_item", "key": "id"}, {"row_cache_type": "R", "table": "publisher_category", "key": "id"}, {"row_cache_type": "R", "table": "xdual", "key":"id"}]
+                "shard": [{"row_cache_type": "RW", "table": "DefaultSubscribe", "key": "_auto_id"}, {"row_cache_type": "RW", "table": "EntityTopic", "key": "_auto_id"}, {"row_cache_type": "RW", "table": "FeedTime", "key": "subscriberId"}, {"row_cache_type": "RW", "table": "Item", "key": "id"}, {"row_cache_type": "RW", "table": "Publisher", "key": "id"}, {"row_cache_type": "RW", "table": "Statistic", "key": "id"}, {"row_cache_type": "RW", "table": "Subscribe", "key": "subscriberId,publisherId"}, {"row_cache_type": "RW", "table": "Subscriber", "key": "id"}, {"row_cache_type": "RW", "table": "category", "key": "id"}, {"row_cache_type": "RW", "table": "invalid_item", "key": "id"}, {"row_cache_type": "RW", "table": "publisher_category", "key": "id"}, {"row_cache_type": "RW", "table": "xdual", "key":"id"}]
             }
         }
    ]

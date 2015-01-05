@@ -11,6 +11,7 @@ import (
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
+	"github.com/ngaut/tokenlimiter"
 	"github.com/wandoulabs/cm/config"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -27,18 +28,19 @@ type execTask struct {
 }
 
 type Server struct {
-	configFile  string
-	cfg         *config.Config
-	addr        string
-	user        string
-	password    string
-	running     int32
-	listener    net.Listener
-	nodes       map[string]*Node
-	schemas     map[string]*Schema
-	autoSchamas map[string]*tabletserver.SchemaInfo
-	rwlock      sync.RWMutex
-	taskQ       chan *execTask
+	configFile        string
+	cfg               *config.Config
+	addr              string
+	user              string
+	password          string
+	running           int32
+	listener          net.Listener
+	nodes             map[string]*Node
+	schemas           map[string]*Schema
+	autoSchamas       map[string]*tabletserver.SchemaInfo
+	rwlock            sync.RWMutex
+	taskQ             chan *execTask
+	concurrentLimiter *tokenlimiter.TokenLimiter
 }
 
 func GetRowCacheType(rowCacheType string) int {
@@ -90,13 +92,14 @@ func makeServer(configFile string) *Server {
 	}
 
 	s := &Server{
-		configFile:  configFile,
-		cfg:         cfg,
-		addr:        cfg.Addr,
-		user:        cfg.User,
-		password:    cfg.Password,
-		autoSchamas: make(map[string]*tabletserver.SchemaInfo),
-		taskQ:       make(chan *execTask, 100),
+		configFile:        configFile,
+		cfg:               cfg,
+		addr:              cfg.Addr,
+		user:              cfg.User,
+		password:          cfg.Password,
+		autoSchamas:       make(map[string]*tabletserver.SchemaInfo),
+		taskQ:             make(chan *execTask, 100),
+		concurrentLimiter: tokenlimiter.NewTokenLimiter(100),
 	}
 
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {

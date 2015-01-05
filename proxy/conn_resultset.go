@@ -47,7 +47,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 			field := &Field{}
 			if i == 0 {
 				r.Fields[j] = field
-				log.Warningf("%+v", nameTypes[i])
+				//log.Warningf("%+v", nameTypes[i])
 				field.Name = hack.Slice(nameTypes[j].Name)
 				if err = formatField(field, value); err != nil {
 					return nil, errors.Trace(err)
