@@ -1,30 +1,111 @@
 {
     "addr": "127.0.0.1:4000",
-    "user": "root",
-    "password": "",
-    "log_level" : "warning",
-
-    "nodes" : [
+    "log_level": "warning",
+    "nodes": [
         {
-            "name" : "node1",
-            "down_after_noalive" : 0,
-            "idle_conns" : 32,
-            "rw_split" : false,
-            "master" : "127.0.0.1:3306",
-            "slave" : "",
-            "user" : "root",
-            "password": ""
+            "down_after_noalive": 0,
+            "idle_conns": 32,
+            "master": "127.0.0.1:3306",
+            "name": "node1",
+            "password": "",
+            "rw_split": false,
+            "slave": "",
+            "user": "root"
         }
     ],
-
-    "schemas" : [
+    "password": "",
+    "schemas": [
         {
             "db": "test",
-            "nodes" : ["node1"],
-            "rules" : {
-                "default" : "node1",
-                "shard": [{"row_cache_type": "RW", "table": "DefaultSubscribe", "key": "_auto_id"}, {"row_cache_type": "RW", "table": "EntityTopic", "key": "_auto_id"}, {"row_cache_type": "RW", "table": "FeedTime", "key": "subscriberId"}, {"row_cache_type": "RW", "table": "Item", "key": "id"}, {"row_cache_type": "RW", "table": "Publisher", "key": "id"}, {"row_cache_type": "RW", "table": "Statistic", "key": "id"}, {"row_cache_type": "RW", "table": "Subscribe", "key": "subscriberId,publisherId"}, {"row_cache_type": "RW", "table": "Subscriber", "key": "id"}, {"row_cache_type": "RW", "table": "category", "key": "id"}, {"row_cache_type": "RW", "table": "invalid_item", "key": "id"}, {"row_cache_type": "RW", "table": "publisher_category", "key": "id"}, {"row_cache_type": "RW", "table": "xdual", "key":"id"}]
+            "nodes": [
+                "node1"
+            ],
+            "rules": {
+                "default": "node1",
+                "shard": [
+                    {
+                        "key": "_auto_id",
+                        "row_cache_type": "RW",
+                        "table": "DefaultSubscribe"
+                    },
+                    {
+                        "key": "_auto_id",
+                        "row_cache_type": "RW",
+                        "table": "EntityTopic"
+                    },
+                    {
+                        "key": "subscriberId",
+                        "row_cache_type": "RW",
+                        "table": "FeedTime"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "Item"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "Publisher"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "Statistic"
+                    },
+                    {
+                        "key": "subscriberId,publisherId",
+                        "row_cache_type": "RW",
+                        "table": "Subscribe"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "Subscriber"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "category"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "invalid_item"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "publisher_category"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "xdual"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_int_test"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_blob_test"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_string_test"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_float_test"
+                    }
+                ]
             }
         }
-   ]
+    ],
+    "user": "root"
 }
