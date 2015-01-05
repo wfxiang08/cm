@@ -331,12 +331,12 @@ func generateSelectSql(ti *tabletserver.TableInfo, plan *planbuilder.ExecPlan) (
 		pks = append(pks, ti.Columns[ti.PKColumns[i]])
 	}
 
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("select * from %s where ", ti.Name))
 	for i, pk := range pks {
 		buf.WriteString(pk.Name)
 		buf.WriteString("=")
-		buf.WriteString(fmt.Sprintf("%s", plan.PKValues[i]))
+		plan.PKValues[i].(sqltypes.Value).EncodeSql(buf)
 		if i < len(pks)-1 {
 			buf.WriteString(" and ")
 		}
@@ -375,7 +375,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 		return c.writeResultset(result.Status, result.Resultset)
 	}
 
-	log.Debugf("%+v", result.Values[0])
+	//log.Debugf("%+v", result.Values[0])
 
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 	//log.Debug(len(retValues), len(keys))
