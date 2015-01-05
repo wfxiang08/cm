@@ -136,6 +136,10 @@ func (tkn *Tokenizer) Error(err string) {
 	tkn.LastError = buf.String()
 }
 
+func (tkn *Tokenizer) scanHexValue() (int, []byte) {
+	return 0, nil
+}
+
 // Scan scans the tokenizer for the next token and returns
 // the token type and an optional value.
 func (tkn *Tokenizer) Scan() (int, []byte) {
@@ -149,6 +153,13 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 	tkn.skipBlank()
 	switch ch := tkn.lastChar; {
 	case isLetter(ch):
+		if ch == 'x' {
+			tkn.next()
+			c := tkn.lastChar
+			if c == '\'' {
+				return tkn.scanHexValue()
+			}
+		}
 		return tkn.scanIdentifier()
 	case isDigit(ch):
 		return tkn.scanNumber(false)
