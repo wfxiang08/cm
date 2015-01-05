@@ -35,7 +35,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";")
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		log.Warning(sql)
+		log.Warning(sql, err)
 		return c.handleShow(stmt, sql, nil)
 		//return errors.Errorf(`parse sql "%s" error: %s`, sql, err)
 	}
