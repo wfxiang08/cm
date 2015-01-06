@@ -24,6 +24,11 @@
                 "default": "node1",
                 "shard": [
                     {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_bench"
+                    },
+                    {
                         "key": "_auto_id",
                         "row_cache_type": "RW",
                         "table": "DefaultSubscribe"
