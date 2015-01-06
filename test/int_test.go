@@ -22,18 +22,14 @@ func int_testTearDown() {
 
 func int_testTestInsert(t *testing.T) {
 	res := mustExec(ProxyDB, "insert into "+`tbl_int_test`+" (id, data) values (?, ?)", 1, 100)
-	id, err := res.LastInsertId()
+	_, err := res.LastInsertId()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if id != 1 {
-		t.Error("id not equals to 1, return", id)
-		return
-	}
 
 	var data int
-	mustQueryData(ProxyDB, `tbl_int_test`, id, &data)
+	mustQueryData(ProxyDB, `tbl_int_test`, 1, &data)
 	if !equal(data, 100) {
 		t.Error("data != ", 100, " return", data)
 		return

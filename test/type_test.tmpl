@@ -22,18 +22,14 @@ func {{ .SuitName }}TearDown() {
 
 func {{ .SuitName }}TestInsert(t *testing.T) {
     res := mustExec(ProxyDB, "insert into "+`{{ .TableName }}`+" (id, data) values (?, ?)", {{ .Id }}, {{ .Data }})
-	id, err := res.LastInsertId()
+	_, err := res.LastInsertId()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-    if id != {{ .Id }} {
-        t.Error("id not equals to {{ .Id }}, return", id)
-		return
-	}
 
     var data {{ .DataTypeGo }}
-	mustQueryData(ProxyDB, `{{ .TableName }}`, id, &data)
+    mustQueryData(ProxyDB, `{{ .TableName }}`, {{ .Id }}, &data)
     if !equal(data, {{ .Data }}) {
         t.Error("data != ", {{ .Data }}, " return", data)
 		return

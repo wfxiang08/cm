@@ -22,18 +22,14 @@ func float_testTearDown() {
 
 func float_testTestInsert(t *testing.T) {
 	res := mustExec(ProxyDB, "insert into "+`tbl_float_test`+" (id, data) values (?, ?)", 1, 1.5)
-	id, err := res.LastInsertId()
+	_, err := res.LastInsertId()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if id != 1 {
-		t.Error("id not equals to 1, return", id)
-		return
-	}
 
 	var data float64
-	mustQueryData(ProxyDB, `tbl_float_test`, id, &data)
+	mustQueryData(ProxyDB, `tbl_float_test`, 1, &data)
 	if !equal(data, 1.5) {
 		t.Error("data != ", 1.5, " return", data)
 		return

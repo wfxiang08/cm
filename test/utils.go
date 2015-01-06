@@ -79,6 +79,20 @@ func mustExec(db *sql.DB, sql string, args ...interface{}) sql.Result {
 	return res
 }
 
+func mustQueryDataWithMultiId(db *sql.DB, tblName string, id1 interface{}, id2 interface{}, data interface{}) {
+	rows := mustQuery(ProxyDB, "select data from "+tblName+" where id1=? and id2=?", id1, id2)
+	defer rows.Close()
+
+	if rows.Next() {
+		err := rows.Scan(data)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		panic("no such record")
+	}
+}
+
 func mustQueryData(db *sql.DB, tblName string, id interface{}, data interface{}) {
 	rows := mustQuery(ProxyDB, "select data from "+tblName+" where id=?", id)
 	defer rows.Close()

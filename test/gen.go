@@ -15,6 +15,7 @@ type SuitInfo struct {
 	DataTypeGo string `json:"data_type_go"`
 
 	Id          string `json:"id"`
+	IdType      string `json:"id_type"`
 	Data        string `json:"data"`
 	DataUpdated string `json:"data_updated"`
 }
@@ -38,6 +39,10 @@ func main() {
 	err = json.Unmarshal(b, &info)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if len(info.IdType) == 0 {
+		info.IdType = "INT"
 	}
 
 	t.Execute(os.Stdout, &info)

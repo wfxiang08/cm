@@ -22,18 +22,14 @@ func string_testTearDown() {
 
 func string_testTestInsert(t *testing.T) {
 	res := mustExec(ProxyDB, "insert into "+`tbl_string_test`+" (id, data) values (?, ?)", 1, "hello world")
-	id, err := res.LastInsertId()
+	_, err := res.LastInsertId()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if id != 1 {
-		t.Error("id not equals to 1, return", id)
-		return
-	}
 
 	var data string
-	mustQueryData(ProxyDB, `tbl_string_test`, id, &data)
+	mustQueryData(ProxyDB, `tbl_string_test`, 1, &data)
 	if !equal(data, "hello world") {
 		t.Error("data != ", "hello world", " return", data)
 		return
