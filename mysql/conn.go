@@ -10,6 +10,7 @@ import (
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
+	"github.com/wandoulabs/cm/hack"
 )
 
 var (
@@ -515,7 +516,7 @@ func (c *MySqlConn) readResultColumns(result *Result) (err error) {
 			return
 		}
 
-		result.FieldNames[string(result.Fields[i].Name)] = i
+		result.FieldNames[hack.String(result.Fields[i].Name)] = i
 		i++
 	}
 }
@@ -584,7 +585,7 @@ func (c *MySqlConn) handleOKPacket(data []byte) (*Result, error) {
 	var n int
 	var pos int = 1
 
-	r := new(Result)
+	r := &Result{}
 
 	r.AffectedRows, _, n = LengthEncodedInt(data[pos:])
 	pos += n

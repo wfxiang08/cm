@@ -15,11 +15,10 @@ type PacketIO struct {
 }
 
 func NewPacketIO(conn net.Conn) *PacketIO {
-	p := new(PacketIO)
-
-	p.rb = bufio.NewReaderSize(conn, 2048)
-	p.wb = bufio.NewWriterSize(conn, 2048)
-	p.Sequence = 0
+	p := &PacketIO{
+		rb: bufio.NewReaderSize(conn, 2048),
+		wb: bufio.NewWriterSize(conn, 2048),
+	}
 
 	return p
 }
