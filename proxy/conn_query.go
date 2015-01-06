@@ -605,10 +605,11 @@ func (c *Conn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {
 	}
 
 	c.sortSelectResult(r, stmt)
-
-	if err := c.limitSelectResult(r, stmt); err != nil {
-		return errors.Trace(err)
-	}
+	/*
+		if err := c.limitSelectResult(r, stmt); err != nil {
+			return errors.Trace(err)
+		}
+	*/
 
 	return c.writeResultset(status, r)
 }
