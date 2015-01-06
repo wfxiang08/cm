@@ -5,6 +5,3 @@ build:
 
 clean:
 	go clean -i ./...
-
-integration_test:
-	sh run_test.sh
