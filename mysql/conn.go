@@ -34,10 +34,6 @@ type MySqlConn struct {
 	pkgErr     error
 }
 
-func (c *MySqlConn) LastDb() string {
-	return c.db
-}
-
 func (c *MySqlConn) Connect(addr string, user string, password string, db string) error {
 	c.addr = addr
 	c.user = user
@@ -67,7 +63,7 @@ func (c *MySqlConn) ReConnect() error {
 
 	netConn, err := net.Dial(n, c.addr)
 	if err != nil {
-		return err
+		return errors.Trace(err)
 	}
 
 	c.conn = netConn
@@ -75,28 +71,28 @@ func (c *MySqlConn) ReConnect() error {
 
 	if err := c.readInitialHandshake(); err != nil {
 		c.conn.Close()
-		return err
+		return errors.Trace(err)
 	}
 
 	c.Flush()
 
 	if err := c.writeAuthHandshake(); err != nil {
 		c.conn.Close()
-		return err
+		return errors.Trace(err)
 	}
 
 	c.Flush()
 
 	if _, err := c.readOK(); err != nil {
 		c.conn.Close()
-		return err
+		return errors.Trace(err)
 	}
 
 	//we must always use autocommit
 	if !c.IsAutoCommit() {
 		if _, err := c.exec("set autocommit = 1"); err != nil {
 			c.conn.Close()
-			return err
+			return errors.Trace(err)
 		}
 	}
 
@@ -133,11 +129,11 @@ func (c *MySqlConn) readInitialHandshake() error {
 	}
 
 	if data[0] == ERR_HEADER {
-		return errors.New("read initial handshake error")
+		return errors.Trace(err)
 	}
 
 	if data[0] < MinProtocolVersion {
-		return fmt.Errorf("invalid protocol version %d, must >= 10", data[0])
+		return errors.Errorf("invalid protocol version %d, must >= 10", data[0])
 	}
 
 	//skip mysql version and connection id

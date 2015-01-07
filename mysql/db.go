@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"github.com/juju/errors"
 )
 
 type DB struct {
@@ -57,17 +59,6 @@ func (db *DB) Close() error {
 	return nil
 }
 
-func (db *DB) Ping() error {
-	c, err := db.PopConn()
-	if err != nil {
-		return err
-	}
-
-	err = c.Ping()
-	db.PushConn(c, err)
-	return err
-}
-
 func (db *DB) SetMaxIdleConnNum(num int) {
 	db.maxIdleConns = num
 }
@@ -83,7 +74,7 @@ func (db *DB) GetConnNum() int {
 func (db *DB) newConn() (*MySqlConn, error) {
 	co := new(MySqlConn)
 	if err := co.Connect(db.addr, db.user, db.password, db.db); err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	}
 
 	return co, nil
@@ -142,7 +133,7 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 		atomic.AddInt32(&db.connCount, 1)
 	}
 
-	return
+	return co, errors.Trace(err)
 }
 
 func (db *DB) PushConn(co *MySqlConn, err error) {
@@ -191,5 +182,5 @@ func (p *SqlConn) Close() {
 
 func (db *DB) GetConn() (*SqlConn, error) {
 	c, err := db.PopConn()
-	return &SqlConn{c, db}, err
+	return &SqlConn{c, db}, errors.Trace(err)
 }

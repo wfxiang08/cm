@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -33,13 +34,11 @@ type Conn struct {
 	user         string
 	db           string
 	salt         []byte
-	schema       *Schema
-	txConns      map[*Node]*SqlConn
 	closed       bool
 	lastInsertId int64
 	affectedRows int64
 	stmtId       uint32
-	stmts        map[uint32]*Stmt
+	//	stmts        map[uint32]*Stmt
 
 	alloc arena.ArenaAllocator
 }
@@ -53,12 +52,11 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		server:       s,
 		connectionId: atomic.AddUint32(&baseConnId, 1),
 		status:       SERVER_STATUS_AUTOCOMMIT,
-		txConns:      make(map[*Node]*SqlConn),
-		stmts:        make(map[uint32]*Stmt),
-		collation:    DEFAULT_COLLATION_ID,
-		closed:       false,
-		charset:      DEFAULT_CHARSET,
-		alloc:        arena.NewArenaAllocator(8 * 1024),
+		//		stmts:        make(map[uint32]*Stmt),
+		collation: DEFAULT_COLLATION_ID,
+		closed:    false,
+		charset:   DEFAULT_CHARSET,
+		alloc:     arena.NewArenaAllocator(8 * 1024),
 	}
 	c.pkg.Sequence = 0
 	c.salt, _ = RandomBuf(20)
@@ -68,6 +66,10 @@ func (s *Server) newConn(co net.Conn) *Conn {
 
 func (s *Server) AsynExec(task *execTask) {
 	s.taskQ <- task
+}
+
+func (c *Conn) schema() *Schema {
+	return c.server.getSchema(c.db)
 }
 
 func (c *Conn) Handshake() error {
@@ -221,7 +223,9 @@ func (c *Conn) Run() {
 		c.alloc.Reset()
 		data, err := c.readPacket()
 		if err != nil {
-			log.Info(err)
+			if err.Error() != io.EOF.Error() {
+				log.Info(err)
+			}
 			return
 		}
 
@@ -272,13 +276,13 @@ func (c *Conn) dispatch(data []byte) error {
 	case COM_STMT_PREPARE:
 		// not support server side prepare yet
 	case COM_STMT_EXECUTE:
-		return c.handleStmtExecute(data)
+		log.Fatal("not support", data)
 	case COM_STMT_CLOSE:
 		return c.handleStmtClose(data)
 	case COM_STMT_SEND_LONG_DATA:
-		return c.handleStmtSendLongData(data)
+		log.Fatal("not support", data)
 	case COM_STMT_RESET:
-		return c.handleStmtReset(data)
+		log.Fatal("not support", data)
 	default:
 		msg := fmt.Sprintf("command %d not supported now", cmd)
 		return NewError(ER_UNKNOWN_ERROR, msg)
@@ -291,7 +295,6 @@ func (c *Conn) useDB(db string) error {
 	if s := c.server.getSchema(db); s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
-		c.schema = s
 		c.db = db
 	}
 

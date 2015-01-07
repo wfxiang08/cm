@@ -4,7 +4,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -151,6 +150,10 @@ func (s *Server) cleanup() {
 func (s *Server) resetSchemaInfo() {
 	s.cleanup()
 	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
+	for _, n := range s.nodes {
+		n.Close()
+	}
+
 	s.nodes = nil
 	s.schemas = nil
 
@@ -202,17 +205,18 @@ func (s *Server) Close() {
 
 func (s *Server) onConn(c net.Conn) {
 	conn := s.newConn(c)
+	/*
+		defer func() {
+			if err := recover(); err != nil {
+				const size = 8192
+				buf := make([]byte, size)
+				buf = buf[:runtime.Stack(buf, false)]
+				log.Errorf("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
+			}
 
-	defer func() {
-		if err := recover(); err != nil {
-			const size = 4096
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
-			log.Errorf("onConn panic %v: %v\n%s", c.RemoteAddr().String(), err, buf)
-		}
-
-		conn.Close()
-	}()
+			conn.Close()
+		}()
+	*/
 
 	if err := conn.Handshake(); err != nil {
 		log.Errorf("handshake error %s", err.Error())

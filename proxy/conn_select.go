@@ -53,7 +53,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 			r, err = c.buildSimpleSelectResult(c.connectionId, funcExpr.Name, expr.As)
 		case "database":
 			if c.schema != nil {
-				r, err = c.buildSimpleSelectResult(c.schema.db, funcExpr.Name, expr.As)
+				r, err = c.buildSimpleSelectResult(c.db, funcExpr.Name, expr.As)
 			} else {
 				r, err = c.buildSimpleSelectResult("NULL", funcExpr.Name, expr.As)
 			}
@@ -97,7 +97,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 		return errors.Trace(NewDefaultError(ER_NO_DB_ERROR))
 	}
 
-	nodeName := c.schema.rule.GetRule(table).Node
+	nodeName := c.schema().rule.GetRule(table).Node
 	//todo: pass through
 	if len(nodeName) == 0 {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
@@ -114,8 +114,8 @@ func (c *Conn) handleFieldList(data []byte) error {
 	}
 	defer co.Close()
 
-	if co.GetDB() != c.schema.db {
-		if err = co.UseDB(c.schema.db); err != nil {
+	if co.GetDB() != c.db {
+		if err = co.UseDB(c.db); err != nil {
 			return errors.Trace(err)
 		}
 	}

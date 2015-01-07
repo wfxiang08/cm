@@ -177,6 +177,7 @@ func (si *SchemaInfo) Close() {
 	si.overrides = nil
 	si.queries.Clear()
 	si.cachePool.Close()
+	si.connPool.Close()
 }
 
 func (si *SchemaInfo) Exec(sql string) (result *mysql.Result, err error) {

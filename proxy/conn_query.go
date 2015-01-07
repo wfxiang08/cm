@@ -79,13 +79,9 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 }
 
 func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
-	if isSelect {
-		co, err = n.getSelectConn()
-	} else {
-		co, err = n.getMasterConn()
-	}
+	co, err = n.getMasterConn()
 	if err != nil {
-		return
+		return nil, errors.Trace(err)
 	}
 
 	log.Debugf("%+v, %+v", co, c)
@@ -94,12 +90,12 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 		return nil, errors.Errorf("schema not found")
 	}
 
-	if err = co.UseDB(c.schema.db); err != nil {
-		return
+	if err = co.UseDB(c.db); err != nil {
+		return nil, errors.Trace(err)
 	}
 
 	if err = co.SetCharset(c.charset); err != nil {
-		return
+		return nil, errors.Trace(err)
 	}
 
 	return
@@ -108,7 +104,7 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*SqlConn, error) {
 	nodes, err := c.getShardList(stmt, bindVars)
 	if err != nil {
-		return nil, err
+		return nil, errors.Trace(err)
 	} else if nodes == nil {
 		return nil, nil
 	}
