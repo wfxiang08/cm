@@ -112,6 +112,16 @@
                         "key": "id1,id2",
                         "row_cache_type": "RW",
                         "table": "tbl_multi_pkey_test"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_pkey_string_test"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
+                        "table": "tbl_pkey_blob_test"
                     }
                 ]
             }

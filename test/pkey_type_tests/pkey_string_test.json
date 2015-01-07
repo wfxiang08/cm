@@ -1,0 +1,9 @@
+{
+	"suit_name" : "pkey_string_test",
+	"table_name" : "tbl_pkey_string_test",
+	"data_type" : "VARCHAR(20)",
+	"data_type_go" : "string",
+	"id" : "`1`",
+	"data" : "\"hello world\"",
+	"data_updated" : "\"hello world!\""
+}
