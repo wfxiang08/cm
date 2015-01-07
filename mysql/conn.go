@@ -399,7 +399,6 @@ func (c *MySqlConn) SetCharset(charset string) error {
 	}
 
 	charsetSql := fmt.Sprintf("set names %s", charset)
-	log.Warning(charsetSql)
 	if _, err := c.exec(charsetSql); err != nil {
 		return err
 	} else {

@@ -4,7 +4,7 @@
     "nodes": [
         {
             "down_after_noalive": 0,
-            "idle_conns": 32,
+            "idle_conns": 100,
             "master": "127.0.0.1:3306",
             "name": "node1",
             "password": "",

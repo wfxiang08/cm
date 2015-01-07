@@ -162,22 +162,14 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 	return r, errors.Trace(err)
 }
 
-func (c *Conn) closeShardConns(conns []*SqlConn, rollback bool) {
-	if c.isInTransaction() {
-		return
-	}
-
+func (c *Conn) closeShardConns(conns []*SqlConn) {
 	for _, co := range conns {
-		if rollback {
-			co.Rollback()
-		}
-
 		co.Close()
 	}
 }
 
 func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
-	r := new(Resultset)
+	r := &Resultset{}
 	r.Fields = make([]*Field, len(stmt.SelectExprs))
 
 	for i, expr := range stmt.SelectExprs {
@@ -362,7 +354,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	}
 
 	rs, err := c.executeInShard(conns, rowsql, nil)
-	defer c.closeShardConns(conns, false)
+	defer c.closeShardConns(conns)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -425,7 +417,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 
 	var rs []*Result
 	rs, err = c.executeInShard(conns, sql, args)
-	defer c.closeShardConns(conns, false)
+	defer c.closeShardConns(conns)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -498,7 +490,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 
 	var rs []*Result
 	rs, err = c.executeInShard(conns, sql, args)
-	c.closeShardConns(conns, false)
+	c.closeShardConns(conns)
 	if err == nil {
 		err = c.mergeSelectResult(rs, stmt)
 	}
@@ -559,7 +551,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		log.Warning("not implement yet")
 	}
 
-	c.closeShardConns(conns, err != nil)
+	c.closeShardConns(conns)
 
 	if err == nil {
 		err = c.mergeExecResult(rs)
