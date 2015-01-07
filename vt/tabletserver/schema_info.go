@@ -262,25 +262,6 @@ func (si *SchemaInfo) DropTable(tableName string) {
 	log.Infof("Table %s forgotten", tableName)
 }
 
-// GetStreamPlan is similar to GetPlan, but doesn't use the cache
-// and doesn't enforce a limit. It just returns the parsed query.
-func (si *SchemaInfo) GetStreamPlan(sql string) *ExecPlan {
-	var tableInfo *TableInfo
-	GetTable := func(tableName string) (table *schema.Table, ok bool) {
-		tableInfo, ok = si.tables[tableName]
-		if !ok {
-			return nil, false
-		}
-		return tableInfo.Table, true
-	}
-	splan, err := planbuilder.GetStreamExecPlan(sql, GetTable)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-	plan := &ExecPlan{ExecPlan: splan, TableInfo: tableInfo}
-	return plan
-}
-
 func (si *SchemaInfo) GetTable(tableName string) *TableInfo {
 	ti := si.tables[tableName]
 	return ti

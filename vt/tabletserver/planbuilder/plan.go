@@ -5,10 +5,9 @@
 package planbuilder
 
 import (
-	"fmt"
-
 	"github.com/juju/errors"
 
+	"github.com/ngaut/arena"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -75,8 +74,8 @@ func (node *ExecPlan) setTableInfo(tableName string, getTable TableGetter) (*sch
 
 type TableGetter func(tableName string) (*schema.Table, bool)
 
-func GetExecPlan(sql string, getTable TableGetter) (plan *ExecPlan, err error) {
-	statement, err := sqlparser.Parse(sql)
+func GetExecPlan(sql string, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
+	statement, err := sqlparser.Parse(sql, alloc)
 	if err != nil {
 		return nil, err
 	}
@@ -87,36 +86,6 @@ func GetExecPlan(sql string, getTable TableGetter) (plan *ExecPlan, err error) {
 	if plan.PlanId == PLAN_PASS_DML {
 		log.Warningf("PASS_DML: %s", sql)
 	}
-	return plan, nil
-}
-
-func GetStreamExecPlan(sql string, getTable TableGetter) (plan *ExecPlan, err error) {
-	statement, err := sqlparser.Parse(sql)
-	if err != nil {
-		return nil, err
-	}
-
-	plan = &ExecPlan{
-		PlanId:    PLAN_SELECT_STREAM,
-		FullQuery: GenerateFullQuery(statement),
-	}
-
-	switch stmt := statement.(type) {
-	case *sqlparser.Select:
-		if stmt.Lock != "" {
-			return nil, errors.New("select with lock disallowed with streaming")
-		}
-		tableName, _ := analyzeFrom(stmt.From)
-		if tableName != "" {
-			plan.setTableInfo(tableName, getTable)
-		}
-
-	case *sqlparser.Union:
-		// pass
-	default:
-		return nil, fmt.Errorf("'%v' not allowed for streaming", sqlparser.String(stmt))
-	}
-
 	return plan, nil
 }
 

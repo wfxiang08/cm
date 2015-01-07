@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/juju/errors"
+	"github.com/ngaut/arena"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
@@ -39,6 +40,8 @@ type Conn struct {
 	affectedRows int64
 	stmtId       uint32
 	stmts        map[uint32]*Stmt
+
+	alloc arena.ArenaAllocator
 }
 
 var baseConnId uint32 = 10000
@@ -55,6 +58,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		collation:    DEFAULT_COLLATION_ID,
 		closed:       false,
 		charset:      DEFAULT_CHARSET,
+		alloc:        arena.NewArenaAllocator(8 * 1024),
 	}
 	c.pkg.Sequence = 0
 	c.salt, _ = RandomBuf(20)
@@ -214,6 +218,7 @@ func (c *Conn) Run() {
 	//	}()
 
 	for {
+		c.alloc.Reset()
 		data, err := c.readPacket()
 		if err != nil {
 			log.Info(err)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/hack"
 	"github.com/wandoulabs/cm/sqltypes"
 )
@@ -27,12 +28,17 @@ type Tokenizer struct {
 	LastError     string
 	posVarIndex   int
 	ParseTree     Statement
+
+	alloc arena.ArenaAllocator
 }
 
 // NewStringTokenizer creates a new Tokenizer for the
 // sql string.
-func NewStringTokenizer(sql string) *Tokenizer {
-	return &Tokenizer{InStream: strings.NewReader(sql)}
+func NewStringTokenizer(sql string, alloc arena.ArenaAllocator) *Tokenizer {
+	return &Tokenizer{
+		InStream: strings.NewReader(sql),
+		alloc:    alloc,
+	}
 }
 
 var keywords = map[string]int{
@@ -127,7 +133,7 @@ func (tkn *Tokenizer) Lex(lval *yySymType) int {
 
 // Error is called by go yacc if there's a parsing error.
 func (tkn *Tokenizer) Error(err string) {
-	buf := bytes.NewBuffer(make([]byte, 0, 32))
+	buf := bytes.NewBuffer(tkn.alloc.AllocBytes(32))
 	if tkn.errorToken != nil {
 		fmt.Fprintf(buf, "%s at position %v near %s", err, tkn.Position, tkn.errorToken)
 	} else {
@@ -137,7 +143,7 @@ func (tkn *Tokenizer) Error(err string) {
 }
 
 func (tkn *Tokenizer) scanHexValue(delim uint16, typ int) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 64))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(64))
 	buffer.WriteString(`x'`)
 
 	tkn.next()
@@ -283,7 +289,7 @@ func (tkn *Tokenizer) skipBlank() {
 }
 
 func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 64))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(128))
 	buffer.WriteByte(byte(tkn.lastChar))
 	for tkn.next(); isLetter(tkn.lastChar) || isDigit(tkn.lastChar); tkn.next() {
 		buffer.WriteByte(byte(tkn.lastChar))
@@ -297,7 +303,7 @@ func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanLiteralIdentifier() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 48))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(128))
 	buffer.WriteByte(byte(tkn.lastChar))
 	if !isLetter(tkn.lastChar) {
 		return LEX_ERROR, buffer.Bytes()
@@ -313,7 +319,7 @@ func (tkn *Tokenizer) scanLiteralIdentifier() (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanBindVar() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 48))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(48))
 	buffer.WriteByte(byte(tkn.lastChar))
 	token := VALUE_ARG
 	tkn.next()
@@ -339,7 +345,7 @@ func (tkn *Tokenizer) scanMantissa(base int, buffer *bytes.Buffer) {
 }
 
 func (tkn *Tokenizer) scanNumber(seenDecimalPoint bool) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 48))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(64))
 	if seenDecimalPoint {
 		buffer.WriteByte('.')
 		tkn.scanMantissa(10, buffer)
@@ -396,7 +402,7 @@ exit:
 }
 
 func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 64))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(128))
 	for {
 		ch := tkn.lastChar
 		tkn.next()
@@ -426,7 +432,7 @@ func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 48))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(48))
 	buffer.WriteString(prefix)
 	for tkn.lastChar != EOFCHAR {
 		if tkn.lastChar == '\n' {
@@ -439,7 +445,7 @@ func (tkn *Tokenizer) scanCommentType1(prefix string) (int, []byte) {
 }
 
 func (tkn *Tokenizer) scanCommentType2() (int, []byte) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 48))
+	buffer := bytes.NewBuffer(tkn.alloc.AllocBytes(48))
 	buffer.WriteString("/*")
 	for {
 		if tkn.lastChar == '*' {

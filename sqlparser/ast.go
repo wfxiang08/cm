@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/sqltypes"
 )
 
@@ -26,8 +27,8 @@ import (
 
 // Parse parses the sql and returns a Statement, which
 // is the AST representation of the query.
-func Parse(sql string) (Statement, error) {
-	tokenizer := NewStringTokenizer(sql)
+func Parse(sql string, alloc arena.ArenaAllocator) (Statement, error) {
+	tokenizer := NewStringTokenizer(sql, alloc)
 	if yyParse(tokenizer) != 0 {
 		return nil, errors.New(tokenizer.LastError)
 	}

@@ -4,7 +4,10 @@
 
 package planbuilder
 
-import "github.com/wandoulabs/cm/sqlparser"
+import (
+	"github.com/ngaut/arena"
+	"github.com/wandoulabs/cm/sqlparser"
+)
 
 type DDLPlan struct {
 	Action    string
@@ -12,8 +15,8 @@ type DDLPlan struct {
 	NewName   string
 }
 
-func DDLParse(sql string) (plan *DDLPlan) {
-	statement, err := sqlparser.Parse(sql)
+func DDLParse(sql string, alloc arena.ArenaAllocator) (plan *DDLPlan) {
+	statement, err := sqlparser.Parse(sql, alloc)
 	if err != nil {
 		return &DDLPlan{Action: ""}
 	}

@@ -47,7 +47,7 @@ func (c *Conn) handleStmtPrepare(sql string) error {
 	sql = strings.TrimRight(sql, ";")
 
 	var err error
-	s.s, err = sqlparser.Parse(sql)
+	s.s, err = sqlparser.Parse(sql, c.alloc)
 	if err != nil {
 		return errors.Errorf(`parse sql "%s" error`, sql)
 	}

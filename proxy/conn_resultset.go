@@ -73,7 +73,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 	c.affectedRows = int64(-1)
 	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))
-	data := make([]byte, 4, 1024)
+	data := c.alloc.AllocBytesWithLen(4, 1024)
 	data = append(data, columnLen...)
 	if err := c.writePacket(data); err != nil {
 		return errors.Trace(err)

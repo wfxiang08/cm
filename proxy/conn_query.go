@@ -33,7 +33,7 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 func (c *Conn) handleQuery(sql string) (err error) {
 	log.Debug(sql)
 	sql = strings.TrimRight(sql, ";")
-	stmt, err := sqlparser.Parse(sql)
+	stmt, err := sqlparser.Parse(sql, c.alloc)
 	if err != nil {
 		log.Warning(sql, err)
 		return c.handleShow(stmt, sql, nil)
@@ -231,7 +231,7 @@ func (c *Conn) getTableInfo(tableName string) *tabletserver.TableInfo {
 }
 
 func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletserver.TableInfo, error) {
-	plan, err := planbuilder.GetExecPlan(sql, c.getTableSchema)
+	plan, err := planbuilder.GetExecPlan(sql, c.getTableSchema, c.alloc)
 	if err != nil {
 		return nil, nil, errors.Trace(err)
 	}
