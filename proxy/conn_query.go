@@ -70,9 +70,9 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 	}
 
 	var n []*Node
-	names := c.server.getNodeNames()
+	names := c.server.GetNodeNames()
 	if len(names) > 0 {
-		n = append(n, c.server.getNode(names[0]))
+		n = append(n, c.server.GetNode(names[0]))
 	}
 
 	return n, nil
@@ -202,7 +202,7 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
-	schema, ok := c.server.autoSchamas[c.db]
+	schema, ok := c.server.GetRowCacheSchema(c.db)
 	if !ok {
 		return nil, false
 	}
@@ -218,7 +218,7 @@ func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
 }
 
 func (c *Conn) getTableInfo(tableName string) *tabletserver.TableInfo {
-	schema, ok := c.server.autoSchamas[c.db]
+	schema, ok := c.server.GetRowCacheSchema(c.db)
 	if !ok {
 		return nil
 	}

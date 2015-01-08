@@ -8,7 +8,6 @@ import (
 	"net"
 	"runtime"
 	"sync"
-	"sync/atomic"
 
 	"github.com/juju/errors"
 	"github.com/ngaut/arena"
@@ -26,7 +25,7 @@ type Conn struct {
 	sync.Mutex
 	pkg          *PacketIO
 	c            net.Conn
-	server       *Server
+	server       IServer
 	capability   uint32
 	connectionId uint32
 	status       uint16
@@ -41,52 +40,23 @@ type Conn struct {
 	alloc        arena.ArenaAllocator
 }
 
-var baseConnId uint32 = 10000
-
-func (s *Server) newConn(co net.Conn) *Conn {
-	c := &Conn{
-		c:            co,
-		pkg:          NewPacketIO(co),
-		server:       s,
-		connectionId: atomic.AddUint32(&baseConnId, 1),
-		status:       SERVER_STATUS_AUTOCOMMIT,
-		collation:    DEFAULT_COLLATION_ID,
-		closed:       false,
-		charset:      DEFAULT_CHARSET,
-		alloc:        arena.NewArenaAllocator(8 * 1024),
-	}
-	c.pkg.Sequence = 0
-	c.salt, _ = RandomBuf(20)
-
-	return c
-}
-
-func (s *Server) AsynExec(task *execTask) {
-	s.taskQ <- task
-}
-
 func (c *Conn) schema() *Schema {
-	return c.server.getSchema(c.db)
+	return c.server.GetSchema(c.db)
 }
 
 func (c *Conn) Handshake() error {
 	if err := c.writeInitialHandshake(); err != nil {
-		log.Errorf("send initial handshake error %s", err.Error())
 		return errors.Trace(err)
 	}
 
 	c.flush()
 
 	if err := c.readHandshakeResponse(); err != nil {
-		log.Errorf("recv handshake response error %s", err.Error())
-
 		c.writeError(err)
 		return errors.Trace(err)
 	}
 
 	if err := c.writeOK(nil); err != nil {
-		log.Errorf("write ok fail %s", err.Error())
-
 		return errors.Trace(err)
 	}
 
@@ -180,7 +150,7 @@ func (c *Conn) readHandshakeResponse() error {
 	authLen := int(data[pos])
 	pos++
 	auth := data[pos : pos+authLen]
-	checkAuth := CalcPassword(c.salt, []byte(c.server.cfg.Password))
+	checkAuth := CalcPassword(c.salt, []byte(c.server.CfgGetPwd()))
 	if !bytes.Equal(auth, checkAuth) {
 		return errors.Trace(NewDefaultError(ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes"))
 	}
@@ -247,11 +217,11 @@ func (c *Conn) dispatch(data []byte) error {
 
 	log.Debug(cmd, hack.String(data))
 
-	token := c.server.concurrentLimiter.Get()
-	defer c.server.concurrentLimiter.Put(token)
+	token := c.server.GetToken()
+	defer c.server.ReleaseToken(token)
 
-	c.server.rwlock.RLock()
-	defer c.server.rwlock.RUnlock()
+	c.server.GetRWlock().RLock()
+	defer c.server.GetRWlock().RUnlock()
 
 	switch cmd {
 	case COM_QUIT:
@@ -289,7 +259,7 @@ func (c *Conn) dispatch(data []byte) error {
 }
 
 func (c *Conn) useDB(db string) error {
-	if s := c.server.getSchema(db); s == nil {
+	if s := c.server.GetSchema(db); s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {
 		c.db = db

@@ -26,14 +26,14 @@ func (s *Server) parseSchemas() error {
 
 		nodes := make(map[string]*Node)
 		for _, n := range schemaCfg.Nodes {
-			if s.getNode(n) == nil {
+			if s.GetNode(n) == nil {
 				return fmt.Errorf("schema [%s] node [%s] config is not exists.", schemaCfg.DB, n)
 			}
 
 			if _, ok := nodes[n]; ok {
 				return fmt.Errorf("schema [%s] node [%s] duplicate.", schemaCfg.DB, n)
 			}
-			nodes[n] = s.getNode(n)
+			nodes[n] = s.GetNode(n)
 		}
 
 		rule, err := router.NewRouter(&schemaCfg)
@@ -51,6 +51,6 @@ func (s *Server) parseSchemas() error {
 	return nil
 }
 
-func (s *Server) getSchema(db string) *Schema {
+func (s *Server) GetSchema(db string) *Schema {
 	return s.schemas[db]
 }

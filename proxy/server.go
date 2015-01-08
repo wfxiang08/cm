@@ -9,22 +9,18 @@ import (
 	"sync/atomic"
 
 	"github.com/juju/errors"
+	"github.com/ngaut/arena"
+	stats "github.com/ngaut/gostats"
 	log "github.com/ngaut/logging"
 	"github.com/ngaut/tokenlimiter"
 	"github.com/wandoulabs/cm/config"
 	. "github.com/wandoulabs/cm/mysql"
-	"github.com/wandoulabs/cm/vt/schema"
 	"github.com/wandoulabs/cm/vt/tabletserver"
 )
 
-type execTask struct {
-	wg   *sync.WaitGroup
-	rs   []interface{}
-	idx  int
-	co   *SqlConn
-	sql  string
-	args []interface{}
-}
+var (
+	baseConnId uint32 = 10000
+)
 
 type Server struct {
 	configFile        string
@@ -37,20 +33,113 @@ type Server struct {
 	nodes             map[string]*Node
 	schemas           map[string]*Schema
 	autoSchamas       map[string]*tabletserver.SchemaInfo
-	rwlock            sync.RWMutex
+	rwlock            *sync.RWMutex
 	taskQ             chan *execTask
 	concurrentLimiter *tokenlimiter.TokenLimiter
+
+	counter *stats.Counters
 }
 
-func GetRowCacheType(rowCacheType string) int {
-	switch rowCacheType {
-	case "RW":
-		return schema.CACHE_RW
-	case "W":
-		return schema.CACHE_W
-	default:
-		return schema.CACHE_NONE
+type IServer interface {
+	GetSchema(string) *Schema
+	GetRowCacheSchema(string) (*tabletserver.SchemaInfo, bool)
+	CfgGetPwd() string
+	GetToken() *tokenlimiter.Token
+	ReleaseToken(token *tokenlimiter.Token)
+	GetRWlock() *sync.RWMutex
+	GetNode(name string) *Node
+	GetNodeNames() []string
+	AsynExec(task *execTask)
+}
+
+func (s *Server) GetToken() *tokenlimiter.Token {
+	return s.concurrentLimiter.Get()
+}
+
+func (s *Server) ReleaseToken(token *tokenlimiter.Token) {
+	s.concurrentLimiter.Put(token)
+}
+
+func (s *Server) GetNode(name string) *Node {
+	return s.nodes[name]
+}
+
+func (s *Server) GetRowCacheSchema(db string) (*tabletserver.SchemaInfo, bool) {
+	si, ok := s.autoSchamas[db]
+	return si, ok
+}
+
+func (s *Server) GetNodeNames() []string {
+	ret := make([]string, 0, len(s.nodes))
+	for name, _ := range s.nodes {
+		ret = append(ret, name)
 	}
+
+	return ret
+}
+
+func (s *Server) parseNodes() error {
+	cfg := s.cfg
+	s.nodes = make(map[string]*Node, len(cfg.Nodes))
+
+	for _, v := range cfg.Nodes {
+		if _, ok := s.nodes[v.Name]; ok {
+			return errors.Errorf("duplicate node [%s].", v.Name)
+		}
+
+		n, err := s.parseNode(v)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		s.nodes[v.Name] = n
+	}
+
+	return nil
+}
+
+func (s *Server) parseNode(cfg config.NodeConfig) (*Node, error) {
+	n := &Node{
+		server: s,
+		cfg:    cfg,
+	}
+	if len(cfg.Master) == 0 {
+		return nil, errors.Errorf("must setting master MySQL node.")
+	}
+
+	var err error
+	if n.master, err = n.openDB(cfg.Master); err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return n, nil
+}
+func (s *Server) newConn(co net.Conn) *Conn {
+	c := &Conn{
+		c:            co,
+		pkg:          NewPacketIO(co),
+		server:       s,
+		connectionId: atomic.AddUint32(&baseConnId, 1),
+		status:       SERVER_STATUS_AUTOCOMMIT,
+		collation:    DEFAULT_COLLATION_ID,
+		charset:      DEFAULT_CHARSET,
+		alloc:        arena.NewArenaAllocator(8 * 1024),
+	}
+	c.salt, _ = RandomBuf(20)
+
+	return c
+}
+
+func (s *Server) GetRWlock() *sync.RWMutex {
+	return s.rwlock
+}
+
+func (s *Server) AsynExec(task *execTask) {
+	s.taskQ <- task
+}
+
+func (s *Server) CfgGetPwd() string {
+	return s.cfg.Password
 }
 
 func (s *Server) loadSchemaInfo() error {
@@ -99,6 +188,8 @@ func makeServer(configFile string) *Server {
 		autoSchamas:       make(map[string]*tabletserver.SchemaInfo),
 		taskQ:             make(chan *execTask, 100),
 		concurrentLimiter: tokenlimiter.NewTokenLimiter(100),
+		counter:           stats.NewCounters("stats"),
+		rwlock:            &sync.RWMutex{},
 	}
 
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {

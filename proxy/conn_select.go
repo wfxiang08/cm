@@ -103,7 +103,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
 	}
 
-	n := c.server.getNode(nodeName)
+	n := c.server.GetNode(nodeName)
 	if n == nil {
 		return errors.Errorf("node %s not found, %+v", nodeName, c.schema)
 	}
