@@ -105,22 +105,6 @@ func NewSchemaInfo(cacheSize int, dbAddr string, user, pwd, dbName string, overr
 
 	si.override()
 
-	//	stats.Publish("QueryCacheLength", stats.IntFunc(si.queries.Length))
-	//	stats.Publish("QueryCacheSize", stats.IntFunc(si.queries.Size))
-	//	stats.Publish("QueryCacheCapacity", stats.IntFunc(si.queries.Capacity))
-	//	stats.Publish("QueryCacheOldest", stats.StringFunc(func() string {
-	//		return fmt.Sprintf("%v", si.queries.Oldest())
-	//	}))
-	//	_ = stats.NewMultiCountersFunc("TableStats", []string{"Table", "Stats"}, si.getTableStats)
-	//	_ = stats.NewMultiCountersFunc("TableInvalidations", []string{"Table"}, si.getTableInvalidations)
-	//	_ = stats.NewMultiCountersFunc("QueryCounts", []string{"Table", "Plan"}, si.getQueryCount)
-	//	_ = stats.NewMultiCountersFunc("QueryTimesNs", []string{"Table", "Plan"}, si.getQueryTime)
-	//	_ = stats.NewMultiCountersFunc("QueryRowCounts", []string{"Table", "Plan"}, si.getQueryRowCount)
-	//	_ = stats.NewMultiCountersFunc("QueryErrorCounts", []string{"Table", "Plan"}, si.getQueryErrorCount)
-	//	http.Handle("/debug/query_plans", si)
-	//	http.Handle("/debug/query_stats", si)
-	//	http.Handle("/debug/table_stats", si)
-	//	http.Handle("/debug/schema", si)
 	return si
 }
 
