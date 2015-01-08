@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -37,10 +38,7 @@ type Conn struct {
 	closed       bool
 	lastInsertId int64
 	affectedRows int64
-	stmtId       uint32
-	//	stmts        map[uint32]*Stmt
-
-	alloc arena.ArenaAllocator
+	alloc        arena.ArenaAllocator
 }
 
 var baseConnId uint32 = 10000
@@ -52,11 +50,10 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		server:       s,
 		connectionId: atomic.AddUint32(&baseConnId, 1),
 		status:       SERVER_STATUS_AUTOCOMMIT,
-		//		stmts:        make(map[uint32]*Stmt),
-		collation: DEFAULT_COLLATION_ID,
-		closed:    false,
-		charset:   DEFAULT_CHARSET,
-		alloc:     arena.NewArenaAllocator(8 * 1024),
+		collation:    DEFAULT_COLLATION_ID,
+		closed:       false,
+		charset:      DEFAULT_CHARSET,
+		alloc:        arena.NewArenaAllocator(8 * 1024),
 	}
 	c.pkg.Sequence = 0
 	c.salt, _ = RandomBuf(20)
@@ -206,18 +203,18 @@ func (c *Conn) readHandshakeResponse() error {
 }
 
 func (c *Conn) Run() {
-	//	defer func() {
-	//		r := recover()
-	//		if err, ok := r.(error); ok {
-	//			const size = 4096
-	//			buf := make([]byte, size)
-	//			buf = buf[:runtime.Stack(buf, false)]
-	//
-	//			log.Errorf("%v, %s", err, buf)
-	//		}
-	//
-	//		c.Close()
-	//	}()
+	defer func() {
+		r := recover()
+		if err, ok := r.(error); ok {
+			const size = 4096
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+
+			log.Errorf("%v, %s", err, buf)
+		}
+
+		c.Close()
+	}()
 
 	for {
 		c.alloc.Reset()
@@ -345,18 +342,6 @@ func (c *Conn) writeError(e error) error {
 	}
 
 	return errors.Trace(c.flush())
-}
-
-func status2Buf(status uint16) []byte {
-	data := make([]byte, 4, 9)
-
-	data = append(data, EOF_HEADER)
-	if (DEFAULT_CAPABILITY>>8)&CLIENT_PROTOCOL_41 > 0 {
-		data = append(data, 0, 0)
-		data = append(data, byte(status), byte(status>>8))
-	}
-
-	return data
 }
 
 func (c *Conn) writeEOF(status uint16) error {
