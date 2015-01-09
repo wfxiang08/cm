@@ -20,7 +20,7 @@
 	    "socket":"",
 	    "port":11222,
 	    "connections":1024,
-	    "threads":2,
+	    "threads":-1,
 	    "lock_paged":false
     }, 
 

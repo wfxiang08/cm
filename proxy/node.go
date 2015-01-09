@@ -10,7 +10,6 @@ import (
 
 const (
 	Master = "master"
-	Slave  = "slave"
 )
 
 type Node struct {
