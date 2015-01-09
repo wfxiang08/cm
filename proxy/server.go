@@ -50,6 +50,11 @@ type IServer interface {
 	GetNode(name string) *Node
 	GetNodeNames() []string
 	AsynExec(task *execTask)
+	IncCounter(key string)
+}
+
+func (s *Server) IncCounter(key string) {
+	s.counter.Add(key, 1)
 }
 
 func (s *Server) GetToken() *tokenlimiter.Token {

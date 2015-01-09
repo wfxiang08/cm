@@ -34,7 +34,7 @@ func (s *MySqlStmt) Execute(args ...interface{}) (*Result, error) {
 }
 
 func (s *MySqlStmt) Close() error {
-	if err := s.conn.writeCommandUint32(COM_STMT_CLOSE, s.id); err != nil {
+	if err := s.conn.writeCommandUint32(byte(COM_STMT_CLOSE), s.id); err != nil {
 		return err
 	}
 
@@ -134,7 +134,7 @@ func (s *MySqlStmt) write(args ...interface{}) error {
 
 	data := make([]byte, 4, 4+length)
 
-	data = append(data, COM_STMT_EXECUTE)
+	data = append(data, byte(COM_STMT_EXECUTE))
 	data = append(data, byte(s.id), byte(s.id>>8), byte(s.id>>16), byte(s.id>>24))
 
 	//flag: CURSOR_TYPE_NO_CURSOR
@@ -166,7 +166,7 @@ func (s *MySqlStmt) write(args ...interface{}) error {
 }
 
 func (c *MySqlConn) Prepare(query string) (*MySqlStmt, error) {
-	if err := c.writeCommandStr(COM_STMT_PREPARE, query); err != nil {
+	if err := c.writeCommandStr(byte(COM_STMT_PREPARE), query); err != nil {
 		return nil, err
 	}
 

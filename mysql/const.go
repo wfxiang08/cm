@@ -29,8 +29,10 @@ const (
 	SERVER_PS_OUT_PARAMS               uint16 = 0x1000
 )
 
+type MYSQL_COMMAND byte
+
 const (
-	COM_SLEEP byte = iota
+	COM_SLEEP MYSQL_COMMAND = iota
 	COM_QUIT
 	COM_INIT_DB
 	COM_QUERY

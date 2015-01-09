@@ -80,32 +80,6 @@ func (db *DB) newConn() (*MySqlConn, error) {
 	return co, nil
 }
 
-func (db *DB) tryReuse(co *MySqlConn) error {
-	if co.IsInTransaction() {
-		//we can not reuse a connection in transaction status
-		if err := co.Rollback(); err != nil {
-			return err
-		}
-	}
-
-	if !co.IsAutoCommit() {
-		//we can not  reuse a connection not in autocomit
-		if _, err := co.exec("set autocommit = 1"); err != nil {
-			return err
-		}
-	}
-
-	//connection may be set names early
-	//we must use default utf8
-	if co.GetCharset() != DEFAULT_CHARSET {
-		if err := co.SetCharset(DEFAULT_CHARSET); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (db *DB) PopConn() (co *MySqlConn, err error) {
 	db.Lock()
 	if db.idleConns.Len() > 0 {
@@ -116,16 +90,8 @@ func (db *DB) PopConn() (co *MySqlConn, err error) {
 	db.Unlock()
 
 	if co != nil {
+		//todo: maybe retry
 		return co, err
-		/* comment by liuqi todo: reconsider this
-		if err := co.Ping(); err == nil {
-			if err := db.tryReuse(co); err == nil {
-				//connection may alive
-				return co, nil
-			}
-		}
-		co.Close()
-		*/
 	}
 
 	co, err = db.newConn()
