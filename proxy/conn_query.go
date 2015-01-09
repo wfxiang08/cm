@@ -60,15 +60,9 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	default:
 		return errors.Errorf("statement %T not support now, %+v, %s", stmt, stmt, sql)
 	}
-
-	return nil
 }
 
 func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Node, error) {
-	if c.schema == nil {
-		return nil, NewDefaultError(ER_NO_DB_ERROR)
-	}
-
 	var n []*Node
 	names := c.server.getNodeNames()
 	if len(names) > 0 {
@@ -311,7 +305,7 @@ func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.Ta
 func generateSelectSql(ti *tabletserver.TableInfo, plan *planbuilder.ExecPlan) (string, error) {
 	if len(ti.PKColumns) != len(plan.PKValues) {
 		log.Error("PKColumns and PKValues not match")
-		return "", errors.Errorf("PKColumns and PKValues not match", ti.PKColumns, plan.PKValues)
+		return "", errors.Error("PKColumns and PKValues not match", ti.PKColumns, plan.PKValues)
 	}
 
 	pks := make([]schema.TableColumn, 0, len(ti.PKColumns))

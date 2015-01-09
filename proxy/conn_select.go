@@ -52,7 +52,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		case "connection_id":
 			r, err = c.buildSimpleSelectResult(c.connectionId, funcExpr.Name, expr.As)
 		case "database":
-			if c.schema != nil {
+			if len(c.db) > 0 {
 				r, err = c.buildSimpleSelectResult(c.db, funcExpr.Name, expr.As)
 			} else {
 				r, err = c.buildSimpleSelectResult("NULL", funcExpr.Name, expr.As)
@@ -92,10 +92,6 @@ func (c *Conn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := hack.String(data[0:index])
 	wildcard := hack.String(data[index+1:])
-
-	if c.schema == nil {
-		return errors.Trace(NewDefaultError(ER_NO_DB_ERROR))
-	}
 
 	nodeName := c.schema().rule.GetRule(table).Node
 	//todo: pass through

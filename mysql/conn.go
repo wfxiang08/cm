@@ -419,25 +419,22 @@ func (c *MySqlConn) FieldList(table string, wildcard string) ([]*Field, error) {
 	var f *Field
 	if data[0] == ERR_HEADER {
 		return nil, c.handleErrorPacket(data)
-	} else {
-		for {
-			if data, err = c.readPacket(); err != nil {
-				return nil, err
-			}
-
-			// EOF Packet
-			if c.isEOFPacket(data) {
-				return fs, nil
-			}
-
-			if f, err = FieldData(data).Parse(); err != nil {
-				return nil, err
-			}
-			fs = append(fs, f)
-		}
 	}
+	for {
+		if data, err = c.readPacket(); err != nil {
+			return nil, err
+		}
 
-	return nil, fmt.Errorf("field list error")
+		// EOF Packet
+		if c.isEOFPacket(data) {
+			return fs, nil
+		}
+
+		if f, err = FieldData(data).Parse(); err != nil {
+			return nil, err
+		}
+		fs = append(fs, f)
+	}
 }
 
 func (c *MySqlConn) exec(query string) (*Result, error) {
@@ -569,7 +566,6 @@ func (c *MySqlConn) readUntilEOF() (err error) {
 			return
 		}
 	}
-	return
 }
 
 func (c *MySqlConn) isEOFPacket(data []byte) bool {
