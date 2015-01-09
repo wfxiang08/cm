@@ -25,13 +25,13 @@ type CreateCacheFunc func() (*memcache.Connection, error)
 
 //todo: copy from vitess
 type RowCacheConfig struct {
-	Binary      string
-	Memory      int
-	Socket      string
-	TcpPort     int
-	Connections int
-	Threads     int
-	LockPaged   bool
+	Binary      string `json:"binary"`
+	Memory      int    `json:"mem"`
+	Socket      string `json:"socket"`
+	TcpPort     int    `json:"port"`
+	Connections int    `json:"connections"`
+	Threads     int    `json:"threads"`
+	LockPaged   bool   `json:"lock_paged"`
 }
 
 func (c *RowCacheConfig) GetSubprocessFlags() []string {
@@ -94,10 +94,12 @@ func NewCachePool(name string, rowCacheConfig RowCacheConfig, queryTimeout time.
 	if rowCacheConfig.Socket != "" {
 		cp.port = rowCacheConfig.Socket
 	}
+
 	if rowCacheConfig.TcpPort > 0 {
 		//liuqi: missing ":" in origin code
 		cp.port = ":" + strconv.Itoa(rowCacheConfig.TcpPort)
 	}
+
 	if rowCacheConfig.Connections > 0 {
 		if rowCacheConfig.Connections <= 50 {
 			log.Fatalf("insufficient capacity: %d", rowCacheConfig.Connections)

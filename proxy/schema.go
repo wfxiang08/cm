@@ -5,6 +5,7 @@ import (
 
 	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/router"
+	"github.com/wandoulabs/cm/vt/tabletserver"
 )
 
 type Schema struct {
@@ -53,4 +54,8 @@ func (s *Server) parseSchemas() error {
 
 func (s *Server) GetSchema(db string) *Schema {
 	return s.schemas[db]
+}
+
+func (s *Server) parseRowCacheCfg() tabletserver.RowCacheConfig {
+	return s.cfg.RowCacheConf
 }

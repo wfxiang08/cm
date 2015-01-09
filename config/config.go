@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"io/ioutil"
+
+	"github.com/wandoulabs/cm/vt/tabletserver"
 )
 
 type NodeConfig struct {
@@ -46,6 +48,8 @@ type Config struct {
 	Nodes []NodeConfig `json:"nodes"`
 
 	Schemas []SchemaConfig `json:"schemas"`
+
+	RowCacheConf tabletserver.RowCacheConfig `json:"rowcache_conf"`
 }
 
 func ParseConfigData(data []byte) (*Config, error) {

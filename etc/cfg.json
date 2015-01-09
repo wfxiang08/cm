@@ -13,6 +13,17 @@
             "user": "root"
         }
     ],
+
+    "rowcache_conf":{
+	    "binary":"/usr/bin/memcached",
+	    "mem":128,
+	    "socket":"",
+	    "port":11222,
+	    "connections":1024,
+	    "threads":2,
+	    "lock_paged":false
+    }, 
+
     "password": "",
     "schemas": [
         {

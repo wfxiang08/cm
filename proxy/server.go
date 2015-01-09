@@ -164,9 +164,12 @@ func (s *Server) loadSchemaInfo() error {
 			overrides = append(overrides, or)
 		}
 
+		//rowCacheConf := tabletserver.RowCacheConfig{Memory: v.CacheSize * 1024 * 1024, TcpPort: 11211, Connections: 1024, Threads: -1}
+		//rowCacheConf.Binary = "/usr/bin/memcached"
+		//rowCacheConf.Socket = "memcache.sock"
+
 		//fix hard code node
-		log.Info("cache_size:", v.CacheSize)
-		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(v.CacheSize*1024*1024, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
+		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(s.cfg.RowCacheConf, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
 	}
 
 	return nil
