@@ -305,7 +305,7 @@ func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.Ta
 func generateSelectSql(ti *tabletserver.TableInfo, plan *planbuilder.ExecPlan) (string, error) {
 	if len(ti.PKColumns) != len(plan.PKValues) {
 		log.Error("PKColumns and PKValues not match")
-		return "", errors.Error("PKColumns and PKValues not match", ti.PKColumns, plan.PKValues)
+		return "", errors.Errorf("PKColumns and PKValues not match, %+v, %+v", ti.PKColumns, plan.PKValues)
 	}
 
 	pks := make([]schema.TableColumn, 0, len(ti.PKColumns))
