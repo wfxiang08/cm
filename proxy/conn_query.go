@@ -37,7 +37,6 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	if err != nil {
 		log.Warning(sql, err)
 		return c.handleShow(stmt, sql, nil)
-		//return errors.Errorf(`parse sql "%s" error: %s`, sql, err)
 	}
 
 	log.Debugf("statement %T , %s", stmt, sql)
