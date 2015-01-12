@@ -42,6 +42,8 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 	log.Debugf("statement %T , %s", stmt, sql)
 
+	c.server.IncCounter(fmt.Sprintf("%T", stmt))
+
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
 		return c.handleSelect(v, sql, nil)

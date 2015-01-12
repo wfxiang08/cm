@@ -223,6 +223,8 @@ func (c *Conn) dispatch(data []byte) error {
 	c.server.GetRWlock().RLock()
 	defer c.server.GetRWlock().RUnlock()
 
+	c.server.IncCounter(MYSQL_COMMAND(cmd).String())
+
 	switch MYSQL_COMMAND(cmd) {
 	case COM_QUIT:
 		c.Close()

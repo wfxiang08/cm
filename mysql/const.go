@@ -29,6 +29,8 @@ const (
 	SERVER_PS_OUT_PARAMS               uint16 = 0x1000
 )
 
+
+//go:generate stringer -type=MYSQL_COMMAND
 type MYSQL_COMMAND byte
 
 const (

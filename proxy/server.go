@@ -119,6 +119,7 @@ func (s *Server) parseNode(cfg config.NodeConfig) (*Node, error) {
 
 	return n, nil
 }
+
 func (s *Server) newConn(co net.Conn) *Conn {
 	c := &Conn{
 		c:            co,
@@ -195,6 +196,8 @@ func makeServer(configFile string) *Server {
 		counter:           stats.NewCounters("stats"),
 		rwlock:            &sync.RWMutex{},
 	}
+
+	stats.Publish("command_counter", s.counter)
 
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
 		r, err := co.Execute(sql, args...)
