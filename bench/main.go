@@ -18,6 +18,8 @@ var (
 	mysqlHost      = flag.String("H", "127.0.0.1", "mysql host")
 	mysqlPort      = flag.Int("P", 3306, "mysql port")
 	dbName         = flag.String("db", "test", "db name")
+	userName       = flag.String("u", "root", "db user")
+	password       = flag.String("pwd", "", "db password")
 	N              = flag.Int("n", 10000, "test row count")
 	C              = flag.Int("c", 0, "concurrent worker")
 )
@@ -38,12 +40,12 @@ func NewMysqlDb() (*sql.DB, error) {
 }
 
 func NewProxyDb() (*sql.DB, error) {
-	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false&charset=utf8mb4", *mysqlProxyHost, *mysqlProxyPort, *dbName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?useServerPrepStmts=false", *userName, *password, *mysqlProxyHost, *mysqlProxyPort, *dbName)
 	return NewDb(dsn)
 }
 
 func NewProxyDbWithCharset(charsetName string) (*sql.DB, error) {
-	dsn := fmt.Sprintf("root:@tcp(%s:%d)/%s?useServerPrepStmts=false&charset=%s", *mysqlProxyHost, *mysqlProxyPort, *dbName, charsetName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?useServerPrepStmts=false&charset=%s", *userName, *password, *mysqlProxyHost, *mysqlProxyPort, *dbName, charsetName)
 	return NewDb(dsn)
 }
 
