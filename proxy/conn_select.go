@@ -30,9 +30,9 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	case *sqlparser.ColName:
 		specialColumn = v
 		log.Debug(specialColumn)
-	case sqlparser.NumVal:
+	case sqlparser.NumVal: //select 1
 		return errors.Trace(c.handleShow(stmt, sql, nil))
-	case *sqlparser.BinaryExpr:
+	case *sqlparser.BinaryExpr: //select 2 * 3
 		return errors.Trace(c.handleShow(stmt, sql, nil))
 	default:
 		return errors.Errorf("support select informaction function, %s, %T", sql, v)
@@ -57,7 +57,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 			} else {
 				r, err = c.buildSimpleSelectResult("NULL", funcExpr.Name, expr.As)
 			}
-		case "user":
+		case "user": // select USER()
 			r, err = c.buildSimpleSelectResult(c.user, funcExpr.Name, expr.As)
 		default:
 			return errors.Errorf("function %s not support, %+v", funcExpr.Name, funcExpr)
@@ -110,10 +110,8 @@ func (c *Conn) handleFieldList(data []byte) error {
 	}
 	defer co.Close()
 
-	if co.GetDB() != c.db {
-		if err = co.UseDB(c.db); err != nil {
-			return errors.Trace(err)
-		}
+	if err = co.UseDB(c.db); err != nil {
+		return errors.Trace(err)
 	}
 
 	if fs, err := co.FieldList(table, wildcard); err != nil {

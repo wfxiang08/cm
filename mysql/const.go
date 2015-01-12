@@ -4,7 +4,7 @@ const (
 	MinProtocolVersion byte   = 10
 	MaxPayloadLen      int    = 1<<24 - 1
 	TimeFormat         string = "2006-01-02 15:04:05"
-	ServerVersion      string = "5.5.31-mixer-0.1"
+	ServerVersion      string = "cached-mysql-1.0"
 )
 
 const (
@@ -28,7 +28,6 @@ const (
 	SERVER_QUERY_WAS_SLOW              uint16 = 0x0800
 	SERVER_PS_OUT_PARAMS               uint16 = 0x1000
 )
-
 
 //go:generate stringer -type=MYSQL_COMMAND
 type MYSQL_COMMAND byte

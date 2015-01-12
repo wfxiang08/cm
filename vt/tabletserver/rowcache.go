@@ -7,16 +7,12 @@ package tabletserver
 import (
 	"encoding/binary"
 	"strconv"
-	"time"
 
 	log "github.com/ngaut/logging"
 
-	stats "github.com/ngaut/vstats"
 	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
 )
-
-var cacheStats = stats.NewTimings("Rowcache")
 
 var pack = binary.BigEndian
 
@@ -60,7 +56,6 @@ func (rc *RowCache) Get(keys []string, tcs []schema.TableColumn) (results map[st
 	// This is not the same as defer rc.cachePool.Put(conn)
 	defer func() { rc.cachePool.Put(conn) }()
 
-	defer cacheStats.Record("Exec", time.Now())
 	mcresults, err := conn.Gets(mkeys...)
 	if err != nil {
 		conn.Close()

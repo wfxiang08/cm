@@ -460,9 +460,12 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		}
 
 		if count == len(keys) { //all cache hint
+			c.server.IncCounter("hint")
 			log.Info("hit cache!", sql, keys)
 			return c.writeCacheResults(plan, ti, keys, items)
 		}
+
+		c.server.IncCounter("miss")
 
 		if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
 			log.Infof("%s, %+v, %+v", sql, plan, stmt)
