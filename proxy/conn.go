@@ -221,10 +221,7 @@ func (c *Conn) dispatch(data []byte) error {
 	defer c.server.ReleaseToken(token)
 
 	c.server.GetRWlock().RLock()
-	defer func() {
-		c.server.GetRWlock().RUnlock()
-		//todo: add command counter
-	}()
+	defer c.server.GetRWlock().RUnlock()
 
 	c.server.IncCounter(MYSQL_COMMAND(cmd).String())
 
