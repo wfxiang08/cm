@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"fmt"
-
 	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/router"
 	"github.com/wandoulabs/cm/vt/tabletserver"
+	"strings"
 )
 
 type Schema struct {
@@ -18,7 +18,8 @@ func (s *Server) parseSchemas() error {
 	s.schemas = make(map[string]*Schema)
 
 	for _, schemaCfg := range s.cfg.Schemas {
-		if _, ok := s.schemas[schemaCfg.DB]; ok {
+		db := strings.ToLower(schemaCfg.DB)
+		if _, ok := s.schemas[db]; ok {
 			return errors.Errorf("duplicate schema [%s].", schemaCfg.DB)
 		}
 		if len(schemaCfg.Nodes) == 0 {
@@ -28,11 +29,11 @@ func (s *Server) parseSchemas() error {
 		nodes := make(map[string]*Node)
 		for _, n := range schemaCfg.Nodes {
 			if s.GetNode(n) == nil {
-				return fmt.Errorf("schema [%s] node [%s] config is not exists.", schemaCfg.DB, n)
+				return fmt.Errorf("schema [%s] node [%s] config is not exists.", db, n)
 			}
 
 			if _, ok := nodes[n]; ok {
-				return fmt.Errorf("schema [%s] node [%s] duplicate.", schemaCfg.DB, n)
+				return fmt.Errorf("schema [%s] node [%s] duplicate.", db, n)
 			}
 			nodes[n] = s.GetNode(n)
 		}
@@ -42,8 +43,8 @@ func (s *Server) parseSchemas() error {
 			return err
 		}
 
-		s.schemas[schemaCfg.DB] = &Schema{
-			db:    schemaCfg.DB,
+		s.schemas[db] = &Schema{
+			db:    db,
 			nodes: nodes,
 			rule:  rule,
 		}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/juju/errors"
@@ -259,6 +260,7 @@ func (c *Conn) dispatch(data []byte) error {
 }
 
 func (c *Conn) useDB(db string) error {
+	db = strings.ToLower(db)
 	if s := c.server.GetSchema(db); s == nil {
 		return NewDefaultError(ER_BAD_DB_ERROR, db)
 	} else {

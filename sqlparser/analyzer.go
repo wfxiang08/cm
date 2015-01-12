@@ -7,8 +7,8 @@ package sqlparser
 // analyzer.go contains utility analysis functions.
 
 import (
+	"bytes"
 	"fmt"
-
 	"github.com/wandoulabs/cm/hack"
 	"github.com/wandoulabs/cm/sqltypes"
 )
@@ -17,7 +17,7 @@ import (
 // only if it's a simple expression. Otherwise, it returns "".
 func GetTableName(node SimpleTableExpr) string {
 	if n, ok := node.(*TableName); ok && n.Qualifier == nil {
-		return hack.String(n.Name)
+		return hack.String(bytes.ToLower(n.Name))
 	}
 	// sub-select or '.' expression
 	return ""
@@ -27,7 +27,7 @@ func GetTableName(node SimpleTableExpr) string {
 // it's a simple expression. Otherwise, it returns "".
 func GetColName(node Expr) string {
 	if n, ok := node.(*ColName); ok {
-		return hack.String(n.Name)
+		return hack.String(bytes.ToLower(n.Name))
 	}
 	return ""
 }
