@@ -28,7 +28,6 @@ type Server struct {
 	addr              string
 	user              string
 	password          string
-	running           int32
 	listener          net.Listener
 	nodes             map[string]*Node
 	schemas           map[string]*Schema
@@ -51,10 +50,15 @@ type IServer interface {
 	GetNodeNames() []string
 	AsynExec(task *execTask)
 	IncCounter(key string)
+	DecCounter(key string)
 }
 
 func (s *Server) IncCounter(key string) {
 	s.counter.Add(key, 1)
+}
+
+func (s *Server) DecCounter(key string) {
+	s.counter.Add(key, -1)
 }
 
 func (s *Server) GetToken() *tokenlimiter.Token {
@@ -184,6 +188,8 @@ func makeServer(configFile string) *Server {
 		return nil
 	}
 
+	log.Warningf("%#v", cfg)
+
 	s := &Server{
 		configFile:        configFile,
 		cfg:               cfg,
@@ -260,6 +266,8 @@ func (s *Server) resetSchemaInfo() {
 		log.Fatal(err.Error())
 	}
 
+	log.Warningf("%#v", cfg)
+
 	s.cfg = cfg
 	s.loadSchemaInfo()
 }
@@ -274,9 +282,7 @@ func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) Run() error {
-	atomic.StoreInt32(&s.running, 1)
-
-	for atomic.LoadInt32(&s.running) == 1 {
+	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Errorf("accept error %s", err.Error())
@@ -293,9 +299,9 @@ func (s *Server) Close() {
 	s.rwlock.Lock()
 	defer s.rwlock.Unlock()
 
-	atomic.StoreInt32(&s.running, 0)
 	if s.listener != nil {
 		s.listener.Close()
+		s.listener = nil
 	}
 
 	s.cleanup()
@@ -308,6 +314,11 @@ func (s *Server) onConn(c net.Conn) {
 		c.Close()
 		return
 	}
+
+	const key = "connections"
+
+	s.IncCounter(key)
+	defer s.DecCounter(key)
 
 	conn.Run()
 }
