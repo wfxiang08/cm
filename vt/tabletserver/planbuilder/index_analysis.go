@@ -5,6 +5,7 @@
 package planbuilder
 
 import (
+	"github.com/wandoulabs/cm/hack"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
@@ -76,7 +77,7 @@ func getPKValues(conditions []sqlparser.BoolExpr, pkIndex *schema.Index) (pkValu
 		if !sqlparser.StringIn(condition.Operator, sqlparser.AST_EQ, sqlparser.AST_IN) {
 			return nil, nil
 		}
-		index := pkIndexScore.FindMatch(string(condition.Left.(*sqlparser.ColName).Name))
+		index := pkIndexScore.FindMatch(hack.String(condition.Left.(*sqlparser.ColName).Name))
 		if index == -1 {
 			return nil, nil
 		}

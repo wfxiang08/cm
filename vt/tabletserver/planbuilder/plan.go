@@ -74,7 +74,7 @@ func (node *ExecPlan) setTableInfo(tableName string, getTable TableGetter) (*sch
 
 type TableGetter func(tableName string) (*schema.Table, bool)
 
-func GetExecPlan(sql string, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
+func GetSqlExecPlan(sql string, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	statement, err := sqlparser.Parse(sql, alloc)
 	if err != nil {
 		return nil, err
@@ -85,6 +85,17 @@ func GetExecPlan(sql string, getTable TableGetter, alloc arena.ArenaAllocator) (
 	}
 	if plan.PlanId == PLAN_PASS_DML {
 		log.Warningf("PASS_DML: %s", sql)
+	}
+	return plan, nil
+}
+
+func GetStmtExecPlan(stmt sqlparser.Statement, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
+	plan, err = analyzeSQL(stmt, getTable)
+	if err != nil {
+		return nil, err
+	}
+	if plan.PlanId == PLAN_PASS_DML {
+		log.Warningf("PASS_DML: %s", stmt)
 	}
 	return plan, nil
 }

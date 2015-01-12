@@ -60,11 +60,9 @@ func (c *Conn) Handshake() error {
 		return errors.Trace(err)
 	}
 
-	c.flush()
-
 	c.pkg.Sequence = 0
 
-	return nil
+	return c.flush()
 }
 
 func (c *Conn) Close() error {

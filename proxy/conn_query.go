@@ -31,7 +31,6 @@ func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
 }
 
 func (c *Conn) handleQuery(sql string) (err error) {
-	log.Debug(sql)
 	sql = strings.TrimRight(sql, ";")
 	stmt, err := sqlparser.Parse(sql, c.alloc)
 	if err != nil {
@@ -41,22 +40,28 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 	log.Debugf("statement %T , %s", stmt, sql)
 
-	c.server.IncCounter(fmt.Sprintf("%T", stmt))
-
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
+		c.server.IncCounter("select")
 		return c.handleSelect(v, sql, nil)
 	case *sqlparser.Insert:
+		c.server.IncCounter("insert")
 		return c.handleExec(stmt, sql, nil, true)
 	case *sqlparser.Update:
+		c.server.IncCounter("update")
 		return c.handleExec(stmt, sql, nil, false)
 	case *sqlparser.Delete:
+		c.server.IncCounter("delete")
 		return c.handleExec(stmt, sql, nil, false)
 	case *sqlparser.Set:
+		c.server.IncCounter("set")
 		return c.handleSet(v, sql)
 	case *sqlparser.SimpleSelect:
+		c.server.IncCounter("simple_select")
 		return c.handleSimpleSelect(sql, v)
 	case *sqlparser.Other:
+		c.server.IncCounter("other")
+		log.Warning(sql)
 		return c.handleShow(stmt, sql, nil)
 	default:
 		return errors.Errorf("statement %T not support now, %+v, %s", stmt, stmt, sql)
@@ -221,8 +226,8 @@ func (c *Conn) getTableInfo(tableName string) *tabletserver.TableInfo {
 	return schema.GetTable(tableName)
 }
 
-func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletserver.TableInfo, error) {
-	plan, err := planbuilder.GetExecPlan(sql, c.getTableSchema, c.alloc)
+func (c *Conn) getPlanAndTableInfo(stmt sqlparser.Statement) (*planbuilder.ExecPlan, *tabletserver.TableInfo, error) {
+	plan, err := planbuilder.GetStmtExecPlan(stmt, c.getTableSchema, c.alloc)
 	if err != nil {
 		return nil, nil, errors.Trace(err)
 	}
@@ -231,7 +236,7 @@ func (c *Conn) getPlanAndTableInfo(sql string) (*planbuilder.ExecPlan, *tabletse
 
 	ti := c.getTableInfo(plan.TableName)
 	if ti == nil {
-		return plan, nil, errors.Errorf("unsupport sql %s", sql)
+		return plan, nil, errors.Errorf("unsupport sql %v", stmt)
 	}
 
 	return plan, ti, nil
@@ -441,7 +446,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 
 func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
 	// handle cache
-	plan, ti, err := c.getPlanAndTableInfo(sql)
+	plan, ti, err := c.getPlanAndTableInfo(stmt)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -501,7 +506,7 @@ func invalidCache(ti *tabletserver.TableInfo, keys []string) {
 func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}, skipCache bool) error {
 	if !skipCache {
 		// handle cache
-		plan, ti, err := c.getPlanAndTableInfo(sql)
+		plan, ti, err := c.getPlanAndTableInfo(stmt)
 		if err != nil {
 			return errors.Trace(err)
 		}
