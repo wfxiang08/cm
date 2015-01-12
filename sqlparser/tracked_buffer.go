@@ -7,7 +7,7 @@ package sqlparser
 import (
 	"bytes"
 	"fmt"
-
+	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/hack"
 )
 
@@ -24,9 +24,9 @@ type TrackedBuffer struct {
 	nodeFormatter func(buf *TrackedBuffer, node SQLNode)
 }
 
-func NewTrackedBuffer(nodeFormatter func(buf *TrackedBuffer, node SQLNode)) *TrackedBuffer {
+func NewTrackedBuffer(nodeFormatter func(buf *TrackedBuffer, node SQLNode), alloc arena.ArenaAllocator) *TrackedBuffer {
 	buf := &TrackedBuffer{
-		Buffer:        bytes.NewBuffer(make([]byte, 0, 256)),
+		Buffer:        bytes.NewBuffer(alloc.AllocBytes(256)),
 		bindLocations: make([]bindLocation, 0, 4),
 		nodeFormatter: nodeFormatter,
 	}

@@ -7,18 +7,19 @@ package planbuilder
 import (
 	"fmt"
 
+	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
-func GenerateFullQuery(statement sqlparser.Statement) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateFullQuery(statement sqlparser.Statement, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	statement.Format(buf)
 	return buf.ParsedQuery()
 }
 
-func GenerateFieldQuery(statement sqlparser.Statement) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(FormatImpossible)
+func GenerateFieldQuery(statement sqlparser.Statement, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(FormatImpossible, alloc)
 	buf.Myprintf("%v", statement)
 	if buf.HasBindVars() {
 		return nil
@@ -46,8 +47,8 @@ func FormatImpossible(buf *sqlparser.TrackedBuffer, node sqlparser.SQLNode) {
 	}
 }
 
-func GenerateSelectLimitQuery(selStmt sqlparser.SelectStatement) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateSelectLimitQuery(selStmt sqlparser.SelectStatement, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	sel, ok := selStmt.(*sqlparser.Select)
 	if ok {
 		limit := sel.Limit
@@ -62,16 +63,16 @@ func GenerateSelectLimitQuery(selStmt sqlparser.SelectStatement) *sqlparser.Pars
 	return buf.ParsedQuery()
 }
 
-func GenerateSelectOuterQuery(sel *sqlparser.Select, tableInfo *schema.Table) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateSelectOuterQuery(sel *sqlparser.Select, tableInfo *schema.Table, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	fmt.Fprintf(buf, "select ")
 	writeColumnList(buf, tableInfo.Columns)
 	buf.Myprintf(" from %v where %a", sel.From, ":#pk")
 	return buf.ParsedQuery()
 }
 
-func GenerateInsertOuterQuery(ins *sqlparser.Insert) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateInsertOuterQuery(ins *sqlparser.Insert, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	buf.Myprintf("insert %vinto %v%v values %a%v",
 		ins.Comments,
 		ins.Table,
@@ -82,19 +83,19 @@ func GenerateInsertOuterQuery(ins *sqlparser.Insert) *sqlparser.ParsedQuery {
 	return buf.ParsedQuery()
 }
 
-func GenerateUpdateOuterQuery(upd *sqlparser.Update) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateUpdateOuterQuery(upd *sqlparser.Update, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	buf.Myprintf("update %v%v set %v where %a", upd.Comments, upd.Table, upd.Exprs, ":#pk")
 	return buf.ParsedQuery()
 }
 
-func GenerateDeleteOuterQuery(del *sqlparser.Delete) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateDeleteOuterQuery(del *sqlparser.Delete, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	buf.Myprintf("delete %vfrom %v where %a", del.Comments, del.Table, ":#pk")
 	return buf.ParsedQuery()
 }
 
-func GenerateSelectSubquery(sel *sqlparser.Select, tableInfo *schema.Table, index string) *sqlparser.ParsedQuery {
+func GenerateSelectSubquery(sel *sqlparser.Select, tableInfo *schema.Table, index string, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
 	hint := &sqlparser.IndexHints{Type: sqlparser.AST_USE, Indexes: [][]byte{[]byte(index)}}
 	table_expr := sel.From[0].(*sqlparser.AliasedTableExpr)
 	savedHint := table_expr.Hints
@@ -109,10 +110,11 @@ func GenerateSelectSubquery(sel *sqlparser.Select, tableInfo *schema.Table, inde
 		sel.OrderBy,
 		sel.Limit,
 		false,
+		alloc,
 	)
 }
 
-func GenerateUpdateSubquery(upd *sqlparser.Update, tableInfo *schema.Table) *sqlparser.ParsedQuery {
+func GenerateUpdateSubquery(upd *sqlparser.Update, tableInfo *schema.Table, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
 	return GenerateSubquery(
 		tableInfo.Indexes[0].Columns,
 		&sqlparser.AliasedTableExpr{Expr: upd.Table},
@@ -120,10 +122,11 @@ func GenerateUpdateSubquery(upd *sqlparser.Update, tableInfo *schema.Table) *sql
 		upd.OrderBy,
 		upd.Limit,
 		true,
+		alloc,
 	)
 }
 
-func GenerateDeleteSubquery(del *sqlparser.Delete, tableInfo *schema.Table) *sqlparser.ParsedQuery {
+func GenerateDeleteSubquery(del *sqlparser.Delete, tableInfo *schema.Table, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
 	return GenerateSubquery(
 		tableInfo.Indexes[0].Columns,
 		&sqlparser.AliasedTableExpr{Expr: del.Table},
@@ -131,11 +134,12 @@ func GenerateDeleteSubquery(del *sqlparser.Delete, tableInfo *schema.Table) *sql
 		del.OrderBy,
 		del.Limit,
 		true,
+		alloc,
 	)
 }
 
-func GenerateSubquery(columns []string, table *sqlparser.AliasedTableExpr, where *sqlparser.Where, order sqlparser.OrderBy, limit *sqlparser.Limit, for_update bool) *sqlparser.ParsedQuery {
-	buf := sqlparser.NewTrackedBuffer(nil)
+func GenerateSubquery(columns []string, table *sqlparser.AliasedTableExpr, where *sqlparser.Where, order sqlparser.OrderBy, limit *sqlparser.Limit, for_update bool, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	if limit == nil {
 		limit = execLimit
 	}

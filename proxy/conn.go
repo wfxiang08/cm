@@ -274,7 +274,7 @@ func (c *Conn) writeOK(r *Result) error {
 	if r == nil {
 		r = &Result{Status: c.status}
 	}
-	data := make([]byte, 4, 32)
+	data := c.alloc.AllocBytesWithLen(4, 32)
 	data = append(data, OK_HEADER)
 	data = append(data, PutLengthEncodedInt(r.AffectedRows)...)
 	data = append(data, PutLengthEncodedInt(r.InsertId)...)
@@ -317,7 +317,7 @@ func (c *Conn) writeError(e error) error {
 }
 
 func (c *Conn) writeEOF(status uint16) error {
-	data := make([]byte, 4, 9)
+	data := c.alloc.AllocBytesWithLen(4, 9)
 
 	data = append(data, EOF_HEADER)
 	if c.capability&CLIENT_PROTOCOL_41 > 0 {

@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"github.com/juju/errors"
-	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -81,7 +80,6 @@ func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 
 	for _, v := range r.Fields {
 		data = data[0:4]
-		log.Debug("charset", v.Charset)
 		data = append(data, v.Dump()...)
 		if err := c.writePacket(data); err != nil {
 			return errors.Trace(err)

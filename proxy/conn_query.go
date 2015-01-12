@@ -176,12 +176,12 @@ func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 		case *sqlparser.NonStarExpr:
 			if e.As != nil {
 				r.Fields[i].Name = e.As
-				r.Fields[i].OrgName = hack.Slice(nstring(e.Expr))
+				r.Fields[i].OrgName = hack.Slice(nstring(e.Expr, c.alloc))
 			} else {
-				r.Fields[i].Name = hack.Slice(nstring(e.Expr))
+				r.Fields[i].Name = hack.Slice(nstring(e.Expr, c.alloc))
 			}
 		default:
-			r.Fields[i].Name = hack.Slice(nstring(e))
+			r.Fields[i].Name = hack.Slice(nstring(e, c.alloc))
 		}
 	}
 
@@ -613,7 +613,7 @@ func (c *Conn) sortSelectResult(r *Resultset, stmt *sqlparser.Select) error {
 	sk := make([]SortKey, len(stmt.OrderBy))
 
 	for i, o := range stmt.OrderBy {
-		sk[i].Name = nstring(o.Expr)
+		sk[i].Name = nstring(o.Expr, c.alloc)
 		sk[i].Direction = o.Direction
 	}
 
@@ -631,7 +631,7 @@ func (c *Conn) limitSelectResult(r *Resultset, stmt *sqlparser.Select) error {
 		offset = 0
 	} else {
 		if o, ok := stmt.Limit.Offset.(sqlparser.NumVal); !ok {
-			return errors.Errorf("invalid select limit %s", nstring(stmt.Limit))
+			return errors.Errorf("invalid select limit %s", nstring(stmt.Limit, c.alloc))
 		} else {
 			if offset, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
 				return errors.Trace(err)
@@ -640,12 +640,12 @@ func (c *Conn) limitSelectResult(r *Resultset, stmt *sqlparser.Select) error {
 	}
 
 	if o, ok := stmt.Limit.Rowcount.(sqlparser.NumVal); !ok {
-		return errors.Errorf("invalid limit %s", nstring(stmt.Limit))
+		return errors.Errorf("invalid limit %s", nstring(stmt.Limit, c.alloc))
 	} else {
 		if count, err = strconv.ParseInt(hack.String([]byte(o)), 10, 64); err != nil {
 			return errors.Trace(err)
 		} else if count < 0 {
-			return errors.Errorf("invalid limit %s", nstring(stmt.Limit))
+			return errors.Errorf("invalid limit %s", nstring(stmt.Limit, c.alloc))
 		}
 	}
 

@@ -7,15 +7,16 @@ package planbuilder
 import (
 	"fmt"
 
+	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
-func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan, err error) {
+func analyzeSelect(sel *sqlparser.Select, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	// Default plan
 	plan = &ExecPlan{
 		PlanId:     PLAN_PASS_SELECT,
-		FieldQuery: GenerateFieldQuery(sel),
+		FieldQuery: GenerateFieldQuery(sel, alloc),
 		//FullQuery:  GenerateSelectLimitQuery(sel),
 	}
 
@@ -133,8 +134,8 @@ func analyzeSelect(sel *sqlparser.Select, getTable TableGetter) (plan *ExecPlan,
 		return plan, nil
 	}
 	plan.PlanId = PLAN_SELECT_SUBQUERY
-	plan.OuterQuery = GenerateSelectOuterQuery(sel, tableInfo)
-	plan.Subquery = GenerateSelectSubquery(sel, tableInfo, plan.IndexUsed)
+	plan.OuterQuery = GenerateSelectOuterQuery(sel, tableInfo, alloc)
+	plan.Subquery = GenerateSelectSubquery(sel, tableInfo, plan.IndexUsed, alloc)
 	return plan, nil
 }
 

@@ -79,7 +79,7 @@ func GetSqlExecPlan(sql string, getTable TableGetter, alloc arena.ArenaAllocator
 	if err != nil {
 		return nil, err
 	}
-	plan, err = analyzeSQL(statement, getTable)
+	plan, err = analyzeSQL(statement, getTable, alloc)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func GetSqlExecPlan(sql string, getTable TableGetter, alloc arena.ArenaAllocator
 }
 
 func GetStmtExecPlan(stmt sqlparser.Statement, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
-	plan, err = analyzeSQL(stmt, getTable)
+	plan, err = analyzeSQL(stmt, getTable, alloc)
 	if err != nil {
 		return nil, err
 	}
@@ -100,25 +100,25 @@ func GetStmtExecPlan(stmt sqlparser.Statement, getTable TableGetter, alloc arena
 	return plan, nil
 }
 
-func analyzeSQL(statement sqlparser.Statement, getTable TableGetter) (plan *ExecPlan, err error) {
+func analyzeSQL(statement sqlparser.Statement, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	switch stmt := statement.(type) {
 	case *sqlparser.Union:
 		return &ExecPlan{
 			PlanId:     PLAN_PASS_SELECT,
-			FieldQuery: GenerateFieldQuery(stmt),
-			FullQuery:  GenerateFullQuery(stmt),
+			FieldQuery: GenerateFieldQuery(stmt, alloc),
+			FullQuery:  GenerateFullQuery(stmt, alloc),
 			Reason:     REASON_SELECT,
 		}, nil
 	case *sqlparser.Select:
-		return analyzeSelect(stmt, getTable)
+		return analyzeSelect(stmt, getTable, alloc)
 	case *sqlparser.Insert:
-		return analyzeInsert(stmt, getTable)
+		return analyzeInsert(stmt, getTable, alloc)
 	case *sqlparser.Update:
-		return analyzeUpdate(stmt, getTable)
+		return analyzeUpdate(stmt, getTable, alloc)
 	case *sqlparser.Delete:
-		return analyzeDelete(stmt, getTable)
+		return analyzeDelete(stmt, getTable, alloc)
 	case *sqlparser.Set:
-		return analyzeSet(stmt), nil
+		return analyzeSet(stmt, alloc), nil
 	case *sqlparser.DDL:
 		return analyzeDDL(stmt, getTable), nil
 	case *sqlparser.Other:

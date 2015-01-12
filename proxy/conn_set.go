@@ -12,7 +12,7 @@ var nstring = sqlparser.String
 
 func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 	if len(stmt.Exprs) != 1 {
-		return errors.Errorf("must set one item once, not %s", nstring(stmt))
+		return errors.Errorf("must set one item once, not %s", nstring(stmt, c.alloc))
 	}
 
 	k := string(stmt.Exprs[0].Name.Name)

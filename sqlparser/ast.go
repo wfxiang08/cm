@@ -42,8 +42,8 @@ type SQLNode interface {
 }
 
 // String returns a string representation of an SQLNode.
-func String(node SQLNode) string {
-	buf := NewTrackedBuffer(nil)
+func String(node SQLNode, alloc arena.ArenaAllocator) string {
+	buf := NewTrackedBuffer(nil, alloc)
 	buf.Myprintf("%v", node)
 	return buf.String()
 }

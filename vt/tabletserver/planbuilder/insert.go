@@ -7,15 +7,16 @@ package planbuilder
 import (
 	"errors"
 
+	"github.com/ngaut/arena"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
-func analyzeInsert(ins *sqlparser.Insert, getTable TableGetter) (plan *ExecPlan, err error) {
+func analyzeInsert(ins *sqlparser.Insert, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	plan = &ExecPlan{
 		PlanId:    PLAN_PASS_DML,
-		FullQuery: GenerateFullQuery(ins),
+		FullQuery: GenerateFullQuery(ins, alloc),
 	}
 	tableName := sqlparser.GetTableName(ins.Table)
 	if tableName == "" {
@@ -44,8 +45,8 @@ func analyzeInsert(ins *sqlparser.Insert, getTable TableGetter) (plan *ExecPlan,
 
 	if sel, ok := ins.Rows.(sqlparser.SelectStatement); ok {
 		plan.PlanId = PLAN_INSERT_SUBQUERY
-		plan.OuterQuery = GenerateInsertOuterQuery(ins)
-		plan.Subquery = GenerateSelectLimitQuery(sel)
+		plan.OuterQuery = GenerateInsertOuterQuery(ins, alloc)
+		plan.Subquery = GenerateSelectLimitQuery(sel, alloc)
 		if len(ins.Columns) != 0 {
 			plan.ColumnNumbers, err = analyzeSelectExprs(sqlparser.SelectExprs(ins.Columns), tableInfo)
 			if err != nil {

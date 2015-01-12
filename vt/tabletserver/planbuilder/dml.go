@@ -7,15 +7,16 @@ package planbuilder
 import (
 	"strconv"
 
+	"github.com/ngaut/arena"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
-func analyzeUpdate(upd *sqlparser.Update, getTable TableGetter) (plan *ExecPlan, err error) {
+func analyzeUpdate(upd *sqlparser.Update, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	plan = &ExecPlan{
 		PlanId:    PLAN_PASS_DML,
-		FullQuery: GenerateFullQuery(upd),
+		FullQuery: GenerateFullQuery(upd, alloc),
 	}
 
 	tableName := sqlparser.GetTableName(upd.Table)
@@ -43,7 +44,7 @@ func analyzeUpdate(upd *sqlparser.Update, getTable TableGetter) (plan *ExecPlan,
 		return nil, err
 	}
 
-	plan.OuterQuery = GenerateUpdateOuterQuery(upd)
+	plan.OuterQuery = GenerateUpdateOuterQuery(upd, alloc)
 
 	if conditions := analyzeWhere(upd.Where); conditions != nil {
 		pkValues, err := getPKValues(conditions, tableInfo.Indexes[0])
@@ -58,14 +59,14 @@ func analyzeUpdate(upd *sqlparser.Update, getTable TableGetter) (plan *ExecPlan,
 	}
 
 	plan.PlanId = PLAN_DML_SUBQUERY
-	plan.Subquery = GenerateUpdateSubquery(upd, tableInfo)
+	plan.Subquery = GenerateUpdateSubquery(upd, tableInfo, alloc)
 	return plan, nil
 }
 
-func analyzeDelete(del *sqlparser.Delete, getTable TableGetter) (plan *ExecPlan, err error) {
+func analyzeDelete(del *sqlparser.Delete, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	plan = &ExecPlan{
 		PlanId:    PLAN_PASS_DML,
-		FullQuery: GenerateFullQuery(del),
+		FullQuery: GenerateFullQuery(del, alloc),
 	}
 
 	tableName := sqlparser.GetTableName(del.Table)
@@ -84,7 +85,7 @@ func analyzeDelete(del *sqlparser.Delete, getTable TableGetter) (plan *ExecPlan,
 		return plan, nil
 	}
 
-	plan.OuterQuery = GenerateDeleteOuterQuery(del)
+	plan.OuterQuery = GenerateDeleteOuterQuery(del, alloc)
 
 	if conditions := analyzeWhere(del.Where); conditions != nil {
 		pkValues, err := getPKValues(conditions, tableInfo.Indexes[0])
@@ -99,14 +100,14 @@ func analyzeDelete(del *sqlparser.Delete, getTable TableGetter) (plan *ExecPlan,
 	}
 
 	plan.PlanId = PLAN_DML_SUBQUERY
-	plan.Subquery = GenerateDeleteSubquery(del, tableInfo)
+	plan.Subquery = GenerateDeleteSubquery(del, tableInfo, alloc)
 	return plan, nil
 }
 
-func analyzeSet(set *sqlparser.Set) (plan *ExecPlan) {
+func analyzeSet(set *sqlparser.Set, alloc arena.ArenaAllocator) (plan *ExecPlan) {
 	plan = &ExecPlan{
 		PlanId:    PLAN_SET,
-		FullQuery: GenerateFullQuery(set),
+		FullQuery: GenerateFullQuery(set, alloc),
 	}
 	if len(set.Exprs) > 1 { // Multiple set values
 		return plan
