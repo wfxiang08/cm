@@ -59,7 +59,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 				row = append(row, "\xfb"...)
 			} else {
 				b = Raw(byte(field.Type), value, false)
-				row = append(row, PutLengthEncodedString(b)...)
+				row = append(row, PutLengthEncodedStringWithAlloc(b, c.alloc)...)
 			}
 		}
 
@@ -80,7 +80,7 @@ func (c *Conn) writeResultset(status uint16, r *Resultset) error {
 
 	for _, v := range r.Fields {
 		data = data[0:4]
-		data = append(data, v.Dump()...)
+		data = append(data, v.Dump(c.alloc)...)
 		if err := c.writePacket(data); err != nil {
 			return errors.Trace(err)
 		}

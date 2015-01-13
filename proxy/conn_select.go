@@ -83,7 +83,7 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 
 	r := &Resultset{Fields: []*Field{field}}
 	row := Raw(byte(field.Type), value, false)
-	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row))
+	r.RowDatas = append(r.RowDatas, PutLengthEncodedStringWithAlloc(row, c.alloc))
 
 	return r, nil
 }
@@ -128,7 +128,7 @@ func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
 
 	for _, v := range fs {
 		data = data[0:4]
-		data = append(data, v.Dump()...)
+		data = append(data, v.Dump(c.alloc)...)
 		if err := c.writePacket(data); err != nil {
 			return errors.Trace(err)
 		}

@@ -203,8 +203,6 @@ func makeServer(configFile string) *Server {
 		rwlock:            &sync.RWMutex{},
 	}
 
-	stats.Publish("command_counter", s.counter)
-
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
 		r, err := co.Execute(sql, args...)
 		if err != nil {

@@ -4,10 +4,11 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/binary"
+
 	"fmt"
+	"github.com/ngaut/arena"
 	"io"
 	"runtime"
-	"unicode/utf8"
 )
 
 func Pstack() string {
@@ -149,8 +150,8 @@ func SkipLengthEnodedString(b []byte) (int, error) {
 	return n, io.EOF
 }
 
-func PutLengthEncodedString(b []byte) []byte {
-	data := make([]byte, 0, len(b)+9)
+func PutLengthEncodedStringWithAlloc(b []byte, alloc arena.ArenaAllocator) []byte {
+	data := alloc.AllocBytes(len(b) + 9)
 	data = append(data, PutLengthEncodedInt(uint64(len(b)))...)
 	data = append(data, b...)
 	return data
@@ -271,6 +272,7 @@ var (
 	tinyIntCache [251][]byte
 )
 
+/*
 func Escape(sql string) string {
 	dest := make([]byte, 0, 2*len(sql))
 
@@ -286,6 +288,7 @@ func Escape(sql string) string {
 
 	return string(dest)
 }
+*/
 
 var encodeRef = map[byte]byte{
 	'\x00': '0',
@@ -314,5 +317,5 @@ func init() {
 		}
 	}
 
-	defCache = PutLengthEncodedString([]byte("def"))
+	defCache = PutLengthEncodedStringWithAlloc([]byte("def"), arena.StdAllocator)
 }

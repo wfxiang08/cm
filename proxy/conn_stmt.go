@@ -3,10 +3,10 @@ package proxy
 import (
 	"encoding/binary"
 	"fmt"
-	"math"
-
+	"github.com/ngaut/arena"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
+	"math"
 )
 
 var paramFieldData []byte
@@ -15,8 +15,8 @@ var columnFieldData []byte
 func init() {
 	p := &Field{Name: []byte("?")}
 	c := &Field{}
-	paramFieldData = p.Dump()
-	columnFieldData = c.Dump()
+	paramFieldData = p.Dump(arena.StdAllocator)
+	columnFieldData = c.Dump(arena.StdAllocator)
 }
 
 type Stmt struct {

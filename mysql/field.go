@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"encoding/binary"
+	"github.com/ngaut/arena"
 )
 
 type FieldData []byte
@@ -117,24 +118,24 @@ func (p FieldData) Parse() (f *Field, err error) {
 
 var defCache []byte
 
-func (f *Field) Dump() []byte {
+func (f *Field) Dump(alloc arena.ArenaAllocator) []byte {
 	if f.Data != nil {
 		return []byte(f.Data)
 	}
 
 	l := len(f.Schema) + len(f.Table) + len(f.OrgTable) + len(f.Name) + len(f.OrgName) + len(f.DefaultValue) + 48
 
-	data := make([]byte, 0, l)
+	data := alloc.AllocBytes(l)
 
 	data = append(data, defCache...)
 
-	data = append(data, PutLengthEncodedString(f.Schema)...)
+	data = append(data, PutLengthEncodedStringWithAlloc(f.Schema, alloc)...)
 
-	data = append(data, PutLengthEncodedString(f.Table)...)
-	data = append(data, PutLengthEncodedString(f.OrgTable)...)
+	data = append(data, PutLengthEncodedStringWithAlloc(f.Table, alloc)...)
+	data = append(data, PutLengthEncodedStringWithAlloc(f.OrgTable, alloc)...)
 
-	data = append(data, PutLengthEncodedString(f.Name)...)
-	data = append(data, PutLengthEncodedString(f.OrgName)...)
+	data = append(data, PutLengthEncodedStringWithAlloc(f.Name, alloc)...)
+	data = append(data, PutLengthEncodedStringWithAlloc(f.OrgName, alloc)...)
 
 	data = append(data, 0x0c)
 
