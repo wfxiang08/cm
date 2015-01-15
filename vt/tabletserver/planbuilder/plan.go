@@ -94,9 +94,11 @@ func GetStmtExecPlan(stmt sqlparser.Statement, getTable TableGetter, alloc arena
 	if err != nil {
 		return nil, err
 	}
+
 	if plan.PlanId == PLAN_PASS_DML {
-		log.Warningf("PASS_DML: %s", stmt)
+		log.Warningf("PASS_DML: %s", sqlparser.String(stmt, alloc))
 	}
+
 	return plan, nil
 }
 
