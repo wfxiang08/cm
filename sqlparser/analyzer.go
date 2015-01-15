@@ -17,7 +17,7 @@ import (
 // only if it's a simple expression. Otherwise, it returns "".
 func GetTableName(node SimpleTableExpr) string {
 	if n, ok := node.(*TableName); ok && n.Qualifier == nil {
-		return hack.String(bytes.ToLower(n.Name))
+		return hack.String(n.Name)
 	}
 	// sub-select or '.' expression
 	return ""
