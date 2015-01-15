@@ -792,11 +792,11 @@ else_expression_opt:
 column_name:
   sql_id
   {
-    $$ = &ColName{Name: $1}
+    $$ = &ColName{Name: bytes.ToLower($1)}
   }
 | ID '.' sql_id
   {
-    $$ = &ColName{Qualifier: $1, Name: $3}
+    $$ = &ColName{Qualifier: $1, Name: bytes.ToLower($3)}
   }
 
 value:

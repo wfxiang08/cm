@@ -1499,12 +1499,12 @@ yydefault:
 	case 145:
 		//line sql.y:794
 		{
-			yyVAL.colName = &ColName{Name: yyS[yypt-0].bytes}
+			yyVAL.colName = &ColName{Name: bytes.ToLower(yyS[yypt-0].bytes)}
 		}
 	case 146:
 		//line sql.y:798
 		{
-			yyVAL.colName = &ColName{Qualifier: yyS[yypt-2].bytes, Name: yyS[yypt-0].bytes}
+			yyVAL.colName = &ColName{Qualifier: yyS[yypt-2].bytes, Name: bytes.ToLower(yyS[yypt-0].bytes)}
 		}
 	case 147:
 		//line sql.y:804
