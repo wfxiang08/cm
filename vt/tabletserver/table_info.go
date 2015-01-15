@@ -84,15 +84,15 @@ func (ti *TableInfo) SetPK(colnames []string) error {
 	pkIndex := schema.NewIndex("PRIMARY")
 	colnums := make([]int, len(colnames))
 	for i, colname := range colnames {
-		colnums[i] = ti.FindColumn(colname)
+		colnums[i] = ti.FindColumn(strings.ToLower(colname))
 		if colnums[i] == -1 {
 			return errors.Errorf("column %s not found, %+v", colname, ti.Columns)
 		}
-		pkIndex.AddColumn(colname, 1)
+		pkIndex.AddColumn(strings.ToLower(colname), 1)
 	}
 
 	for _, col := range ti.Columns {
-		pkIndex.DataColumns = append(pkIndex.DataColumns, col.Name)
+		pkIndex.DataColumns = append(pkIndex.DataColumns, strings.ToLower(col.Name))
 	}
 
 	if len(ti.Indexes) == 0 {
