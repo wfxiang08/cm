@@ -97,7 +97,6 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 			return nil, errors.Trace(err)
 		}
 	} else {
-		log.Errorf("get transaction connections %+v", n)
 		var ok bool
 		co, ok = c.txConns[n.cfg.Name]
 

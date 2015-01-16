@@ -37,7 +37,7 @@ func (c *Conn) handleRollback() (err error) {
 }
 
 func (c *Conn) commit() (err error) {
-	log.Warningf("handle  commit on %v", c)
+	log.Debugf("handle  commit on %v", c)
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -53,7 +53,7 @@ func (c *Conn) commit() (err error) {
 }
 
 func (c *Conn) rollback() (err error) {
-	log.Warningf("handle  rollback on %v", c)
+	log.Debugf("handle  rollback on %v", c)
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
