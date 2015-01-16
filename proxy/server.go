@@ -37,6 +37,9 @@ type Server struct {
 	concurrentLimiter *tokenlimiter.TokenLimiter
 
 	counter *stats.Counters
+
+	clients  map[int64]*Conn
+	clientId int64
 }
 
 type IServer interface {
@@ -134,6 +137,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		collation:    DEFAULT_COLLATION_ID,
 		charset:      DEFAULT_CHARSET,
 		alloc:        arena.NewArenaAllocator(8 * 1024),
+		txConns:      make(map[*Node]*SqlConn),
 	}
 	c.salt, _ = RandomBuf(20)
 
@@ -201,6 +205,7 @@ func makeServer(configFile string) *Server {
 		concurrentLimiter: tokenlimiter.NewTokenLimiter(100),
 		counter:           stats.NewCounters("stats"),
 		rwlock:            &sync.RWMutex{},
+		clients:           make(map[int64]*Conn),
 	}
 
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
@@ -249,7 +254,13 @@ func (s *Server) cleanup() {
 	}
 }
 
-func (s *Server) resetSchemaInfo() {
+func (s *Server) resetSchemaInfo() error {
+	for _, c := range s.clients {
+		if len(c.txConns) > 0 {
+			return errors.Errorf("transaction exist")
+		}
+	}
+
 	s.cleanup()
 	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
 	for _, n := range s.nodes {
@@ -268,6 +279,7 @@ func (s *Server) resetSchemaInfo() {
 
 	s.cfg = cfg
 	s.loadSchemaInfo()
+	return nil
 }
 
 func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
@@ -305,6 +317,10 @@ func (s *Server) Close() {
 	s.cleanup()
 }
 
+func (s *Server) getClientId() int64 {
+	return atomic.AddInt64(&s.clientId, 1)
+}
+
 func (s *Server) onConn(c net.Conn) {
 	conn := s.newConn(c)
 	if err := conn.Handshake(); err != nil {
@@ -317,6 +333,10 @@ func (s *Server) onConn(c net.Conn) {
 
 	s.IncCounter(key)
 	defer s.DecCounter(key)
+
+	s.rwlock.Lock()
+	s.clients[s.getClientId()] = conn
+	s.rwlock.Unlock()
 
 	conn.Run()
 }

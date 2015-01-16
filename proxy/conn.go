@@ -39,6 +39,7 @@ type Conn struct {
 	lastInsertId int64
 	affectedRows int64
 	alloc        arena.ArenaAllocator
+	txConns      map[*Node]*SqlConn
 }
 
 func (c *Conn) schema() *Schema {
@@ -270,6 +271,14 @@ func (c *Conn) useDB(db string) error {
 	}
 
 	return nil
+}
+
+func (c *Conn) writeOkFlush(r *Result) error {
+	if err := c.writeOK(r); err != nil {
+		return errors.Trace(err)
+	}
+
+	return errors.Trace(c.flush())
 }
 
 func (c *Conn) writeOK(r *Result) error {

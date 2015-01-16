@@ -66,6 +66,7 @@ var (
 
 %token LEX_ERROR
 %token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
+%token <empty> BEGIN COMMIT ROLLBACK
 %token <empty> ALL DISTINCT AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG LIST_ARG COMMENT
 %token <empty> LE GE NE NULL_SAFE_EQUAL
@@ -97,6 +98,7 @@ var (
 %type <selStmt> select_statement
 %type <statement> insert_statement update_statement delete_statement set_statement
 %type <statement> create_statement alter_statement rename_statement drop_statement
+%type <statement> begin_statement commit_statement rollback_statement
 %type <statement> analyze_statement other_statement
 %type <bytes2> comment_opt comment_list
 %type <str> union_op
@@ -162,6 +164,9 @@ command:
 | delete_statement
 | set_statement
 | create_statement
+| begin_statement
+| commit_statement
+| rollback_statement
 | alter_statement
 | rename_statement
 | drop_statement
@@ -230,6 +235,25 @@ create_statement:
   {
     $$ = &DDL{Action: AST_CREATE, NewName: $3}
   }
+
+begin_statement:
+  BEGIN
+  {
+    $$ = &Begin{}
+  }
+
+commit_statement:
+  COMMIT
+  {
+    $$ = &Commit{}
+  }
+
+rollback_statement:
+  ROLLBACK
+  {
+    $$ = &Rollback{}
+  }
+
 
 alter_statement:
   ALTER ignore_opt TABLE ID non_rename_operation force_eof

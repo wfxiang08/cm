@@ -59,6 +59,13 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.SimpleSelect:
 		c.server.IncCounter("simple_select")
 		return c.handleSimpleSelect(sql, v)
+	case *sqlparser.Begin:
+		return c.handleBegin()
+	case *sqlparser.Commit:
+		return c.handleCommit()
+	case *sqlparser.Rollback:
+		return c.handleRollback()
+
 	case *sqlparser.Other:
 		c.server.IncCounter("other")
 		log.Warning(sql)
@@ -75,21 +82,35 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 		n = append(n, c.server.GetNode(names[0]))
 	}
 
+	//todo: using router info
+
 	return n, nil
 }
 
 func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
-	co, err = n.getMasterConn()
-	if err != nil {
-		return nil, errors.Trace(err)
+	if !c.needBeginTx() {
+		co, err = n.getMasterConn()
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	} else {
+		var ok bool
+		co, ok = c.txConns[n]
+
+		if !ok {
+			if co, err = n.getMasterConn(); err != nil {
+				return nil, errors.Trace(err)
+			}
+
+			if err = co.Begin(); err != nil {
+				return nil, errors.Trace(err)
+			}
+
+			c.txConns[n] = co
+		}
 	}
 
-	log.Debugf("%+v, %+v", co, c)
-
-	if co == nil || co.MySqlConn == nil {
-		return nil, errors.Errorf("schema not found")
-	}
-
+	//todo, set conn charset, etc...
 	if err = co.UseDB(c.db); err != nil {
 		return nil, errors.Trace(err)
 	}
