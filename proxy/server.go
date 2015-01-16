@@ -137,7 +137,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		collation:    DEFAULT_COLLATION_ID,
 		charset:      DEFAULT_CHARSET,
 		alloc:        arena.NewArenaAllocator(8 * 1024),
-		txConns:      make(map[*Node]*SqlConn),
+		txConns:      make(map[string]*SqlConn),
 	}
 	c.salt, _ = RandomBuf(20)
 
@@ -215,6 +215,7 @@ func makeServer(configFile string) *Server {
 		} else {
 			rs[i] = r
 		}
+
 		wg.Done()
 	}
 
@@ -283,6 +284,7 @@ func (s *Server) resetSchemaInfo() error {
 }
 
 func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
+	log.Warning("reload config")
 	s.rwlock.Lock()
 	defer s.rwlock.Unlock()
 

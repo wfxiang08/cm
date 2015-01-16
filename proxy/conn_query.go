@@ -35,7 +35,11 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	stmt, err := sqlparser.Parse(sql, c.alloc)
 	if err != nil {
 		log.Warning(sql, err)
-		return c.handleShow(stmt, sql, nil)
+		if strings.ToUpper(strings.TrimSpace(sql)) == "START TRANSACTION" {
+			stmt = &sqlparser.Begin{}
+		} else {
+			return c.handleShow(stmt, sql, nil)
+		}
 	}
 
 	log.Debugf("statement %T , %s", stmt, sql)
@@ -65,7 +69,6 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleCommit()
 	case *sqlparser.Rollback:
 		return c.handleRollback()
-
 	case *sqlparser.Other:
 		c.server.IncCounter("other")
 		log.Warning(sql)
@@ -94,21 +97,26 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 			return nil, errors.Trace(err)
 		}
 	} else {
+		log.Errorf("get transaction connections %+v", n)
 		var ok bool
-		co, ok = c.txConns[n]
+		co, ok = c.txConns[n.cfg.Name]
 
 		if !ok {
 			if co, err = n.getMasterConn(); err != nil {
 				return nil, errors.Trace(err)
 			}
 
+			log.Debugf("%+v", co)
+
 			if err = co.Begin(); err != nil {
 				return nil, errors.Trace(err)
 			}
 
-			c.txConns[n] = co
+			c.txConns[n.cfg.Name] = co
 		}
 	}
+
+	log.Debugf("%+v", c.txConns)
 
 	//todo, set conn charset, etc...
 	if err = co.UseDB(c.db); err != nil {
@@ -180,6 +188,10 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 }
 
 func (c *Conn) closeShardConns(conns []*SqlConn) {
+	if c.isInTransaction() {
+		return
+	}
+
 	for _, co := range conns {
 		co.Close()
 	}
@@ -557,19 +569,12 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	if err != nil {
 		return errors.Trace(err)
 	} else if len(conns) == 0 { //todo:handle error
-		err := c.writeOK(nil)
-		if err != nil {
-			return err
-		}
-		return errors.Trace(c.flush())
+		err := errors.Errorf("not server found %s", sql)
+		return errors.Trace(err)
 	}
 
 	var rs []*Result
-	if len(conns) == 1 {
-		rs, err = c.executeInShard(conns, sql, args)
-	} else {
-		log.Warning("not implement yet")
-	}
+	rs, err = c.executeInShard(conns, sql, args)
 
 	c.closeShardConns(conns)
 
@@ -578,6 +583,34 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	}
 
 	return errors.Trace(err)
+}
+
+func (c *Conn) beginShardConns(conns []*SqlConn) error {
+	if c.isInTransaction() {
+		return nil
+	}
+
+	for _, co := range conns {
+		if err := co.Begin(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Conn) commitShardConns(conns []*SqlConn) error {
+	if c.isInTransaction() {
+		return nil
+	}
+
+	for _, co := range conns {
+		if err := co.Commit(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c *Conn) mergeExecResult(rs []*Result) error {

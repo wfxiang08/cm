@@ -39,7 +39,7 @@ type Conn struct {
 	lastInsertId int64
 	affectedRows int64
 	alloc        arena.ArenaAllocator
-	txConns      map[*Node]*SqlConn
+	txConns      map[string]*SqlConn
 }
 
 func (c *Conn) schema() *Schema {

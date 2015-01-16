@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	log "github.com/ngaut/logging"
 	. "github.com/wandoulabs/cm/mysql"
 )
 
@@ -13,27 +14,30 @@ func (c *Conn) isAutoCommit() bool {
 }
 
 func (c *Conn) handleBegin() error {
+	log.Debug("handle begin")
 	c.status |= SERVER_STATUS_IN_TRANS
+
 	return c.writeOkFlush(nil)
 }
 
 func (c *Conn) handleCommit() (err error) {
 	if err := c.commit(); err != nil {
 		return err
-	} else {
-		return c.writeOkFlush(nil)
 	}
+
+	return c.writeOkFlush(nil)
 }
 
 func (c *Conn) handleRollback() (err error) {
 	if err := c.rollback(); err != nil {
 		return err
-	} else {
-		return c.writeOkFlush(nil)
 	}
+
+	return c.writeOkFlush(nil)
 }
 
 func (c *Conn) commit() (err error) {
+	log.Warningf("handle  commit on %v", c)
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -43,12 +47,13 @@ func (c *Conn) commit() (err error) {
 		co.Close()
 	}
 
-	c.txConns = make(map[*Node]*SqlConn)
+	c.txConns = make(map[string]*SqlConn)
 
 	return
 }
 
 func (c *Conn) rollback() (err error) {
+	log.Warningf("handle  rollback on %v", c)
 	c.status &= ^SERVER_STATUS_IN_TRANS
 
 	for _, co := range c.txConns {
@@ -58,7 +63,7 @@ func (c *Conn) rollback() (err error) {
 		co.Close()
 	}
 
-	c.txConns = make(map[*Node]*SqlConn)
+	c.txConns = make(map[string]*SqlConn)
 
 	return
 }

@@ -71,8 +71,12 @@ func mustQuery(db *sql.DB, sql string, args ...interface{}) *sql.Rows {
 	return res
 }
 
-func mustExec(db *sql.DB, sql string, args ...interface{}) sql.Result {
-	res, err := db.Exec(sql, args...)
+type SqlExecer interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
+
+func mustExec(execer SqlExecer, sql string, args ...interface{}) sql.Result {
+	res, err := execer.Exec(sql, args...)
 	if err != nil {
 		panic(err)
 	}
@@ -91,6 +95,20 @@ func mustQueryDataWithMultiId(db *sql.DB, tblName string, id1 interface{}, id2 i
 	} else {
 		panic("no such record")
 	}
+}
+
+func queryData(db *sql.DB, tblName string, id interface{}, data interface{}) error {
+	rows := mustQuery(ProxyDB, "select data from "+tblName+" where id=?", id)
+	defer rows.Close()
+
+	if rows.Next() {
+		err := rows.Scan(data)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func mustQueryData(db *sql.DB, tblName string, id interface{}, data interface{}) {

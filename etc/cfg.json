@@ -1,6 +1,6 @@
 {
     "addr": "127.0.0.1:4000",
-    "log_level": "warning",
+    "log_level": "debug",
     "nodes": [
         {
             "down_after_noalive": 0,
@@ -128,6 +128,10 @@
                         "key": "id",
                         "row_cache_type": "RW",
                         "table": "tbl_pkey_string_test"
+                    },
+		    {
+                        "key": "id",
+                        "table": "tbl_transaction_test"
                     },
                     {
                         "key": "id",
