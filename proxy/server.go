@@ -211,6 +211,7 @@ func makeServer(configFile string) *Server {
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
 		r, err := co.Execute(sql, args...)
 		if err != nil {
+			log.Warning(err)
 			rs[i] = err
 		} else {
 			rs[i] = r
