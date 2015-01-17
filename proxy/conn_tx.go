@@ -71,6 +71,7 @@ func (c *Conn) rollback() (err error) {
 //if status is in_trans, need
 //else if status is not autocommit, need
 //else no need
+//todo: rename this function
 func (c *Conn) needBeginTx() bool {
 	return c.isInTransaction() || !c.isAutoCommit()
 }

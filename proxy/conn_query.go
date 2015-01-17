@@ -97,6 +97,7 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 			return nil, errors.Trace(err)
 		}
 	} else {
+		log.Warning("needBeginTx")
 		var ok bool
 		co, ok = c.txConns[n.cfg.Name]
 
@@ -187,7 +188,7 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 }
 
 func (c *Conn) closeShardConns(conns []*SqlConn) {
-	if c.isInTransaction() {
+	if c.needBeginTx() {
 		return
 	}
 
