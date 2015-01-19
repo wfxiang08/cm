@@ -64,7 +64,9 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		case "user": // select USER()
 			r, err = c.buildSimpleSelectResult(c.user, funcExpr.Name, expr.As)
 		default:
-			return errors.Errorf("function %s not support, %+v", funcExpr.Name, funcExpr)
+			log.Warning(sql)
+			return errors.Trace(c.handleShow(stmt, sql, nil))
+			//return errors.Errorf("function %s not support, %+v", funcExpr.Name, funcExpr)
 		}
 
 		if err != nil {

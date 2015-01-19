@@ -74,9 +74,7 @@ func (c *Conn) Close() error {
 		return nil
 	}
 
-	for _, txConn := range c.txConns {
-		txConn.Close()
-	}
+	c.rollback()
 
 	c.c.Close()
 	c.closed = true
