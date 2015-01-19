@@ -64,13 +64,16 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		c.server.IncCounter("simple_select")
 		return c.handleSimpleSelect(sql, v)
 	case *sqlparser.Begin:
+		c.server.IncCounter("begin")
 		return c.handleBegin()
 	case *sqlparser.Commit:
+		c.server.IncCounter("commit")
 		return c.handleCommit()
 	case *sqlparser.Rollback:
 		return c.handleRollback()
 	case *sqlparser.Other:
 		c.server.IncCounter("other")
+		c.server.IncCounter(sql)
 		log.Warning(sql)
 		return c.handleShow(stmt, sql, nil)
 	default:
@@ -97,7 +100,7 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 			return nil, errors.Trace(err)
 		}
 	} else {
-		log.Warning("needBeginTx")
+		log.Warning("needBeginTx", c.status)
 		var ok bool
 		co, ok = c.txConns[n.cfg.Name]
 
@@ -116,9 +119,6 @@ func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
 		}
 	}
 
-	log.Debugf("%+v", c.txConns)
-
-	//todo, set conn charset, etc...
 	if err = co.UseDB(c.db); err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -269,7 +269,7 @@ func (c *Conn) getPlanAndTableInfo(stmt sqlparser.Statement) (*planbuilder.ExecP
 
 	ti := c.getTableInfo(plan.TableName)
 	if ti == nil {
-		return plan, nil, errors.Errorf("unsupport sql %v", stmt)
+		return plan, nil, errors.Errorf("unsupport sql %+v", stmt)
 	}
 
 	return plan, ti, nil

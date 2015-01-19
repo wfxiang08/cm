@@ -1,4 +1,4 @@
-./cmd/cm-proxy/cm-proxy
+rm ./cmd/cm-proxy/cm-proxy
 cd ./cmd/cm-proxy/
 go build
 cd -

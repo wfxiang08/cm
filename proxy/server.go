@@ -136,7 +136,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		status:       SERVER_STATUS_AUTOCOMMIT,
 		collation:    DEFAULT_COLLATION_ID,
 		charset:      DEFAULT_CHARSET,
-		alloc:        arena.NewArenaAllocator(8 * 1024),
+		alloc:        arena.NewArenaAllocator(32 * 1024),
 		txConns:      make(map[string]*SqlConn),
 	}
 	c.salt, _ = RandomBuf(20)

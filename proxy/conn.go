@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
-	"net"
-	"runtime"
-	"strings"
-	"sync"
-
 	"github.com/juju/errors"
 	"github.com/ngaut/arena"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	. "github.com/wandoulabs/cm/mysql"
+	"io"
+	"net"
+	"runtime"
+	"strings"
+	"sync"
 )
 
 var DEFAULT_CAPABILITY uint32 = CLIENT_LONG_PASSWORD | CLIENT_LONG_FLAG |
@@ -42,6 +41,12 @@ type Conn struct {
 	txConns      map[string]*SqlConn
 }
 
+func (c *Conn) String() string {
+	return fmt.Sprintf("conn: %s, status: %d, charset: %s, user: %s, db: %s, lastInsertId: %d",
+		c.c.RemoteAddr(), c.status, c.charset, c.user, c.db, c.lastInsertId,
+	)
+}
+
 func (c *Conn) schema() *Schema {
 	return c.server.GetSchema(c.db)
 }
@@ -58,13 +63,10 @@ func (c *Conn) Handshake() error {
 		return errors.Trace(err)
 	}
 
-	if err := c.writeOK(nil); err != nil {
-		return errors.Trace(err)
-	}
-
+	err := c.writeOkFlush(nil)
 	c.pkg.Sequence = 0
 
-	return c.flush()
+	return err
 }
 
 func (c *Conn) Close() error {
@@ -201,7 +203,7 @@ func (c *Conn) Run() {
 		}
 
 		if err := c.dispatch(data); err != nil {
-			log.Errorf("dispatch error %s", errors.ErrorStack(err))
+			log.Errorf("dispatch error %s, %s", errors.ErrorStack(err), c)
 			if err != ErrBadConn {
 				c.writeError(err)
 			}
@@ -238,14 +240,14 @@ func (c *Conn) dispatch(data []byte) error {
 	case COM_QUERY:
 		return c.handleQuery(hack.String(data))
 	case COM_PING:
-		return c.writeOK(nil)
+		return c.writeOkFlush(nil)
 	case COM_INIT_DB:
 		log.Debug(cmd, hack.String(data))
 		if err := c.useDB(hack.String(data)); err != nil {
 			return errors.Trace(err)
 		}
 
-		return c.writeOK(nil)
+		return c.writeOkFlush(nil)
 	case COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case COM_STMT_PREPARE:

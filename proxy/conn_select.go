@@ -12,9 +12,11 @@ import (
 )
 
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
-	if len(stmt.SelectExprs) != 1 {
-		return errors.Errorf("support select one informaction function, %s", sql)
-	}
+	/*
+		if len(stmt.SelectExprs) != 1 {
+			return errors.Errorf("support select one informaction function, %s", sql)
+		}
+	*/
 
 	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
 	if !ok {
@@ -24,12 +26,14 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	var funcExpr *sqlparser.FuncExpr
 	var specialColumn *sqlparser.ColName
 
+	log.Debug(sql)
+
 	switch v := expr.Expr.(type) {
 	case *sqlparser.FuncExpr:
 		funcExpr = v
 	case *sqlparser.ColName:
 		specialColumn = v
-		log.Debug(specialColumn)
+		log.Debug(string(specialColumn.Name))
 	case sqlparser.NumVal: //select 1
 		return errors.Trace(c.handleShow(stmt, sql, nil))
 	case *sqlparser.BinaryExpr: //select 2 * 3

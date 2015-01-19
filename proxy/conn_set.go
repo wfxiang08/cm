@@ -1,11 +1,11 @@
 package proxy
 
 import (
-	"strings"
-
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 	. "github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
+	"strings"
 )
 
 var nstring = sqlparser.String
@@ -19,7 +19,7 @@ func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 
 	switch strings.ToUpper(k) {
 	case `AUTOCOMMIT`:
-		return c.handleSetAutoCommit(stmt.Exprs[0].Expr)
+		return c.handleSetAutoCommit(stmt.Exprs[0].Expr, sql)
 	case `NAMES`:
 		return c.handleSetNames(stmt.Exprs[0].Expr)
 	default:
@@ -27,15 +27,18 @@ func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 	}
 }
 
-func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr) error {
+func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr, sql string) error {
 	value, ok := val.(sqlparser.NumVal)
 	if !ok {
 		return errors.Errorf("set autocommit error")
 	}
+
 	switch value[0] {
 	case '1':
-		c.status |= SERVER_STATUS_AUTOCOMMIT
+		log.Warning("set autocommit 1")
+		//c.status |= SERVER_STATUS_AUTOCOMMIT //todo: extra to function
 	case '0':
+		log.Warning("set autocommit 0")
 		c.status &= ^SERVER_STATUS_AUTOCOMMIT
 	default:
 		return errors.Errorf("invalid autocommit flag %s", value)
