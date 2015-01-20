@@ -138,6 +138,7 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		charset:      DEFAULT_CHARSET,
 		alloc:        arena.NewArenaAllocator(32 * 1024),
 		txConns:      make(map[string]*SqlConn),
+		sid:          s.getSessionId(),
 	}
 	c.salt, _ = RandomBuf(20)
 
@@ -320,7 +321,7 @@ func (s *Server) Close() {
 	s.cleanup()
 }
 
-func (s *Server) getClientId() int64 {
+func (s *Server) getSessionId() int64 {
 	return atomic.AddInt64(&s.clientId, 1)
 }
 
@@ -338,7 +339,7 @@ func (s *Server) onConn(c net.Conn) {
 	defer s.DecCounter(key)
 
 	s.rwlock.Lock()
-	s.clients[s.getClientId()] = conn
+	s.clients[conn.sid] = conn
 	s.rwlock.Unlock()
 
 	conn.Run()
