@@ -604,13 +604,12 @@ func (c *MySqlConn) handleOKPacket(data []byte) (*Result, error) {
 }
 
 func (c *MySqlConn) handleErrorPacket(data []byte) error {
-	e := new(SqlError)
-
 	var pos int = 1
+	e := &SqlError{
+		Code: binary.LittleEndian.Uint16(data[pos:]),
+	}
 
-	e.Code = binary.LittleEndian.Uint16(data[pos:])
 	pos += 2
-
 	if c.capability&CLIENT_PROTOCOL_41 > 0 {
 		//skip '#'
 		pos++
