@@ -39,12 +39,11 @@ type Conn struct {
 	affectedRows int64
 	alloc        arena.ArenaAllocator
 	txConns      map[string]*SqlConn
-	sid          int64 //session id
 }
 
 func (c *Conn) String() string {
-	return fmt.Sprintf("sid: %d, conn: %s, status: %d, charset: %s, user: %s, db: %s, lastInsertId: %d",
-		c.sid, c.c.RemoteAddr(), c.status, c.charset, c.user, c.db, c.lastInsertId,
+	return fmt.Sprintf("conn: %s, status: %d, charset: %s, user: %s, db: %s, lastInsertId: %d",
+		c.c.RemoteAddr(), c.status, c.charset, c.user, c.db, c.lastInsertId,
 	)
 }
 
@@ -220,7 +219,7 @@ func (c *Conn) dispatch(data []byte) error {
 	cmd := data[0]
 	data = data[1:]
 
-	log.Debug(c.sid, cmd, hack.String(data))
+	log.Debug(c.connectionId, cmd, hack.String(data))
 
 	token := c.server.GetToken()
 

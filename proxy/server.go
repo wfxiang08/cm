@@ -38,8 +38,7 @@ type Server struct {
 
 	counter *stats.Counters
 
-	clients  map[int64]*Conn
-	clientId int64
+	clients map[uint32]*Conn
 }
 
 type IServer interface {
@@ -138,7 +137,6 @@ func (s *Server) newConn(co net.Conn) *Conn {
 		charset:      DEFAULT_CHARSET,
 		alloc:        arena.NewArenaAllocator(32 * 1024),
 		txConns:      make(map[string]*SqlConn),
-		sid:          s.getSessionId(),
 	}
 	c.salt, _ = RandomBuf(20)
 
@@ -206,7 +204,7 @@ func makeServer(configFile string) *Server {
 		concurrentLimiter: tokenlimiter.NewTokenLimiter(100),
 		counter:           stats.NewCounters("stats"),
 		rwlock:            &sync.RWMutex{},
-		clients:           make(map[int64]*Conn),
+		clients:           make(map[uint32]*Conn),
 	}
 
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
@@ -286,11 +284,14 @@ func (s *Server) resetSchemaInfo() error {
 }
 
 func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
-	log.Warning("reload config")
+	log.Warning("trying to reload config")
 	s.rwlock.Lock()
 	defer s.rwlock.Unlock()
 
-	s.resetSchemaInfo()
+	if err := s.resetSchemaInfo(); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
 
 	io.WriteString(w, "ok")
 }
@@ -321,10 +322,6 @@ func (s *Server) Close() {
 	s.cleanup()
 }
 
-func (s *Server) getSessionId() int64 {
-	return atomic.AddInt64(&s.clientId, 1)
-}
-
 func (s *Server) onConn(c net.Conn) {
 	conn := s.newConn(c)
 	if err := conn.Handshake(); err != nil {
@@ -339,7 +336,7 @@ func (s *Server) onConn(c net.Conn) {
 	defer s.DecCounter(key)
 
 	s.rwlock.Lock()
-	s.clients[conn.sid] = conn
+	s.clients[conn.connectionId] = conn
 	s.rwlock.Unlock()
 
 	conn.Run()
