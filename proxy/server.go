@@ -29,7 +29,7 @@ type Server struct {
 	user              string
 	password          string
 	listener          net.Listener
-	nodes             map[string]*Node
+	shards            map[string]*Shard
 	schemas           map[string]*Schema
 	autoSchamas       map[string]*tabletserver.SchemaInfo
 	rwlock            *sync.RWMutex
@@ -48,7 +48,7 @@ type IServer interface {
 	GetToken() *tokenlimiter.Token
 	ReleaseToken(token *tokenlimiter.Token)
 	GetRWlock() *sync.RWMutex
-	GetNode(name string) *Node
+	GetNode(name string) *Shard
 	GetNodeNames() []string
 	AsynExec(task *execTask)
 	IncCounter(key string)
@@ -71,8 +71,8 @@ func (s *Server) ReleaseToken(token *tokenlimiter.Token) {
 	s.concurrentLimiter.Put(token)
 }
 
-func (s *Server) GetNode(name string) *Node {
-	return s.nodes[name]
+func (s *Server) GetNode(name string) *Shard {
+	return s.shards[name]
 }
 
 func (s *Server) GetRowCacheSchema(db string) (*tabletserver.SchemaInfo, bool) {
@@ -81,8 +81,8 @@ func (s *Server) GetRowCacheSchema(db string) (*tabletserver.SchemaInfo, bool) {
 }
 
 func (s *Server) GetNodeNames() []string {
-	ret := make([]string, 0, len(s.nodes))
-	for name, _ := range s.nodes {
+	ret := make([]string, 0, len(s.shards))
+	for name, _ := range s.shards {
 		ret = append(ret, name)
 	}
 
@@ -91,26 +91,26 @@ func (s *Server) GetNodeNames() []string {
 
 func (s *Server) parseNodes() error {
 	cfg := s.cfg
-	s.nodes = make(map[string]*Node, len(cfg.Nodes))
+	s.shards = make(map[string]*Shard, len(cfg.Nodes))
 
 	for _, v := range cfg.Nodes {
-		if _, ok := s.nodes[v.Name]; ok {
+		if _, ok := s.shards[v.Name]; ok {
 			return errors.Errorf("duplicate node [%s].", v.Name)
 		}
 
-		n, err := s.parseNode(v)
+		n, err := s.parseShard(v)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		s.nodes[v.Name] = n
+		s.shards[v.Name] = n
 	}
 
 	return nil
 }
 
-func (s *Server) parseNode(cfg config.NodeConfig) (*Node, error) {
-	n := &Node{
+func (s *Server) parseShard(cfg config.NodeConfig) (*Shard, error) {
+	n := &Shard{
 		server: s,
 		cfg:    cfg,
 	}
@@ -264,11 +264,11 @@ func (s *Server) resetSchemaInfo() error {
 
 	s.cleanup()
 	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
-	for _, n := range s.nodes {
+	for _, n := range s.shards {
 		n.Close()
 	}
 
-	s.nodes = nil
+	s.shards = nil
 	s.schemas = nil
 
 	cfg, err := config.ParseConfigFile(s.configFile)

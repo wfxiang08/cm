@@ -81,8 +81,8 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	}
 }
 
-func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Node, error) {
-	var n []*Node
+func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Shard, error) {
+	var n []*Shard
 	names := c.server.GetNodeNames()
 	if len(names) > 0 {
 		n = append(n, c.server.GetNode(names[0]))
@@ -93,7 +93,7 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 	return n, nil
 }
 
-func (c *Conn) getConn(n *Node, isSelect bool) (co *SqlConn, err error) {
+func (c *Conn) getConn(n *Shard, isSelect bool) (co *SqlConn, err error) {
 	if !c.needBeginTx() {
 		co, err = n.getMasterConn()
 		if err != nil {

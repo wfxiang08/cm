@@ -10,7 +10,7 @@ import (
 
 type Schema struct {
 	db    string
-	nodes map[string]*Node
+	nodes map[string]*Shard
 	rule  *router.Router
 }
 
@@ -26,7 +26,7 @@ func (s *Server) parseSchemas() error {
 			return errors.Errorf("schema [%s] must have a node.", schemaCfg.DB)
 		}
 
-		nodes := make(map[string]*Node)
+		nodes := make(map[string]*Shard)
 		for _, n := range schemaCfg.Nodes {
 			if s.GetNode(n) == nil {
 				return fmt.Errorf("schema [%s] node [%s] config is not exists.", db, n)

@@ -8,10 +8,8 @@ import (
 )
 
 type NodeConfig struct {
-	Name             string `json:"name"`
-	DownAfterNoAlive int    `json:"down_after_noalive"`
-	IdleConns        int    `json:"idle_conns"`
-	RWSplit          bool   `json:"rw_split"`
+	Name    string `json:"name"`
+	RWSplit bool   `json:"rw_split"`
 
 	User     string `json:"user"`
 	Password string `json:"password"`
