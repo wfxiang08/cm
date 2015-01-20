@@ -29,12 +29,12 @@ const (
 {
     "addr": "127.0.0.1:4000",
     "log_level": "warning",
-    "nodes": [
+    "shards": [
         {
             "down_after_noalive": 0,
             "idle_conns": 100,
             "master": "127.0.0.1:3306",
-            "name": "node1",
+            "name": "shard1",
             "password": "",
             "rw_split": false,
             "slave": "",
@@ -54,11 +54,11 @@ const (
     "schemas": [
         {
             "db": "{{ .DbName }}",
-            "nodes": [
-                "node1"
+            "shards": [
+                "shard1"
             ],
             "rules": {
-                "default": "node1",
+                "default": "shard1",
                 "shard": {{ .Shards }}
             }
         }

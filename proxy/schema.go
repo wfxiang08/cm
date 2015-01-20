@@ -9,9 +9,9 @@ import (
 )
 
 type Schema struct {
-	db    string
-	nodes map[string]*Shard
-	rule  *router.Router
+	db     string
+	shards map[string]*Shard
+	rule   *router.Router
 }
 
 func (s *Server) parseSchemas() error {
@@ -22,20 +22,20 @@ func (s *Server) parseSchemas() error {
 		if _, ok := s.schemas[db]; ok {
 			return errors.Errorf("duplicate schema [%s].", schemaCfg.DB)
 		}
-		if len(schemaCfg.Nodes) == 0 {
-			return errors.Errorf("schema [%s] must have a node.", schemaCfg.DB)
+		if len(schemaCfg.Shards) == 0 {
+			return errors.Errorf("schema [%s] must have a shard.", schemaCfg.DB)
 		}
 
-		nodes := make(map[string]*Shard)
-		for _, n := range schemaCfg.Nodes {
-			if s.GetNode(n) == nil {
-				return fmt.Errorf("schema [%s] node [%s] config is not exists.", db, n)
+		shards := make(map[string]*Shard)
+		for _, n := range schemaCfg.Shards {
+			if s.GetShard(n) == nil {
+				return fmt.Errorf("schema [%s] shard [%s] config is not exists.", db, n)
 			}
 
-			if _, ok := nodes[n]; ok {
-				return fmt.Errorf("schema [%s] node [%s] duplicate.", db, n)
+			if _, ok := shards[n]; ok {
+				return fmt.Errorf("schema [%s] shard [%s] duplicate.", db, n)
 			}
-			nodes[n] = s.GetNode(n)
+			shards[n] = s.GetShard(n)
 		}
 
 		rule, err := router.NewRouter(&schemaCfg)
@@ -44,9 +44,9 @@ func (s *Server) parseSchemas() error {
 		}
 
 		s.schemas[db] = &Schema{
-			db:    db,
-			nodes: nodes,
-			rule:  rule,
+			db:     db,
+			shards: shards,
+			rule:   rule,
 		}
 	}
 

@@ -7,22 +7,20 @@ import (
 )
 
 type Rule struct {
-	DB    string
-	Table string
-	Key   string
-
-	Type string
-
-	Node string
+	DB          string
+	Table       string
+	ShardingKey string
+	Type        string
+	Shard       string
 }
 
-func (r *Rule) GetNode(key interface{}) string {
-	return r.Node
+func (r *Rule) GetShard(key interface{}) string {
+	return r.Shard
 }
 
 func (r *Rule) String() string {
-	return fmt.Sprintf("%s.%s?key=%v&node=%s",
-		r.DB, r.Table, r.Key, r.Node)
+	return fmt.Sprintf("%s.%s?shardingkey=%v&shard=%s",
+		r.DB, r.Table, r.ShardingKey, r.Shard)
 }
 
 func NewDefaultRule(db string, node string) *Rule {
@@ -45,19 +43,20 @@ type Router struct {
 	DB          string
 	Rules       map[string]*Rule //key is <table name>
 	DefaultRule *Rule
-	nodes       []string //just for human saw
+	shards      []string //just for human saw
 }
 
 func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
-	if !includeNode(schemaConfig.Nodes, schemaConfig.RulesConifg.Default) {
+	if !includeNode(schemaConfig.Shards, schemaConfig.RulesConifg.Default) {
 		return nil, fmt.Errorf("default node[%s] not in the nodes list.",
 			schemaConfig.RulesConifg.Default)
 	}
 
-	rt := new(Router)
-	rt.DB = schemaConfig.DB
-	rt.nodes = schemaConfig.Nodes
-	rt.Rules = make(map[string]*Rule, len(schemaConfig.RulesConifg.ShardRule))
+	rt := &Router{
+		DB:     schemaConfig.DB,
+		shards: schemaConfig.Shards,
+		Rules:  make(map[string]*Rule, len(schemaConfig.RulesConifg.ShardRule)),
+	}
 	rt.DefaultRule = NewDefaultRule(rt.DB, schemaConfig.RulesConifg.Default)
 
 	for _, shard := range schemaConfig.RulesConifg.ShardRule {

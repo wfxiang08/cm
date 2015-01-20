@@ -38,7 +38,7 @@ func (kid KeyspaceId) Hex() HexKeyspaceId {
 type Uint64Key uint64
 
 func (i Uint64Key) String() string {
-	buf := new(bytes.Buffer)
+	buf := &bytes.Buffer{}
 	binary.Write(buf, binary.BigEndian, uint64(i))
 	return buf.String()
 }

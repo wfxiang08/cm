@@ -13,11 +13,12 @@ type RuleConfig struct {
 }
 
 func (c *RuleConfig) ParseRule(db string) (*Rule, error) {
-	r := new(Rule)
-	r.DB = db
-	r.Table = c.Table
-	r.Key = c.Key
-	r.Node = c.Node
+	r := &Rule{
+		DB:          db,
+		Table:       c.Table,
+		ShardingKey: c.ShardingKey,
+		Shard:       c.Shard,
+	}
 
 	if err := c.parseShard(r); err != nil {
 		return nil, err
@@ -27,26 +28,26 @@ func (c *RuleConfig) ParseRule(db string) (*Rule, error) {
 }
 
 /*
-func (c *RuleConfig) parseNodes(r *Rule) error {
+func (c *RuleConfig) parseShards(r *Rule) error {
 	// Note: did not used yet, by HuangChuanTong
 	reg, err := regexp.Compile(`(\w+)\((\d+)\-(\d+)\)`)
 	if err != nil {
 		return err
 	}
 
-	ns := c.Node
+	ns := c.Shard
 
-	nodes := map[string]struct{}{}
+	shards := map[string]struct{}{}
 
 	for _, n := range ns {
 		n = strings.TrimSpace(n)
 		if s := reg.FindStringSubmatch(n); s == nil {
-			if _, ok := nodes[n]; ok {
+			if _, ok := shards[n]; ok {
 				return fmt.Errorf("duplicate node %s", n)
 			}
 
-			nodes[n] = struct{}{}
-			r.Node = append(r.Nodes, n)
+			shards[n] = struct{}{}
+			r.Shard = append(r.Shards, n)
 		} else {
 			var start, stop int
 			if start, err = strconv.Atoi(s[2]); err != nil {
@@ -64,22 +65,22 @@ func (c *RuleConfig) parseNodes(r *Rule) error {
 			for i := start; i <= stop; i++ {
 				n = fmt.Sprintf("%s%d", s[1], i)
 
-				if _, ok := nodes[n]; ok {
+				if _, ok := shards[n]; ok {
 					return fmt.Errorf("duplicate node %s", n)
 				}
 
-				nodes[n] = struct{}{}
-				r.Nodes = append(r.Nodes, n)
+				shards[n] = struct{}{}
+				r.Shards = append(r.Shards, n)
 
 			}
 		}
 	}
 
-	if len(r.Nodes) == 0 {
-		return fmt.Errorf("empty nodes info")
+	if len(r.Shards) == 0 {
+		return fmt.Errorf("empty shards info")
 	}
 
-	if r.Type == DefaultRuleType && len(r.Nodes) != 1 {
+	if r.Type == DefaultRuleType && len(r.Shards) != 1 {
 		return fmt.Errorf("default rule must have only one node")
 	}
 

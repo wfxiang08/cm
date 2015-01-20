@@ -99,13 +99,13 @@ func (c *Conn) handleFieldList(data []byte) error {
 	table := hack.String(data[0:index])
 	wildcard := hack.String(data[index+1:])
 
-	nodeName := c.schema().rule.GetRule(table).Node
+	nodeName := c.schema().rule.GetRule(table).Shard
 	//todo: pass through
 	if len(nodeName) == 0 {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
 	}
 
-	n := c.server.GetNode(nodeName)
+	n := c.server.GetShard(nodeName)
 	if n == nil {
 		return errors.Errorf("node %s not found, %+v", nodeName, c.schema)
 	}

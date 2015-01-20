@@ -12,7 +12,7 @@ const (
 
 type Shard struct {
 	server *Server
-	cfg    config.NodeConfig
+	cfg    config.ShardConfig
 	master *mysql.DB
 }
 
@@ -38,6 +38,8 @@ func (shard *Shard) openDB(addr string) (*mysql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	db.SetMaxIdleConnNum(100)
 
 	return db, nil
 }

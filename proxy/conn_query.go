@@ -83,9 +83,9 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Shard, error) {
 	var n []*Shard
-	names := c.server.GetNodeNames()
+	names := c.server.GetShardNames()
 	if len(names) > 0 {
-		n = append(n, c.server.GetNode(names[0]))
+		n = append(n, c.server.GetShard(names[0]))
 	}
 
 	//todo: using router info

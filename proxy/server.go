@@ -48,8 +48,8 @@ type IServer interface {
 	GetToken() *tokenlimiter.Token
 	ReleaseToken(token *tokenlimiter.Token)
 	GetRWlock() *sync.RWMutex
-	GetNode(name string) *Shard
-	GetNodeNames() []string
+	GetShard(name string) *Shard
+	GetShardNames() []string
 	AsynExec(task *execTask)
 	IncCounter(key string)
 	DecCounter(key string)
@@ -71,7 +71,7 @@ func (s *Server) ReleaseToken(token *tokenlimiter.Token) {
 	s.concurrentLimiter.Put(token)
 }
 
-func (s *Server) GetNode(name string) *Shard {
+func (s *Server) GetShard(name string) *Shard {
 	return s.shards[name]
 }
 
@@ -80,7 +80,7 @@ func (s *Server) GetRowCacheSchema(db string) (*tabletserver.SchemaInfo, bool) {
 	return si, ok
 }
 
-func (s *Server) GetNodeNames() []string {
+func (s *Server) GetShardNames() []string {
 	ret := make([]string, 0, len(s.shards))
 	for name, _ := range s.shards {
 		ret = append(ret, name)
@@ -89,11 +89,11 @@ func (s *Server) GetNodeNames() []string {
 	return ret
 }
 
-func (s *Server) parseNodes() error {
+func (s *Server) parseShards() error {
 	cfg := s.cfg
-	s.shards = make(map[string]*Shard, len(cfg.Nodes))
+	s.shards = make(map[string]*Shard, len(cfg.Shards))
 
-	for _, v := range cfg.Nodes {
+	for _, v := range cfg.Shards {
 		if _, ok := s.shards[v.Name]; ok {
 			return errors.Errorf("duplicate node [%s].", v.Name)
 		}
@@ -109,7 +109,7 @@ func (s *Server) parseNodes() error {
 	return nil
 }
 
-func (s *Server) parseShard(cfg config.NodeConfig) (*Shard, error) {
+func (s *Server) parseShard(cfg config.ShardConfig) (*Shard, error) {
 	n := &Shard{
 		server: s,
 		cfg:    cfg,
@@ -156,7 +156,7 @@ func (s *Server) CfgGetPwd() string {
 }
 
 func (s *Server) loadSchemaInfo() error {
-	if err := s.parseNodes(); err != nil {
+	if err := s.parseShards(); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -169,7 +169,7 @@ func (s *Server) loadSchemaInfo() error {
 		var overrides []tabletserver.SchemaOverride
 		for _, sc := range rc.ShardRule {
 			or := tabletserver.SchemaOverride{Name: sc.Table}
-			pks := strings.Split(sc.Key, ",")
+			pks := strings.Split(sc.ShardingKey, ",")
 			for _, pk := range pks {
 				or.PKColumns = append(or.PKColumns, strings.TrimSpace(pk))
 			}
@@ -178,7 +178,7 @@ func (s *Server) loadSchemaInfo() error {
 		}
 
 		//fix hard code node
-		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(s.cfg.RowCacheConf, s.cfg.Nodes[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
+		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(s.cfg.RowCacheConf, s.cfg.Shards[0].Master, s.cfg.User, s.cfg.Password, v.DB, overrides)
 	}
 
 	return nil
@@ -325,7 +325,7 @@ func (s *Server) Close() {
 func (s *Server) onConn(c net.Conn) {
 	conn := s.newConn(c)
 	if err := conn.Handshake(); err != nil {
-		log.Errorf("handshake error %s", err.Error())
+		log.Errorf("handshake error %s", errors.ErrorStack(err))
 		c.Close()
 		return
 	}
