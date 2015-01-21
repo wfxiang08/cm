@@ -412,7 +412,8 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
 		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("fill cache ")
+		log.Debug("fill cache")
+		c.server.IncCounter(plan.PlanId.String())
 		ti.Cache.Set(pkValue[0], result.RowDatas[0], 0)
 	}
 
@@ -486,6 +487,8 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 
 	log.Debugf("handleSelect %s, %+v", sql, plan.PKValues)
 
+	c.server.IncCounter(plan.PlanId.String())
+
 	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
 		//todo: composed primary key support
 		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
@@ -543,6 +546,8 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		if err != nil {
 			return errors.Trace(err)
 		}
+
+		c.server.IncCounter(plan.PlanId.String())
 
 		if len(ti.PKColumns) != len(plan.PKValues) {
 			return errors.Errorf("updated/delete without primary key not allowed %+v", plan.PKValues)
