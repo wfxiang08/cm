@@ -78,6 +78,9 @@ func (p RowData) ParseText(f []*Field) (RowValue, error) {
 			data[i] = nil
 		} else {
 			isUnsigned = (f[i].Flag&UNSIGNED_FLAG > 0)
+			if !isUnsigned { //todo:ugly hack for row cache, remove it
+				isUnsigned = f[i].IsUnsigned
+			}
 
 			switch f[i].Type {
 			case MYSQL_TYPE_TINY, MYSQL_TYPE_SHORT, MYSQL_TYPE_INT24, MYSQL_TYPE_LONG,

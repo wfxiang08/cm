@@ -2,7 +2,7 @@ package router
 
 import (
 	"fmt"
-
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/config"
 )
 
@@ -23,10 +23,13 @@ func (r *Rule) String() string {
 		r.DB, r.Table, r.ShardingKey, r.Shard)
 }
 
-func NewDefaultRule(db string, node string) *Rule {
+func NewDefaultRule(db string, shard string) *Rule {
 	var r *Rule = &Rule{
-		DB: db,
+		DB:    db,
+		Shard: shard,
 	}
+
+	log.Warningf("%+v", r)
 	return r
 }
 
@@ -35,6 +38,10 @@ func (r *Router) GetRule(table string) *Rule {
 	if rule == nil {
 		return r.DefaultRule
 	} else {
+		if len(rule.Shard) == 0 {
+			return r.DefaultRule
+		}
+
 		return rule
 	}
 }
@@ -48,7 +55,7 @@ type Router struct {
 
 func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 	if !includeNode(schemaConfig.Shards, schemaConfig.RulesConifg.Default) {
-		return nil, fmt.Errorf("default node[%s] not in the nodes list.",
+		return nil, fmt.Errorf("default shard[%s] not in the shards list.",
 			schemaConfig.RulesConifg.Default)
 	}
 
@@ -57,6 +64,7 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 		shards: schemaConfig.Shards,
 		Rules:  make(map[string]*Rule, len(schemaConfig.RulesConifg.ShardRule)),
 	}
+
 	rt.DefaultRule = NewDefaultRule(rt.DB, schemaConfig.RulesConifg.Default)
 
 	for _, shard := range schemaConfig.RulesConifg.ShardRule {
@@ -75,12 +83,14 @@ func NewRouter(schemaConfig *config.SchemaConfig) (*Router, error) {
 			rt.Rules[rule.Table] = rule
 		}
 	}
+
+	log.Warningf("%+v", rt.DefaultRule)
 	return rt, nil
 }
 
-func includeNode(nodes []string, node string) bool {
-	for _, n := range nodes {
-		if n == node {
+func includeNode(shards []string, shard string) bool {
+	for _, n := range shards {
+		if n == shard {
 			return true
 		}
 	}

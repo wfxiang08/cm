@@ -80,14 +80,16 @@ func str2mysqlType(columnType string) byte {
 }
 
 func (ta *Table) AddColumn(name string, columnType string, collation string, defval mysql.Value, extra string) {
-	name = strings.ToLower(name)
 	index := len(ta.Columns)
+	name = strings.ToLower(name)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
 	columnType = strings.ToLower(columnType)
 
 	endPos := strings.Index(columnType, "(") //handle something like: int(11)
 	if endPos > 0 {
 		ta.Columns[index].Category = str2mysqlType(strings.TrimSpace(columnType[:endPos]))
+	} else {
+		ta.Columns[index].Category = str2mysqlType(strings.TrimSpace(columnType))
 	}
 
 	ta.Columns[index].Collation = collation
