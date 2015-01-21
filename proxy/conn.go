@@ -13,7 +13,6 @@ import (
 	"net"
 	"runtime"
 	"strings"
-	"sync"
 )
 
 var DEFAULT_CAPABILITY uint32 = CLIENT_LONG_PASSWORD | CLIENT_LONG_FLAG |
@@ -22,7 +21,6 @@ var DEFAULT_CAPABILITY uint32 = CLIENT_LONG_PASSWORD | CLIENT_LONG_FLAG |
 
 //client <-> proxy
 type Conn struct {
-	sync.Mutex
 	pkg          *PacketIO
 	c            net.Conn
 	server       IServer
@@ -34,7 +32,6 @@ type Conn struct {
 	user         string
 	db           string
 	salt         []byte
-	closed       bool
 	lastInsertId int64
 	affectedRows int64
 	alloc        arena.ArenaAllocator
@@ -70,14 +67,8 @@ func (c *Conn) Handshake() error {
 }
 
 func (c *Conn) Close() error {
-	if c.closed {
-		return nil
-	}
-
 	c.rollback()
-
 	c.c.Close()
-	c.closed = true
 
 	return nil
 }
@@ -205,10 +196,6 @@ func (c *Conn) Run() {
 			if err != ErrBadConn {
 				c.writeError(err)
 			}
-		}
-
-		if c.closed {
-			return
 		}
 
 		c.pkg.Sequence = 0
