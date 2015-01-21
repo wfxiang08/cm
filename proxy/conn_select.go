@@ -64,7 +64,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		case "user": // select USER()
 			r, err = c.buildSimpleSelectResult(c.user, funcExpr.Name, expr.As)
 		default:
-			log.Warning(sql)
+			log.Warning(c.connectionId, sql)
 			return errors.Trace(c.handleShow(stmt, sql, nil))
 			//return errors.Errorf("function %s not support, %+v", funcExpr.Name, funcExpr)
 		}
@@ -89,7 +89,7 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 
 	r := &Resultset{Fields: []*Field{field}}
 	row := Raw(byte(field.Type), value, false)
-	r.RowDatas = append(r.RowDatas, PutLengthEncodedStringWithAlloc(row, c.alloc))
+	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row, c.alloc))
 
 	return r, nil
 }
@@ -99,15 +99,15 @@ func (c *Conn) handleFieldList(data []byte) error {
 	table := hack.String(data[0:index])
 	wildcard := hack.String(data[index+1:])
 
-	nodeName := c.schema().rule.GetRule(table).Shard
+	shardName := c.schema().rule.GetRule(table).Shard
 	//todo: pass through
-	if len(nodeName) == 0 {
+	if len(shardName) == 0 {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
 	}
 
-	n := c.server.GetShard(nodeName)
+	n := c.server.GetShard(shardName)
 	if n == nil {
-		return errors.Errorf("node %s not found, %+v", nodeName, c.schema)
+		return errors.Errorf("shard %s not found, %+v", shardName, c.schema)
 	}
 
 	co, err := n.getMasterConn()

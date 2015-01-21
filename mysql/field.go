@@ -129,13 +129,13 @@ func (f *Field) Dump(alloc arena.ArenaAllocator) []byte {
 
 	data = append(data, defCache...)
 
-	data = append(data, PutLengthEncodedStringWithAlloc(f.Schema, alloc)...)
+	data = append(data, PutLengthEncodedString(f.Schema, alloc)...)
 
-	data = append(data, PutLengthEncodedStringWithAlloc(f.Table, alloc)...)
-	data = append(data, PutLengthEncodedStringWithAlloc(f.OrgTable, alloc)...)
+	data = append(data, PutLengthEncodedString(f.Table, alloc)...)
+	data = append(data, PutLengthEncodedString(f.OrgTable, alloc)...)
 
-	data = append(data, PutLengthEncodedStringWithAlloc(f.Name, alloc)...)
-	data = append(data, PutLengthEncodedStringWithAlloc(f.OrgName, alloc)...)
+	data = append(data, PutLengthEncodedString(f.Name, alloc)...)
+	data = append(data, PutLengthEncodedString(f.OrgName, alloc)...)
 
 	data = append(data, 0x0c)
 

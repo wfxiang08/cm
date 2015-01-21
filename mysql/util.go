@@ -150,7 +150,7 @@ func SkipLengthEnodedString(b []byte) (int, error) {
 	return n, io.EOF
 }
 
-func PutLengthEncodedStringWithAlloc(b []byte, alloc arena.ArenaAllocator) []byte {
+func PutLengthEncodedString(b []byte, alloc arena.ArenaAllocator) []byte {
 	data := alloc.AllocBytes(len(b) + 9)
 	data = append(data, PutLengthEncodedInt(uint64(len(b)))...)
 	data = append(data, b...)
@@ -317,5 +317,5 @@ func init() {
 		}
 	}
 
-	defCache = PutLengthEncodedStringWithAlloc([]byte("def"), arena.StdAllocator)
+	defCache = PutLengthEncodedString([]byte("def"), arena.StdAllocator)
 }

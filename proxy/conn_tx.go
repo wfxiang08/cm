@@ -30,7 +30,7 @@ func (c *Conn) handleCommit() (err error) {
 }
 
 func (c *Conn) handleRollback() (err error) {
-	log.Warningf("handle  rollback on %v, please check commit log", c)
+	log.Warning("rollback")
 	if err := c.rollback(); err != nil {
 		return err
 	}
@@ -39,7 +39,6 @@ func (c *Conn) handleRollback() (err error) {
 }
 
 func (c *Conn) commit() (err error) {
-	log.Debugf("handle  commit on %v", c)
 	c.status &= ^SERVER_STATUS_IN_TRANS
 	c.status |= SERVER_STATUS_AUTOCOMMIT
 

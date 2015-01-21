@@ -23,6 +23,7 @@ func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 	case `NAMES`:
 		return c.handleSetNames(stmt.Exprs[0].Expr)
 	default:
+		//todo:strict condition
 		return c.handleShow(nil, sql, nil) //errors.Errorf("set %s is not supported now", k)
 	}
 }

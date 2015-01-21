@@ -59,7 +59,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 				row = append(row, "\xfb"...)
 			} else {
 				b = Raw(byte(field.Type), value, false)
-				row = append(row, PutLengthEncodedStringWithAlloc(b, c.alloc)...)
+				row = append(row, PutLengthEncodedString(b, c.alloc)...)
 			}
 		}
 
