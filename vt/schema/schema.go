@@ -23,11 +23,12 @@ const (
 )
 
 type TableColumn struct {
-	Name      string
-	Category  byte
-	IsAuto    bool
-	Default   mysql.Value
-	Collation string
+	Name       string
+	Category   byte
+	IsAuto     bool
+	Default    mysql.Value
+	Collation  string
+	IsUnsigned bool
 }
 
 type Table struct {
@@ -79,16 +80,20 @@ func str2mysqlType(columnType string) byte {
 }
 
 func (ta *Table) AddColumn(name string, columnType string, collation string, defval mysql.Value, extra string) {
+	name = strings.ToLower(name)
 	index := len(ta.Columns)
 	ta.Columns = append(ta.Columns, TableColumn{Name: name})
+	columnType = strings.ToLower(columnType)
 
 	endPos := strings.Index(columnType, "(") //handle something like: int(11)
 	if endPos > 0 {
-		columnType = strings.ToLower(strings.TrimSpace(columnType[:endPos]))
+		ta.Columns[index].Category = str2mysqlType(strings.TrimSpace(columnType[:endPos]))
 	}
 
 	ta.Columns[index].Collation = collation
-	ta.Columns[index].Category = str2mysqlType(columnType)
+	if strings.Index(columnType, "unsigned") >= 0 {
+		ta.Columns[index].IsUnsigned = true
+	}
 
 	log.Info(name, ta.Columns[index].Category, columnType)
 

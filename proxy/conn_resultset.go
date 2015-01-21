@@ -53,12 +53,13 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 				}
 				field.Type = nameTypes[j].Category
 				field.Charset = uint16(CollationNames[nameTypes[j].Collation])
+				field.IsUnsigned = nameTypes[j].IsUnsigned
 			}
 
 			if value == nil {
 				row = append(row, "\xfb"...)
 			} else {
-				b = Raw(byte(field.Type), value, false)
+				b = Raw(byte(field.Type), value, field.IsUnsigned)
 				row = append(row, PutLengthEncodedString(b, c.alloc)...)
 			}
 		}

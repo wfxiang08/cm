@@ -27,7 +27,7 @@
     "password": "",
     "schemas": [
         {
-            "db": "test",
+	    "db": "subscribe",
             "shards": [
                 "shard1"
             ],

@@ -69,7 +69,7 @@ func (ti *TableInfo) fetchColumns(conn *mysql.MySqlConn) error {
 		}
 		extra := string(row[6].([]byte))
 		columnType := string(row[1].([]byte))
-		columnName := strings.ToLower(string(row[0].([]byte)))
+		columnName := string(row[0].([]byte))
 		ti.AddColumn(columnName, columnType, collation,
 			v, extra)
 	}

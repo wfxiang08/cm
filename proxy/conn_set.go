@@ -40,6 +40,7 @@ func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr, sql string) error {
 		//c.status |= SERVER_STATUS_AUTOCOMMIT //todo: extra to function
 	case '0':
 		log.Warning("set autocommit 0")
+		c.server.IncCounter("set autocommit 0")
 		c.status &= ^SERVER_STATUS_AUTOCOMMIT
 	default:
 		return errors.Errorf("invalid autocommit flag %s", value)

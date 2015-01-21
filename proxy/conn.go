@@ -36,6 +36,7 @@ type Conn struct {
 	affectedRows int64
 	alloc        arena.ArenaAllocator
 	txConns      map[string]*SqlConn
+	lastCmd      string
 }
 
 func (c *Conn) String() string {
@@ -175,7 +176,7 @@ func (c *Conn) Run() {
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
 
-			log.Errorf("%v, %s", err, buf)
+			log.Errorf("lastCmd %s, %v, %s", c.lastCmd, err, buf)
 		}
 
 		c.Close()
@@ -207,6 +208,7 @@ func (c *Conn) dispatch(data []byte) error {
 	data = data[1:]
 
 	log.Debug(c.connectionId, cmd, hack.String(data))
+	c.lastCmd = hack.String(data)
 
 	token := c.server.GetToken()
 

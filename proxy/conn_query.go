@@ -70,10 +70,10 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		c.server.IncCounter("commit")
 		return c.handleCommit()
 	case *sqlparser.Rollback:
+		c.server.IncCounter("rollback")
 		return c.handleRollback()
 	case *sqlparser.Other:
 		c.server.IncCounter("other")
-		c.server.IncCounter(sql)
 		log.Warning(sql)
 		return c.handleShow(stmt, sql, nil)
 	default:
@@ -100,7 +100,7 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *SqlConn, err error) {
 			return nil, errors.Trace(err)
 		}
 	} else {
-		log.Warning("needBeginTx", c.status)
+		log.Info("needBeginTx", c.status)
 		var ok bool
 		co, ok = c.txConns[n.cfg.Name]
 
@@ -401,9 +401,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 	//log.Debug(len(retValues), len(keys))
 
-	var values []RowValue
-	values = append(values, retValues)
-	r, err := c.buildResultset(getFieldNames(plan, ti), values)
+	r, err := c.buildResultset(getFieldNames(plan, ti), []RowValue{retValues})
 	if err != nil {
 		log.Error(err)
 		return errors.Trace(err)
@@ -413,7 +411,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
 		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
 		log.Debug("fill cache")
-		c.server.IncCounter(plan.PlanId.String())
+		c.server.IncCounter("fill")
 		ti.Cache.Set(pkValue[0], result.RowDatas[0], 0)
 	}
 

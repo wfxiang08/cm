@@ -19,6 +19,7 @@ type Field struct {
 	Type         uint8
 	Flag         uint16
 	Decimal      uint8
+	IsUnsigned   bool
 
 	DefaultValueLength uint64
 	DefaultValue       []byte
