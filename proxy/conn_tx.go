@@ -2,20 +2,20 @@ package proxy
 
 import (
 	log "github.com/ngaut/logging"
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 )
 
 func (c *Conn) isInTransaction() bool {
-	return c.status&SERVER_STATUS_IN_TRANS > 0
+	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
 }
 
 func (c *Conn) isAutoCommit() bool {
-	return c.status&SERVER_STATUS_AUTOCOMMIT > 0
+	return c.status&mysql.SERVER_STATUS_AUTOCOMMIT > 0
 }
 
 func (c *Conn) handleBegin() error {
 	log.Debug("handle begin")
-	c.status |= SERVER_STATUS_IN_TRANS
+	c.status |= mysql.SERVER_STATUS_IN_TRANS
 
 	return c.writeOkFlush(nil)
 }
@@ -39,8 +39,8 @@ func (c *Conn) handleRollback() (err error) {
 }
 
 func (c *Conn) commit() (err error) {
-	c.status &= ^SERVER_STATUS_IN_TRANS
-	c.status |= SERVER_STATUS_AUTOCOMMIT
+	c.status &= ^mysql.SERVER_STATUS_IN_TRANS
+	c.status |= mysql.SERVER_STATUS_AUTOCOMMIT
 
 	for _, co := range c.txConns {
 		if e := co.Commit(); e != nil {
@@ -49,14 +49,14 @@ func (c *Conn) commit() (err error) {
 		co.Close()
 	}
 
-	c.txConns = make(map[string]*SqlConn)
+	c.txConns = make(map[string]*mysql.SqlConn)
 
 	return
 }
 
 func (c *Conn) rollback() (err error) {
-	c.status &= ^SERVER_STATUS_IN_TRANS
-	c.status |= SERVER_STATUS_AUTOCOMMIT
+	c.status &= ^mysql.SERVER_STATUS_IN_TRANS
+	c.status |= mysql.SERVER_STATUS_AUTOCOMMIT
 
 	for _, co := range c.txConns {
 		if e := co.Rollback(); e != nil {
@@ -65,7 +65,7 @@ func (c *Conn) rollback() (err error) {
 		co.Close()
 	}
 
-	c.txConns = make(map[string]*SqlConn)
+	c.txConns = make(map[string]*mysql.SqlConn)
 
 	return
 }

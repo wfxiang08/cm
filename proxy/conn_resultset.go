@@ -3,25 +3,25 @@ package proxy
 import (
 	"github.com/juju/errors"
 	"github.com/wandoulabs/cm/hack"
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
-func formatField(field *Field, value interface{}) error {
+func formatField(field *mysql.Field, value interface{}) error {
 	switch value.(type) {
 	case int8, int16, int32, int64, int:
 		field.Charset = 63
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG
+		field.Type = mysql.MYSQL_TYPE_LONGLONG
+		field.Flag = mysql.BINARY_FLAG | mysql.NOT_NULL_FLAG
 	case uint8, uint16, uint32, uint64, uint:
 		field.Charset = 63
-		field.Type = MYSQL_TYPE_LONGLONG
-		field.Flag = BINARY_FLAG | NOT_NULL_FLAG | UNSIGNED_FLAG
+		field.Type = mysql.MYSQL_TYPE_LONGLONG
+		field.Flag = mysql.BINARY_FLAG | mysql.NOT_NULL_FLAG | mysql.UNSIGNED_FLAG
 	case float32, float64:
 		field.Charset = 63
 	case string, []byte:
 		field.Charset = 33
-		field.Type = MYSQL_TYPE_VARCHAR
+		field.Type = mysql.MYSQL_TYPE_VARCHAR
 	case nil:
 		return nil
 	default:
@@ -30,8 +30,8 @@ func formatField(field *Field, value interface{}) error {
 	return nil
 }
 
-func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue) (*Resultset, error) {
-	r := &Resultset{Fields: make([]*Field, len(nameTypes))}
+func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []mysql.RowValue) (*mysql.Resultset, error) {
+	r := &mysql.Resultset{Fields: make([]*mysql.Field, len(nameTypes))}
 
 	var b []byte
 	var err error
@@ -43,7 +43,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 
 		var row []byte
 		for j, value := range vs {
-			field := &Field{}
+			field := &mysql.Field{}
 			if i == 0 {
 				r.Fields[j] = field
 				//log.Warningf("%+v", nameTypes[i])
@@ -52,15 +52,15 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 					return nil, errors.Trace(err)
 				}
 				field.Type = nameTypes[j].SqlType
-				field.Charset = uint16(CollationNames[nameTypes[j].Collation])
+				field.Charset = uint16(mysql.CollationNames[nameTypes[j].Collation])
 				field.IsUnsigned = nameTypes[j].IsUnsigned
 			}
 
 			if value == nil {
 				row = append(row, "\xfb"...)
 			} else {
-				b = Raw(byte(field.Type), value, field.IsUnsigned)
-				row = append(row, PutLengthEncodedString(b, c.alloc)...)
+				b = mysql.Raw(byte(field.Type), value, field.IsUnsigned)
+				row = append(row, mysql.PutLengthEncodedString(b, c.alloc)...)
 			}
 		}
 
@@ -70,9 +70,9 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 	return r, nil
 }
 
-func (c *Conn) writeResultset(status uint16, r *Resultset) error {
+func (c *Conn) writeResultset(status uint16, r *mysql.Resultset) error {
 	c.affectedRows = int64(-1)
-	columnLen := PutLengthEncodedInt(uint64(len(r.Fields)))
+	columnLen := mysql.PutLengthEncodedInt(uint64(len(r.Fields)))
 	data := c.alloc.AllocBytesWithLen(4, 1024)
 	data = append(data, columnLen...)
 	if err := c.writePacket(data); err != nil {

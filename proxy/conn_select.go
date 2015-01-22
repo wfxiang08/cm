@@ -7,7 +7,7 @@ import (
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 )
 
@@ -42,7 +42,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		return errors.Errorf("support select informaction function, %s, %T", sql, v)
 	}
 
-	var r *Resultset
+	var r *mysql.Resultset
 	var err error
 
 	if funcExpr != nil {
@@ -52,7 +52,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 		case "row_count":
 			r, err = c.buildSimpleSelectResult(c.affectedRows, funcExpr.Name, expr.As)
 		case "version":
-			r, err = c.buildSimpleSelectResult(ServerVersion, funcExpr.Name, expr.As)
+			r, err = c.buildSimpleSelectResult(mysql.ServerVersion, funcExpr.Name, expr.As)
 		case "connection_id":
 			r, err = c.buildSimpleSelectResult(c.connectionId, funcExpr.Name, expr.As)
 		case "database":
@@ -79,17 +79,17 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 	return errors.Trace(c.writeResultset(c.status, r))
 }
 
-func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*Resultset, error) {
-	field := &Field{Name: name, OrgName: name}
+func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []byte) (*mysql.Resultset, error) {
+	field := &mysql.Field{Name: name, OrgName: name}
 	if asName != nil {
 		field.Name = asName
 	}
 
 	formatField(field, value)
 
-	r := &Resultset{Fields: []*Field{field}}
-	row := Raw(byte(field.Type), value, false)
-	r.RowDatas = append(r.RowDatas, PutLengthEncodedString(row, c.alloc))
+	r := &mysql.Resultset{Fields: []*mysql.Field{field}}
+	row := mysql.Raw(byte(field.Type), value, false)
+	r.RowDatas = append(r.RowDatas, mysql.PutLengthEncodedString(row, c.alloc))
 
 	return r, nil
 }
@@ -127,7 +127,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 	}
 }
 
-func (c *Conn) writeFieldList(status uint16, fs []*Field) error {
+func (c *Conn) writeFieldList(status uint16, fs []*mysql.Field) error {
 	c.affectedRows = int64(-1)
 
 	data := make([]byte, 4, 1024)

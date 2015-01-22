@@ -14,7 +14,7 @@ import (
 	log "github.com/ngaut/logging"
 	"github.com/ngaut/tokenlimiter"
 	"github.com/wandoulabs/cm/config"
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/tabletserver"
 )
 
@@ -129,16 +129,16 @@ func (s *Server) parseShard(cfg config.ShardConfig) (*Shard, error) {
 func (s *Server) newConn(co net.Conn) *Conn {
 	c := &Conn{
 		c:            co,
-		pkg:          NewPacketIO(co),
+		pkg:          mysql.NewPacketIO(co),
 		server:       s,
 		connectionId: atomic.AddUint32(&baseConnId, 1),
-		status:       SERVER_STATUS_AUTOCOMMIT,
-		collation:    DEFAULT_COLLATION_ID,
-		charset:      DEFAULT_CHARSET,
+		status:       mysql.SERVER_STATUS_AUTOCOMMIT,
+		collation:    mysql.DEFAULT_COLLATION_ID,
+		charset:      mysql.DEFAULT_CHARSET,
 		alloc:        arena.NewArenaAllocator(32 * 1024),
-		txConns:      make(map[string]*SqlConn),
+		txConns:      make(map[string]*mysql.SqlConn),
 	}
-	c.salt, _ = RandomBuf(20)
+	c.salt, _ = mysql.RandomBuf(20)
 
 	return c
 }
@@ -207,7 +207,7 @@ func makeServer(configFile string) *Server {
 		clients:           make(map[uint32]*Conn),
 	}
 
-	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *SqlConn, sql string, args []interface{}) {
+	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *mysql.SqlConn, sql string, args []interface{}) {
 		r, err := co.Execute(sql, args...)
 		if err != nil {
 			log.Warning(err)

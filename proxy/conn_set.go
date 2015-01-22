@@ -3,7 +3,7 @@ package proxy
 import (
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 	"strings"
 )
@@ -41,7 +41,7 @@ func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr, sql string) error {
 	case '0':
 		log.Warning("set autocommit 0")
 		c.server.IncCounter("set autocommit 0")
-		c.status &= ^SERVER_STATUS_AUTOCOMMIT
+		c.status &= ^mysql.SERVER_STATUS_AUTOCOMMIT
 	default:
 		return errors.Errorf("invalid autocommit flag %s", value)
 	}
@@ -57,7 +57,7 @@ func (c *Conn) handleSetNames(val sqlparser.ValExpr) error {
 	}
 
 	charset := strings.ToLower(string(value))
-	cid, ok := CharsetIds[charset]
+	cid, ok := mysql.CharsetIds[charset]
 	if !ok {
 		return errors.Errorf("invalid charset %s", charset)
 	}

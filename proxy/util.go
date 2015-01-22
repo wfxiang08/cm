@@ -3,7 +3,7 @@ package proxy
 import (
 	"sync"
 
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
@@ -11,7 +11,7 @@ type execTask struct {
 	wg   *sync.WaitGroup
 	rs   []interface{}
 	idx  int
-	co   *SqlConn
+	co   *mysql.SqlConn
 	sql  string
 	args []interface{}
 }

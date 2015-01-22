@@ -11,7 +11,7 @@ import (
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
-	. "github.com/wandoulabs/cm/mysql"
+	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -19,8 +19,8 @@ import (
 	"github.com/wandoulabs/cm/vt/tabletserver/planbuilder"
 )
 
-func applyFilter(columnNumbers []int, input RowValue) (output RowValue) {
-	output = make(RowValue, len(columnNumbers))
+func applyFilter(columnNumbers []int, input mysql.RowValue) (output mysql.RowValue) {
+	output = make(mysql.RowValue, len(columnNumbers))
 	for colIndex, colPointer := range columnNumbers {
 		if colPointer >= 0 {
 			output[colIndex] = input[colPointer]
@@ -93,7 +93,7 @@ func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interf
 	return n, nil
 }
 
-func (c *Conn) getConn(n *Shard, isSelect bool) (co *SqlConn, err error) {
+func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 	if !c.needBeginTx() {
 		co, err = n.getMasterConn()
 		if err != nil {
@@ -130,7 +130,7 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *SqlConn, err error) {
 	return
 }
 
-func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*SqlConn, error) {
+func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*mysql.SqlConn, error) {
 	nodes, err := c.getShardList(stmt, bindVars)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -138,9 +138,9 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 		return nil, nil
 	}
 
-	conns := make([]*SqlConn, 0, len(nodes))
+	conns := make([]*mysql.SqlConn, 0, len(nodes))
 
-	var co *SqlConn
+	var co *mysql.SqlConn
 	for _, n := range nodes {
 		co, err = c.getConn(n, isSelect)
 		if err != nil {
@@ -154,7 +154,7 @@ func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars m
 	return conns, errors.Trace(err)
 }
 
-func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) ([]*Result, error) {
+func (c *Conn) executeInShard(conns []*mysql.SqlConn, sql string, args []interface{}) ([]*mysql.Result, error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(conns))
 
@@ -175,19 +175,19 @@ func (c *Conn) executeInShard(conns []*SqlConn, sql string, args []interface{}) 
 	wg.Wait()
 
 	var err error
-	r := make([]*Result, len(conns))
+	r := make([]*mysql.Result, len(conns))
 	for i, v := range rs {
 		if e, ok := v.(error); ok {
 			err = e
 			break
 		}
-		r[i] = rs[i].(*Result)
+		r[i] = rs[i].(*mysql.Result)
 	}
 
 	return r, errors.Trace(err)
 }
 
-func (c *Conn) closeShardConns(conns []*SqlConn) {
+func (c *Conn) closeShardConns(conns []*mysql.SqlConn) {
 	if c.needBeginTx() {
 		return
 	}
@@ -197,12 +197,12 @@ func (c *Conn) closeShardConns(conns []*SqlConn) {
 	}
 }
 
-func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
-	r := &Resultset{}
-	r.Fields = make([]*Field, len(stmt.SelectExprs))
+func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset {
+	r := &mysql.Resultset{}
+	r.Fields = make([]*mysql.Field, len(stmt.SelectExprs))
 
 	for i, expr := range stmt.SelectExprs {
-		r.Fields[i] = &Field{}
+		r.Fields[i] = &mysql.Field{}
 		switch e := expr.(type) {
 		case *sqlparser.StarExpr:
 			r.Fields[i].Name = []byte("*")
@@ -218,8 +218,8 @@ func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *Resultset {
 		}
 	}
 
-	r.Values = make([]RowValue, 0)
-	r.RowDatas = make([]RowData, 0)
+	r.Values = make([]mysql.RowValue, 0)
+	r.RowDatas = make([]mysql.RowData, 0)
 
 	return r
 }
@@ -320,7 +320,7 @@ func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []sch
 }
 
 func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string, items map[string]tabletserver.RCResult) error {
-	values := make([]RowValue, 0, len(keys))
+	values := make([]mysql.RowValue, 0, len(keys))
 	for _, key := range keys {
 		row, ok := items[key]
 		if !ok {
@@ -401,7 +401,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
 	//log.Debug(len(retValues), len(keys))
 
-	r, err := c.buildResultset(getFieldNames(plan, ti), []RowValue{retValues})
+	r, err := c.buildResultset(getFieldNames(plan, ti), []mysql.RowValue{retValues})
 	if err != nil {
 		log.Error(err)
 		return errors.Trace(err)
@@ -443,7 +443,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 		return errors.Errorf("not enough connection for %s", sql)
 	}
 
-	var rs []*Result
+	var rs []*mysql.Result
 	rs, err = c.executeInShard(conns, sql, args)
 	defer c.closeShardConns(conns)
 	if err != nil {
@@ -521,7 +521,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		return c.writeResultset(c.status, r)
 	}
 
-	var rs []*Result
+	var rs []*mysql.Result
 	rs, err = c.executeInShard(conns, sql, args)
 	c.closeShardConns(conns)
 	if err == nil {
@@ -576,7 +576,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		return errors.Trace(err)
 	}
 
-	var rs []*Result
+	var rs []*mysql.Result
 	rs, err = c.executeInShard(conns, sql, args)
 
 	c.closeShardConns(conns)
@@ -588,7 +588,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	return errors.Trace(err)
 }
 
-func (c *Conn) beginShardConns(conns []*SqlConn) error {
+func (c *Conn) beginShardConns(conns []*mysql.SqlConn) error {
 	if c.isInTransaction() {
 		return nil
 	}
@@ -602,7 +602,7 @@ func (c *Conn) beginShardConns(conns []*SqlConn) error {
 	return nil
 }
 
-func (c *Conn) commitShardConns(conns []*SqlConn) error {
+func (c *Conn) commitShardConns(conns []*mysql.SqlConn) error {
 	if c.isInTransaction() {
 		return nil
 	}
@@ -616,8 +616,8 @@ func (c *Conn) commitShardConns(conns []*SqlConn) error {
 	return nil
 }
 
-func (c *Conn) mergeExecResult(rs []*Result) error {
-	r := &Result{}
+func (c *Conn) mergeExecResult(rs []*mysql.Result) error {
+	r := &mysql.Result{}
 
 	for _, v := range rs {
 		r.Status |= v.Status
@@ -638,7 +638,7 @@ func (c *Conn) mergeExecResult(rs []*Result) error {
 	return errors.Trace(c.writeOK(r))
 }
 
-func (c *Conn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {
+func (c *Conn) mergeSelectResult(rs []*mysql.Result, stmt *sqlparser.Select) error {
 	r := rs[0].Resultset
 
 	status := c.status | rs[0].Status
@@ -662,12 +662,12 @@ func (c *Conn) mergeSelectResult(rs []*Result, stmt *sqlparser.Select) error {
 	return c.writeResultset(status, r)
 }
 
-func (c *Conn) sortSelectResult(r *Resultset, stmt *sqlparser.Select) error {
+func (c *Conn) sortSelectResult(r *mysql.Resultset, stmt *sqlparser.Select) error {
 	if stmt.OrderBy == nil {
 		return nil
 	}
 
-	sk := make([]SortKey, len(stmt.OrderBy))
+	sk := make([]mysql.SortKey, len(stmt.OrderBy))
 
 	for i, o := range stmt.OrderBy {
 		sk[i].Name = nstring(o.Expr, c.alloc)
@@ -677,7 +677,7 @@ func (c *Conn) sortSelectResult(r *Resultset, stmt *sqlparser.Select) error {
 	return r.Sort(sk)
 }
 
-func (c *Conn) limitSelectResult(r *Resultset, stmt *sqlparser.Select) error {
+func (c *Conn) limitSelectResult(r *mysql.Resultset, stmt *sqlparser.Select) error {
 	if stmt.Limit == nil {
 		return nil
 	}
