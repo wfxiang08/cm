@@ -206,7 +206,7 @@ func (ti *TableInfo) initRowCache(tableType string, createTime sqltypes.Value, c
 		return
 	}
 	for _, col := range ti.PKColumns {
-		if ti.Columns[col].Category == mysql.MYSQL_TYPE_NO_CACHE {
+		if ti.Columns[col].SqlType == mysql.MYSQL_TYPE_NO_CACHE {
 			log.Infof("Table %s pk has unsupported column types. Will not be cached.", ti.Name)
 			return
 		}

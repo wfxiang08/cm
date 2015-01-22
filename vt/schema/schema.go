@@ -24,7 +24,7 @@ const (
 
 type TableColumn struct {
 	Name       string
-	Category   byte
+	SqlType    byte
 	IsAuto     bool
 	Default    mysql.Value
 	Collation  string
@@ -87,9 +87,9 @@ func (ta *Table) AddColumn(name string, columnType string, collation string, def
 
 	endPos := strings.Index(columnType, "(") //handle something like: int(11)
 	if endPos > 0 {
-		ta.Columns[index].Category = str2mysqlType(strings.TrimSpace(columnType[:endPos]))
+		ta.Columns[index].SqlType = str2mysqlType(strings.TrimSpace(columnType[:endPos]))
 	} else {
-		ta.Columns[index].Category = str2mysqlType(strings.TrimSpace(columnType))
+		ta.Columns[index].SqlType = str2mysqlType(strings.TrimSpace(columnType))
 	}
 
 	ta.Columns[index].Collation = collation
@@ -97,7 +97,7 @@ func (ta *Table) AddColumn(name string, columnType string, collation string, def
 		ta.Columns[index].IsUnsigned = true
 	}
 
-	log.Info(name, ta.Columns[index].Category, columnType)
+	log.Info(name, ta.Columns[index].SqlType, columnType)
 
 	if extra == "auto_increment" {
 		ta.Columns[index].IsAuto = true

@@ -126,7 +126,7 @@ func (rc *RowCache) decodeRow(b []byte, tcs []schema.TableColumn) mysql.RowValue
 
 	for _, tc := range tcs {
 		f := &mysql.Field{
-			Type:       uint8(tc.Category),
+			Type:       uint8(tc.SqlType),
 			IsUnsigned: tc.IsUnsigned,
 		}
 		fs = append(fs, f)

@@ -51,7 +51,7 @@ func (c *Conn) buildResultset(nameTypes []schema.TableColumn, values []RowValue)
 				if err = formatField(field, value); err != nil {
 					return nil, errors.Trace(err)
 				}
-				field.Type = nameTypes[j].Category
+				field.Type = nameTypes[j].SqlType
 				field.Charset = uint16(CollationNames[nameTypes[j].Collation])
 				field.IsUnsigned = nameTypes[j].IsUnsigned
 			}
