@@ -131,17 +131,17 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 }
 
 func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*mysql.SqlConn, error) {
-	nodes, err := c.getShardList(stmt, bindVars)
+	shards, err := c.getShardList(stmt, bindVars)
 	if err != nil {
 		return nil, errors.Trace(err)
-	} else if nodes == nil {
+	} else if shards == nil {
 		return nil, nil
 	}
 
-	conns := make([]*mysql.SqlConn, 0, len(nodes))
+	conns := make([]*mysql.SqlConn, 0, len(shards))
 
 	var co *mysql.SqlConn
-	for _, n := range nodes {
+	for _, n := range shards {
 		co, err = c.getConn(n, isSelect)
 		if err != nil {
 			log.Error(errors.ErrorStack(err))
