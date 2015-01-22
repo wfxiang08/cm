@@ -35,11 +35,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	stmt, err := sqlparser.Parse(sql, c.alloc)
 	if err != nil {
 		log.Warning(c.connectionId, sql, err)
-		if strings.ToUpper(strings.TrimSpace(sql)) == "START TRANSACTION" {
-			stmt = &sqlparser.Begin{}
-		} else {
-			return c.handleShow(stmt, sql, nil)
-		}
+		return c.handleShow(stmt, sql, nil)
 	}
 
 	log.Debugf("connectionId: %d, statement %T , %s", c.connectionId, stmt, sql)
