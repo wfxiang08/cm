@@ -154,6 +154,8 @@ func equal(a interface{}, b interface{}) bool {
 		return v == b.(int)
 	case int64:
 		return v == b.(int64)
+	case uint64:
+		return v == b.(uint64)
 	case string:
 		return v == b.(string)
 	case []byte:

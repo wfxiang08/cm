@@ -1,0 +1,9 @@
+{
+	"suit_name" : "uint_test",
+	"table_name" : "tbl_uint_test",
+	"data_type" : "INT UNSIGNED",
+	"data_type_go" : "uint64",
+	"id" : "1",
+	"data" : "uint64(100)",
+	"data_updated" : "uint64(200)"
+}

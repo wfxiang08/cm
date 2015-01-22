@@ -112,6 +112,11 @@
                     {
                         "key": "id",
                         "row_cache_type": "RW",
+                        "table": "tbl_uint_test"
+                    },
+                    {
+                        "key": "id",
+                        "row_cache_type": "RW",
                         "table": "tbl_blob_test"
                     },
                     {
