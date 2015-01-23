@@ -60,5 +60,6 @@ func main() {
 	go svr.Run()
 
 	http.HandleFunc("/api/reload", svr.HandleReload)
+	//todo: using configuration
 	http.ListenAndServe(":8888", nil)
 }

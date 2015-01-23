@@ -54,14 +54,15 @@ type Statement interface {
 	SQLNode
 }
 
-func (*Union) IStatement()  {}
-func (*Select) IStatement() {}
-func (*Insert) IStatement() {}
-func (*Update) IStatement() {}
-func (*Delete) IStatement() {}
-func (*Set) IStatement()    {}
-func (*DDL) IStatement()    {}
-func (*Other) IStatement()  {}
+func (*Union) IStatement()   {}
+func (*Select) IStatement()  {}
+func (*Insert) IStatement()  {}
+func (*Replace) IStatement() {}
+func (*Update) IStatement()  {}
+func (*Delete) IStatement()  {}
+func (*Set) IStatement()     {}
+func (*DDL) IStatement()     {}
+func (*Other) IStatement()   {}
 
 // SelectStatement any SELECT statement.
 type SelectStatement interface {
@@ -124,6 +125,21 @@ const (
 
 func (node *Union) Format(buf *TrackedBuffer) {
 	buf.Myprintf("%v %s %v", node.Left, node.Type, node.Right)
+}
+
+// Replace represents an REPLACE statement.
+type Replace struct {
+	Comments Comments
+	Table    *TableName
+	Columns  Columns
+	Rows     InsertRows
+	OnDup    OnDup
+}
+
+func (node *Replace) Format(buf *TrackedBuffer) {
+	buf.Myprintf("replace %vinto %v%v %v%v",
+		node.Comments,
+		node.Table, node.Columns, node.Rows, node.OnDup)
 }
 
 // Insert represents an INSERT statement.

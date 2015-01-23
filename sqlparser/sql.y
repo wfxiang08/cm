@@ -65,7 +65,7 @@ var (
 }
 
 %token LEX_ERROR
-%token <empty> SELECT INSERT UPDATE DELETE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
+%token <empty> SELECT INSERT UPDATE DELETE REPLACE FROM WHERE GROUP HAVING ORDER BY LIMIT FOR
 %token <empty> BEGIN COMMIT ROLLBACK START TRANSACTION
 %token <empty> ALL DISTINCT AS EXISTS IN IS LIKE BETWEEN NULL ASC DESC VALUES INTO DUPLICATE KEY DEFAULT SET LOCK
 %token <bytes> ID STRING NUMBER VALUE_ARG LIST_ARG COMMENT
@@ -96,7 +96,7 @@ var (
 
 %type <statement> command
 %type <selStmt> select_statement
-%type <statement> insert_statement update_statement delete_statement set_statement
+%type <statement> insert_statement update_statement delete_statement replace_statement set_statement
 %type <statement> create_statement alter_statement rename_statement drop_statement
 %type <statement> begin_statement commit_statement rollback_statement
 %type <statement> analyze_statement other_statement
@@ -160,6 +160,7 @@ command:
     $$ = $1
   }
 | insert_statement
+| replace_statement
 | update_statement
 | delete_statement
 | set_statement
@@ -202,6 +203,24 @@ insert_statement:
     }
     $$ = &Insert{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}, OnDup: OnDup($7)}
   }
+
+
+replace_statement:
+  REPLACE comment_opt INTO dml_table_expression column_list_opt row_list on_dup_opt
+  {
+    $$ = &Replace{Comments: Comments($2), Table: $4, Columns: $5, Rows: $6, OnDup: OnDup($7)}
+  }
+| REPLACE comment_opt INTO dml_table_expression SET update_list on_dup_opt
+  {
+    cols := make(Columns, 0, len($6))
+    vals := make(ValTuple, 0, len($6))
+    for _, col := range $6 {
+      cols = append(cols, &NonStarExpr{Expr: col.Name})
+      vals = append(vals, col.Expr)
+    }
+    $$ = &Replace{Comments: Comments($2), Table: $4, Columns: cols, Rows: Values{vals}, OnDup: OnDup($7)}
+  }
+
 
 update_statement:
   UPDATE comment_opt dml_table_expression SET update_list where_expression_opt order_by_opt limit_opt

@@ -47,6 +47,9 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	case *sqlparser.Insert:
 		c.server.IncCounter("insert")
 		return c.handleExec(stmt, sql, nil, true)
+	case *sqlparser.Replace:
+		c.server.IncCounter("replace")
+		return c.handleExec(stmt, sql, nil, false)
 	case *sqlparser.Update:
 		c.server.IncCounter("update")
 		return c.handleExec(stmt, sql, nil, false)
@@ -449,6 +452,8 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 	r := rs[0].Resultset
 	status := c.status | rs[0].Status
 
+	log.Debugf("%+v", rs[0])
+
 	//todo: handle set command when sharding
 	if stmt == nil { //hack for "set names utf8" ...
 		log.Warning(sql)
@@ -544,7 +549,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		c.server.IncCounter(plan.PlanId.String())
 
 		if len(ti.PKColumns) != len(plan.PKValues) {
-			return errors.Errorf("updated/delete without primary key not allowed %+v", plan.PKValues)
+			return errors.Errorf("updated/delete/replace without primary key not allowed %+v", plan.PKValues)
 		}
 
 		if ti.CacheType != schema.CACHE_NONE {
