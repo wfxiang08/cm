@@ -34,6 +34,24 @@ func blob_testTestInsert(t *testing.T) {
 		t.Error("data != ", []byte("\xff"), " return", data)
 		return
 	}
+
+	mustExec(ProxyDB, "delete from tbl_blob_test where id = 1")
+}
+
+func blob_testTestReplace(t *testing.T) {
+	res := mustExec(ProxyDB, "replace into "+`tbl_blob_test`+" (id, data) values (?, ?)", 1, []byte("\xff"))
+	_, err := res.LastInsertId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var data []byte
+	mustQueryData(ProxyDB, `tbl_blob_test`, 1, &data)
+	if !equal(data, []byte("\xff")) {
+		t.Error("data != ", []byte("\xff"), " return", data)
+		return
+	}
 }
 
 func blob_testTestSelect(t *testing.T) {
@@ -67,6 +85,7 @@ func TestAllblob_test(t *testing.T) {
 	blob_testSetup()
 	defer blob_testTearDown()
 	blob_testTestInsert(t)
+	blob_testTestReplace(t)
 	blob_testTestSelect(t)
 	blob_testTestSelect(t)
 	blob_testTestUpdate(t)

@@ -34,6 +34,24 @@ func int_testTestInsert(t *testing.T) {
 		t.Error("data != ", 100, " return", data)
 		return
 	}
+
+	mustExec(ProxyDB, "delete from tbl_int_test where id = 1")
+}
+
+func int_testTestReplace(t *testing.T) {
+	res := mustExec(ProxyDB, "replace into "+`tbl_int_test`+" (id, data) values (?, ?)", 1, 100)
+	_, err := res.LastInsertId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var data int
+	mustQueryData(ProxyDB, `tbl_int_test`, 1, &data)
+	if !equal(data, 100) {
+		t.Error("data != ", 100, " return", data)
+		return
+	}
 }
 
 func int_testTestSelect(t *testing.T) {
@@ -67,6 +85,7 @@ func TestAllint_test(t *testing.T) {
 	int_testSetup()
 	defer int_testTearDown()
 	int_testTestInsert(t)
+	int_testTestReplace(t)
 	int_testTestSelect(t)
 	int_testTestSelect(t)
 	int_testTestUpdate(t)

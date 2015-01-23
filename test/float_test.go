@@ -34,6 +34,24 @@ func float_testTestInsert(t *testing.T) {
 		t.Error("data != ", 1.5, " return", data)
 		return
 	}
+
+	mustExec(ProxyDB, "delete from tbl_float_test where id = 1")
+}
+
+func float_testTestReplace(t *testing.T) {
+	res := mustExec(ProxyDB, "replace into "+`tbl_float_test`+" (id, data) values (?, ?)", 1, 1.5)
+	_, err := res.LastInsertId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var data float64
+	mustQueryData(ProxyDB, `tbl_float_test`, 1, &data)
+	if !equal(data, 1.5) {
+		t.Error("data != ", 1.5, " return", data)
+		return
+	}
 }
 
 func float_testTestSelect(t *testing.T) {
@@ -67,6 +85,7 @@ func TestAllfloat_test(t *testing.T) {
 	float_testSetup()
 	defer float_testTearDown()
 	float_testTestInsert(t)
+	float_testTestReplace(t)
 	float_testTestSelect(t)
 	float_testTestSelect(t)
 	float_testTestUpdate(t)

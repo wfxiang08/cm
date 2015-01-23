@@ -34,6 +34,24 @@ func string_testTestInsert(t *testing.T) {
 		t.Error("data != ", "hello world", " return", data)
 		return
 	}
+
+	mustExec(ProxyDB, "delete from tbl_string_test where id = 1")
+}
+
+func string_testTestReplace(t *testing.T) {
+	res := mustExec(ProxyDB, "replace into "+`tbl_string_test`+" (id, data) values (?, ?)", 1, "hello world")
+	_, err := res.LastInsertId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var data string
+	mustQueryData(ProxyDB, `tbl_string_test`, 1, &data)
+	if !equal(data, "hello world") {
+		t.Error("data != ", "hello world", " return", data)
+		return
+	}
 }
 
 func string_testTestSelect(t *testing.T) {
@@ -67,6 +85,7 @@ func TestAllstring_test(t *testing.T) {
 	string_testSetup()
 	defer string_testTearDown()
 	string_testTestInsert(t)
+	string_testTestReplace(t)
 	string_testTestSelect(t)
 	string_testTestSelect(t)
 	string_testTestUpdate(t)
