@@ -54,6 +54,22 @@ func uint_testTestReplace(t *testing.T) {
 	}
 }
 
+func uint_testTestReplace2(t *testing.T) {
+	res := mustExec(ProxyDB, "replace into "+`tbl_uint_test`+" (id, data) values (?, ?)", 1, uint64(200))
+	_, err := res.LastInsertId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	var data uint64
+	mustQueryData(ProxyDB, `tbl_uint_test`, 1, &data)
+	if !equal(data, uint64(200)) {
+		t.Error("data != ", uint64(200), " return", data)
+		return
+	}
+}
+
 func uint_testTestSelect(t *testing.T) {
 	var data uint64
 	mustQueryData(ProxyDB, `tbl_uint_test`, 1, &data)
@@ -85,6 +101,8 @@ func TestAlluint_test(t *testing.T) {
 	uint_testSetup()
 	defer uint_testTearDown()
 	uint_testTestInsert(t)
+	uint_testTestReplace(t)
+	uint_testTestReplace2(t)
 	uint_testTestReplace(t)
 	uint_testTestSelect(t)
 	uint_testTestSelect(t)

@@ -54,6 +54,24 @@ func {{ .SuitName }}TestReplace(t *testing.T) {
 	}
 }
 
+func {{ .SuitName }}TestReplace2(t *testing.T) {
+    res := mustExec(ProxyDB, "replace into "+`{{ .TableName }}`+" (id, data) values (?, ?)", {{ .Id }}, {{ .DataUpdated }})
+	_, err := res.LastInsertId()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+    var data {{ .DataTypeGo }}
+    mustQueryData(ProxyDB, `{{ .TableName }}`, {{ .Id }}, &data)
+    if !equal(data, {{ .DataUpdated }}) {
+        t.Error("data != ", {{ .DataUpdated }}, " return", data)
+		return
+	}
+}
+
+
+
 func {{ .SuitName }}TestSelect(t *testing.T) {
     var data {{ .DataTypeGo }}
     mustQueryData(ProxyDB, `{{ .TableName }}`, {{ .Id }}, &data)
@@ -85,6 +103,8 @@ func TestAll{{ .SuitName }}(t *testing.T) {
     {{ .SuitName }}Setup()
     defer {{ .SuitName }}TearDown()
     {{ .SuitName }}TestInsert(t)
+    {{ .SuitName }}TestReplace(t)
+    {{ .SuitName }}TestReplace2(t)
     {{ .SuitName }}TestReplace(t)
 	{{ .SuitName }}TestSelect(t)
 	{{ .SuitName }}TestSelect(t)
