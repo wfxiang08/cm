@@ -13,6 +13,71 @@ import (
 	"github.com/wandoulabs/cm/vt/schema"
 )
 
+func analyzeReplace(ins *sqlparser.Replace, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
+	plan = &ExecPlan{
+		PlanId:    PLAN_PASS_DML,
+		FullQuery: GenerateFullQuery(ins, alloc),
+	}
+	tableName := sqlparser.GetTableName(ins.Table)
+	if tableName == "" {
+		plan.Reason = REASON_TABLE
+		return plan, nil
+	}
+	tableInfo, err := plan.setTableInfo(tableName, getTable)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tableInfo.Indexes) == 0 || tableInfo.Indexes[0].Name != "PRIMARY" {
+		log.Warningf("no primary key for table %s", tableName)
+		plan.Reason = REASON_TABLE_NOINDEX
+		return plan, nil
+	}
+
+	pkColumnNumbers := getInsertPKColumns(ins.Columns, tableInfo)
+
+	if ins.OnDup != nil {
+		// Upserts are not safe for statement based replication:
+		// http://bugs.mysql.com/bug.php?id=58637
+		plan.Reason = REASON_UPSERT
+		return plan, nil
+	}
+
+	if sel, ok := ins.Rows.(sqlparser.SelectStatement); ok {
+		plan.PlanId = PLAN_INSERT_SUBQUERY
+		plan.OuterQuery = GenerateReplaceOuterQuery(ins, alloc)
+		plan.Subquery = GenerateSelectLimitQuery(sel, alloc)
+		if len(ins.Columns) != 0 {
+			plan.ColumnNumbers, err = analyzeSelectExprs(sqlparser.SelectExprs(ins.Columns), tableInfo)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// StarExpr node will expand into all columns
+			n := sqlparser.SelectExprs{&sqlparser.StarExpr{}}
+			plan.ColumnNumbers, err = analyzeSelectExprs(n, tableInfo)
+			if err != nil {
+				return nil, err
+			}
+		}
+		plan.SubqueryPKColumns = pkColumnNumbers
+		return plan, nil
+	}
+
+	// If it's not a sqlparser.SelectStatement, it's Values.
+	rowList := ins.Rows.(sqlparser.Values)
+	pkValues, err := getInsertPKValues(pkColumnNumbers, rowList, tableInfo)
+	if err != nil {
+		return nil, err
+	}
+	if pkValues != nil {
+		plan.PlanId = PLAN_INSERT_PK
+		plan.OuterQuery = plan.FullQuery
+		plan.PKValues = pkValues
+	}
+	return plan, nil
+}
+
 func analyzeInsert(ins *sqlparser.Insert, getTable TableGetter, alloc arena.ArenaAllocator) (plan *ExecPlan, err error) {
 	plan = &ExecPlan{
 		PlanId:    PLAN_PASS_DML,

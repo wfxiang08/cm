@@ -71,6 +71,18 @@ func GenerateSelectOuterQuery(sel *sqlparser.Select, tableInfo *schema.Table, al
 	return buf.ParsedQuery()
 }
 
+func GenerateReplaceOuterQuery(ins *sqlparser.Replace, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
+	buf := sqlparser.NewTrackedBuffer(nil, alloc)
+	buf.Myprintf("replace %vinto %v%v values %a%v",
+		ins.Comments,
+		ins.Table,
+		ins.Columns,
+		":#values",
+		ins.OnDup,
+	)
+	return buf.ParsedQuery()
+}
+
 func GenerateInsertOuterQuery(ins *sqlparser.Insert, alloc arena.ArenaAllocator) *sqlparser.ParsedQuery {
 	buf := sqlparser.NewTrackedBuffer(nil, alloc)
 	buf.Myprintf("insert %vinto %v%v values %a%v",

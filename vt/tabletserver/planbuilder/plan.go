@@ -115,6 +115,8 @@ func analyzeSQL(statement sqlparser.Statement, getTable TableGetter, alloc arena
 		return analyzeSelect(stmt, getTable, alloc)
 	case *sqlparser.Insert:
 		return analyzeInsert(stmt, getTable, alloc)
+	case *sqlparser.Replace:
+		return analyzeReplace(stmt, getTable, alloc)
 	case *sqlparser.Update:
 		return analyzeUpdate(stmt, getTable, alloc)
 	case *sqlparser.Delete:
