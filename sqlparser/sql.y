@@ -72,6 +72,8 @@ var (
 %token <empty> LE GE NE NULL_SAFE_EQUAL
 %token <empty> '(' '=' '<' '>' '~'
 
+%token <empty> NAMES
+
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS NATURAL USE FORCE
@@ -238,6 +240,10 @@ set_statement:
   SET comment_opt update_list
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
+  }
+| SET comment_opt NAMES ID 
+  {
+    $$ = &Set{Comments: Comments($2), Exprs: UpdateExprs{&UpdateExpr{Name: &ColName{Name:[]byte("names")}, Expr: StrVal($4)}}}
   }
 
 create_statement:
