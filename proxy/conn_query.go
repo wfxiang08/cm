@@ -440,7 +440,7 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 	log.Debugf("%+v", rs[0])
 
 	//todo: handle set command when sharding
-	if stmt == nil { //hack for "set names utf8" ...
+	if stmt == nil {
 		log.Warning(sql)
 		err := c.writeOkFlush(rs[0])
 		return errors.Trace(err)

@@ -227,6 +227,7 @@ func (node *Delete) Format(buf *TrackedBuffer) {
 type Set struct {
 	Comments Comments
 	Exprs    UpdateExprs
+	Scope    string //set global n=xxx
 }
 
 func (node *Set) Format(buf *TrackedBuffer) {

@@ -15,6 +15,13 @@ func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 		return errors.Errorf("must set one item once, not %s", nstring(stmt, c.alloc))
 	}
 
+	switch stmt.Scope {
+	case "global":
+		log.Warning("set global")
+	case "session":
+		log.Warning("set session")
+	}
+
 	k := string(stmt.Exprs[0].Name.Name)
 
 	switch strings.ToUpper(k) {

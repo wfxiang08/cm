@@ -73,6 +73,8 @@ var (
 %token <empty> '(' '=' '<' '>' '~'
 
 %token <empty> NAMES
+%token <empty> GLOBAL
+%token <empty> SESSION
 
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> ','
@@ -240,6 +242,14 @@ set_statement:
   SET comment_opt update_list
   {
     $$ = &Set{Comments: Comments($2), Exprs: $3}
+  }
+| SET comment_opt GLOBAL update_list
+  {
+    $$ = &Set{Comments: Comments($2), Exprs: $4, Scope:"global"}
+  }
+| SET comment_opt SESSION update_list
+  {
+    $$ = &Set{Comments: Comments($2), Exprs: $4, Scope:"session"}
   }
 | SET comment_opt NAMES ID 
   {
