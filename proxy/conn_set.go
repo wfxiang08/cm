@@ -11,10 +11,6 @@ import (
 var nstring = sqlparser.String
 
 func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
-	if len(stmt.Exprs) != 1 {
-		return errors.Errorf("must set one item once, not %s", nstring(stmt, c.alloc))
-	}
-
 	switch stmt.Scope {
 	case "global":
 		log.Warning("set global")
