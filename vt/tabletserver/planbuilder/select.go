@@ -6,7 +6,6 @@ package planbuilder
 
 import (
 	"fmt"
-
 	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -170,10 +169,12 @@ func analyzeFrom(tableExprs sqlparser.TableExprs) (tablename string, hasHints bo
 	if len(tableExprs) > 1 {
 		return "", false
 	}
+
 	node, ok := tableExprs[0].(*sqlparser.AliasedTableExpr)
 	if !ok {
 		return "", false
 	}
+
 	return sqlparser.GetTableName(node.Expr), node.Hints != nil
 }
 

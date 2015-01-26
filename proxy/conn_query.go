@@ -234,14 +234,22 @@ func makeBindVars(args []interface{}) map[string]interface{} {
 }
 
 func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
-	schema, ok := c.server.GetRowCacheSchema(c.db)
+	schemaInfo, ok := c.server.GetRowCacheSchema(c.db)
 	if !ok {
 		return nil, false
 	}
 
-	ti := schema.GetTable(tableName)
+	ti := schemaInfo.GetTable(tableName)
 	if ti == nil {
-		return nil, false
+		log.Debug("system table", tableName)
+		if strings.Index(tableName, "information_schema") >= 0 { //system table
+			return &schema.Table{
+				Name:      tableName,
+				CacheType: schema.CACHE_NONE,
+			}, true
+		} else {
+			return nil, false
+		}
 	}
 
 	log.Infof("%+v", ti.Table)
@@ -267,9 +275,6 @@ func (c *Conn) getPlanAndTableInfo(stmt sqlparser.Statement) (*planbuilder.ExecP
 	log.Infof("%+v", plan)
 
 	ti := c.getTableInfo(plan.TableName)
-	if ti == nil {
-		return plan, nil, errors.Errorf("unsupport sql %+v", stmt)
-	}
 
 	return plan, ti, nil
 }
@@ -468,7 +473,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 
 	c.server.IncCounter(plan.PlanId.String())
 
-	if len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
+	if ti != nil && len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
 		//todo: composed primary key support
 		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
 		items := ti.Cache.Get(keys, ti.Columns)
@@ -524,6 +529,10 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		plan, ti, err := c.getPlanAndTableInfo(stmt)
 		if err != nil {
 			return errors.Trace(err)
+		}
+
+		if ti == nil {
+			return errors.Errorf("sql: %s not support", sql)
 		}
 
 		c.server.IncCounter(plan.PlanId.String())

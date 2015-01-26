@@ -16,9 +16,15 @@ import (
 // GetTableName returns the table name from the SimpleTableExpr
 // only if it's a simple expression. Otherwise, it returns "".
 func GetTableName(node SimpleTableExpr) string {
-	if n, ok := node.(*TableName); ok && n.Qualifier == nil {
-		return hack.String(n.Name)
+	n, ok := node.(*TableName)
+	if ok {
+		if len(n.Qualifier) > 0 {
+			return string(n.Qualifier) + "." + string(n.Name)
+		} else {
+			return hack.String(n.Name)
+		}
 	}
+
 	// sub-select or '.' expression
 	return ""
 }

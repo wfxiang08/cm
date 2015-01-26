@@ -127,6 +127,7 @@ func (s *Server) parseShard(cfg config.ShardConfig) (*Shard, error) {
 }
 
 func (s *Server) newConn(co net.Conn) *Conn {
+	log.Info("newConn", co.RemoteAddr().String())
 	c := &Conn{
 		c:            co,
 		pkg:          mysql.NewPacketIO(co),
