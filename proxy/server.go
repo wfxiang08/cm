@@ -184,7 +184,7 @@ func (s *Server) loadSchemaInfo() error {
 		}
 
 		//fix hard code node
-		sc := rc.ShardRule[0]
+		sc := s.cfg.Shards[0]
 		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(s.cfg.RowCacheConf, s.cfg.Shards[0].Master, sc.User, sc.Password, v.DB, overrides)
 	}
 
