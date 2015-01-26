@@ -24,7 +24,7 @@
 	    "lock_paged":false
     },
 
-    "password": "root",
+    "password": "",
     "schemas": [
         {
 	    "db": "test",
