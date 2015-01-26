@@ -45,6 +45,7 @@ type IServer interface {
 	GetSchema(string) *Schema
 	GetRowCacheSchema(string) (*tabletserver.SchemaInfo, bool)
 	CfgGetPwd() string
+	CfgIsSkipAuth() bool
 	GetToken() *tokenlimiter.Token
 	ReleaseToken(token *tokenlimiter.Token)
 	GetRWlock() *sync.RWMutex
@@ -150,6 +151,10 @@ func (s *Server) GetRWlock() *sync.RWMutex {
 
 func (s *Server) AsynExec(task *execTask) {
 	s.taskQ <- task
+}
+
+func (s *Server) CfgIsSkipAuth() bool {
+	return s.cfg.SkipAuth
 }
 
 func (s *Server) CfgGetPwd() string {

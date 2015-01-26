@@ -22,9 +22,9 @@
 	    "connections":1024,
 	    "threads":-1,
 	    "lock_paged":false
-    }, 
+    },
 
-    "password": "",
+    "password": "root",
     "schemas": [
         {
 	    "db": "test",

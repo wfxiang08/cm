@@ -40,6 +40,7 @@ type Config struct {
 	User         string                      `json:"user"`
 	Password     string                      `json:"password"`
 	LogLevel     string                      `json:"log_level"`
+	SkipAuth     bool                        `json:"skip_auth"`
 	Shards       []ShardConfig               `json:"shards"`
 	Schemas      []SchemaConfig              `json:"schemas"`
 	RowCacheConf tabletserver.RowCacheConfig `json:"rowcache_conf"`

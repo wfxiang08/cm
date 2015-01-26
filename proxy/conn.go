@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+	"net"
+	"runtime"
+	"strings"
+
 	"github.com/juju/errors"
 	"github.com/ngaut/arena"
 	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/hack"
 	"github.com/wandoulabs/cm/mysql"
-	"io"
-	"net"
-	"runtime"
-	"strings"
 )
 
 var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_FLAG |
@@ -147,7 +148,7 @@ func (c *Conn) readHandshakeResponse() error {
 	pos++
 	auth := data[pos : pos+authLen]
 	checkAuth := mysql.CalcPassword(c.salt, []byte(c.server.CfgGetPwd()))
-	if !bytes.Equal(auth, checkAuth) {
+	if !bytes.Equal(auth, checkAuth) && !c.server.CfgIsSkipAuth() {
 		return errors.Trace(mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes"))
 	}
 
