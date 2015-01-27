@@ -34,7 +34,7 @@ const (
             "down_after_noalive": 0,
             "idle_conns": 100,
             "master": "127.0.0.1:3306",
-            "name": "shard1",
+            "id": "shard1",
             "password": "",
             "rw_split": false,
             "slave": "",
@@ -54,12 +54,12 @@ const (
     "schemas": [
         {
             "db": "{{ .DbName }}",
-            "shards": [
+            "shard_ids": [
                 "shard1"
             ],
-            "rules": {
+            "router": {
                 "default": "shard1",
-                "shard": {{ .Shards }}
+		"table_rules": {{ .Shards }}
             }
         }
     ],

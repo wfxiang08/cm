@@ -95,8 +95,8 @@ func (s *Server) parseShards() error {
 	s.shards = make(map[string]*Shard, len(cfg.Shards))
 
 	for _, v := range cfg.Shards {
-		if _, ok := s.shards[v.Name]; ok {
-			return errors.Errorf("duplicate node [%s].", v.Name)
+		if _, ok := s.shards[v.Id]; ok {
+			return errors.Errorf("duplicate node [%s].", v.Id)
 		}
 
 		n, err := s.parseShard(v)
@@ -104,7 +104,7 @@ func (s *Server) parseShards() error {
 			return errors.Trace(err)
 		}
 
-		s.shards[v.Name] = n
+		s.shards[v.Id] = n
 	}
 
 	return nil
@@ -112,8 +112,7 @@ func (s *Server) parseShards() error {
 
 func (s *Server) parseShard(cfg config.ShardConfig) (*Shard, error) {
 	n := &Shard{
-		server: s,
-		cfg:    cfg,
+		cfg: cfg,
 	}
 	if len(cfg.Master) == 0 {
 		return nil, errors.Errorf("must setting master MySQL node.")
@@ -171,9 +170,9 @@ func (s *Server) loadSchemaInfo() error {
 	}
 
 	for _, v := range s.cfg.Schemas {
-		rc := v.RulesConifg
+		rc := v.RouterConifg
 		var overrides []tabletserver.SchemaOverride
-		for _, sc := range rc.ShardRule {
+		for _, sc := range rc.TableRule {
 			or := tabletserver.SchemaOverride{Name: sc.Table}
 			pks := strings.Split(sc.ShardingKey, ",")
 			for _, pk := range pks {
@@ -284,6 +283,8 @@ func (s *Server) resetSchemaInfo() error {
 	}
 
 	log.Warningf("%#v", cfg)
+
+	log.SetLevelByString(cfg.LogLevel)
 
 	s.cfg = cfg
 	s.loadSchemaInfo()

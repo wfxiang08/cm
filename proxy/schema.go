@@ -11,7 +11,7 @@ import (
 type Schema struct {
 	db     string
 	shards map[string]*Shard
-	rule   *router.Router
+	r      *router.Router
 }
 
 func (s *Server) parseSchemas() error {
@@ -22,12 +22,12 @@ func (s *Server) parseSchemas() error {
 		if _, ok := s.schemas[db]; ok {
 			return errors.Errorf("duplicate schema [%s].", schemaCfg.DB)
 		}
-		if len(schemaCfg.Shards) == 0 {
+		if len(schemaCfg.ShardIds) == 0 {
 			return errors.Errorf("schema [%s] must have a shard.", schemaCfg.DB)
 		}
 
 		shards := make(map[string]*Shard)
-		for _, n := range schemaCfg.Shards {
+		for _, n := range schemaCfg.ShardIds {
 			if s.GetShard(n) == nil {
 				return fmt.Errorf("schema [%s] shard [%s] config is not exists.", db, n)
 			}
@@ -38,15 +38,12 @@ func (s *Server) parseSchemas() error {
 			shards[n] = s.GetShard(n)
 		}
 
-		rule, err := router.NewRouter(&schemaCfg)
-		if err != nil {
-			return err
-		}
+		r := router.NewRouter(&schemaCfg)
 
 		s.schemas[db] = &Schema{
 			db:     db,
 			shards: shards,
-			rule:   rule,
+			r:      r,
 		}
 	}
 

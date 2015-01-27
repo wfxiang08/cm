@@ -8,26 +8,26 @@ import (
 )
 
 type SchemaConfig struct {
-	DB          string      `json:"db"`
-	Shards      []string    `json:"shards"`
-	RulesConifg RulesConfig `json:"rules"`
-	CacheSize   int         `json:"cache_size,string"` //m
+	DB           string       `json:"db"`
+	ShardIds     []string     `json:"shard_ids"`
+	RouterConifg RouterConfig `json:"router"`
+	CacheSize    int          `json:"cache_size,string"` //m
 }
 
-type RulesConfig struct {
-	Default   string        `json:"default"`
-	ShardRule []ShardConfig `json:"shard"`
+type RouterConfig struct {
+	Default   string      `json:"default"`
+	TableRule []TableRule `json:"table_rules"`
 }
 
-type ShardConfig struct {
+type TableRule struct {
 	Table        string `json:"table"`
 	ShardingKey  string `json:"key"`
 	RowCacheType string `json:"row_cache_type"`
-	Shard        string `json:"shard"`
+	MapToShard   string `json:"map_to_shards"` //shard ids
+}
 
-	Name    string `json:"name"`
-	RWSplit bool   `json:"rw_split"`
-
+type ShardConfig struct {
+	Id       string `json:"id"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 
@@ -51,6 +51,7 @@ func ParseConfigData(data []byte) (*Config, error) {
 	if err := json.Unmarshal([]byte(data), &cfg); err != nil {
 		return nil, err
 	}
+
 	return &cfg, nil
 }
 

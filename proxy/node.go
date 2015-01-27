@@ -11,13 +11,12 @@ const (
 )
 
 type Shard struct {
-	server *Server
 	cfg    config.ShardConfig
 	master *mysql.DB
 }
 
 func (shard *Shard) String() string {
-	return shard.cfg.Name
+	return shard.cfg.Id
 }
 
 func (shard *Shard) Close() {

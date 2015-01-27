@@ -101,7 +101,7 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 	} else {
 		log.Info("needBeginTx", c.status)
 		var ok bool
-		co, ok = c.txConns[n.cfg.Name]
+		co, ok = c.txConns[n.cfg.Id]
 
 		if !ok {
 			if co, err = n.getMasterConn(); err != nil {
@@ -114,7 +114,7 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 				return nil, errors.Trace(err)
 			}
 
-			c.txConns[n.cfg.Name] = co
+			c.txConns[n.cfg.Id] = co
 		}
 	}
 
@@ -241,7 +241,7 @@ func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
 
 	ti := schemaInfo.GetTable(tableName)
 	if ti == nil {
-		log.Debug("system table", tableName)
+		log.Debug("check if system table", tableName)
 		if strings.Index(strings.ToLower(tableName), "information_schema") >= 0 { //system table
 			return &schema.Table{
 				Name:      tableName,
