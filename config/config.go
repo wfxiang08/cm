@@ -15,15 +15,15 @@ type SchemaConfig struct {
 }
 
 type RouterConfig struct {
-	Default   string      `json:"default"`
+	Default   []string    `json:"default_shards"`
 	TableRule []TableRule `json:"table_rules"`
 }
 
 type TableRule struct {
-	Table        string `json:"table"`
-	ShardingKey  string `json:"key"`
-	RowCacheType string `json:"row_cache_type"`
-	MapToShard   string `json:"map_to_shards"` //shard ids
+	Table        string   `json:"table"`
+	ShardingKey  string   `json:"key"`
+	RowCacheType string   `json:"row_cache_type"`
+	MapToShards  []string `json:"map_to_shards"` //shard ids
 }
 
 type ShardConfig struct {

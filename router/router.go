@@ -5,7 +5,8 @@ import (
 )
 
 type Router struct {
-	All map[string]*config.TableRule //table name -> rules
+	All     map[string]*config.TableRule //table name -> rules
+	Default []string
 }
 
 func NewRouter(cfg *config.SchemaConfig) *Router {
@@ -15,6 +16,8 @@ func NewRouter(cfg *config.SchemaConfig) *Router {
 		*tmp = tr
 		r.All[tr.Table] = tmp
 	}
+
+	r.Default = cfg.RouterConifg.Default
 
 	return r
 }

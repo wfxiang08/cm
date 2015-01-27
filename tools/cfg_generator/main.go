@@ -58,7 +58,7 @@ const (
                 "shard1"
             ],
             "router": {
-                "default": "shard1",
+                "default_shards": ["shard1"],
 		"table_rules": {{ .Shards }}
             }
         }

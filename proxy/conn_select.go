@@ -99,13 +99,14 @@ func (c *Conn) handleFieldList(data []byte) error {
 	table := hack.String(data[0:index])
 	wildcard := hack.String(data[index+1:])
 
-	shardName := c.schema().r.GetRule(table).MapToShard
+	shardName := c.schema().r.GetRule(table).MapToShards
 	//todo: pass through
 	if len(shardName) == 0 {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
 	}
 
-	n := c.server.GetShard(shardName)
+	//hard code
+	n := c.server.GetShard(shardName[0])
 	if n == nil {
 		return errors.Errorf("shard %s not found, %+v", shardName, c.schema)
 	}

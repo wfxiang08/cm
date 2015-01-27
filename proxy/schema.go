@@ -54,6 +54,16 @@ func (s *Server) GetSchema(db string) *Schema {
 	return s.schemas[db]
 }
 
+func (s *Server) MapToShards(db string, table string) []string {
+	r := s.GetSchema(db).r
+	shards := r.GetRule(table).MapToShards
+	if len(shards) > 0 {
+		return shards
+	}
+
+	return r.Default
+}
+
 func (s *Server) parseRowCacheCfg() tabletserver.RowCacheConfig {
 	return s.cfg.RowCacheConf
 }
