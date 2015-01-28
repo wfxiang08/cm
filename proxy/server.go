@@ -45,12 +45,12 @@ type IServer interface {
 	GetSchema(string) *Schema
 	GetRowCacheSchema(string) (*tabletserver.SchemaInfo, bool)
 	CfgGetPwd() string
-	CfgIsSkipAuth() bool
+	SkipAuth() bool
 	GetToken() *tokenlimiter.Token
 	ReleaseToken(token *tokenlimiter.Token)
 	GetRWlock() *sync.RWMutex
-	GetShard(name string) *Shard
-	GetShardNames() []string
+	GetShard(shardId string) *Shard
+	GetShardIds() []string
 	AsynExec(task *execTask)
 	IncCounter(key string)
 	DecCounter(key string)
@@ -72,8 +72,8 @@ func (s *Server) ReleaseToken(token *tokenlimiter.Token) {
 	s.concurrentLimiter.Put(token)
 }
 
-func (s *Server) GetShard(name string) *Shard {
-	return s.shards[name]
+func (s *Server) GetShard(shardId string) *Shard {
+	return s.shards[shardId]
 }
 
 func (s *Server) GetRowCacheSchema(db string) (*tabletserver.SchemaInfo, bool) {
@@ -81,13 +81,13 @@ func (s *Server) GetRowCacheSchema(db string) (*tabletserver.SchemaInfo, bool) {
 	return si, ok
 }
 
-func (s *Server) GetShardNames() []string {
-	ret := make([]string, 0, len(s.shards))
-	for name, _ := range s.shards {
-		ret = append(ret, name)
+func (s *Server) GetShardIds() []string {
+	ids := make([]string, 0, len(s.shards))
+	for id, _ := range s.shards {
+		ids = append(ids, id)
 	}
 
-	return ret
+	return ids
 }
 
 func (s *Server) parseShards() error {
@@ -152,7 +152,7 @@ func (s *Server) AsynExec(task *execTask) {
 	s.taskQ <- task
 }
 
-func (s *Server) CfgIsSkipAuth() bool {
+func (s *Server) SkipAuth() bool {
 	return s.cfg.SkipAuth
 }
 
@@ -348,4 +348,5 @@ func (s *Server) onConn(c net.Conn) {
 	s.rwlock.Unlock()
 
 	conn.Run()
+	log.Info("close %s", conn)
 }

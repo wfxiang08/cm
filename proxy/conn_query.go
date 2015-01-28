@@ -81,15 +81,15 @@ func (c *Conn) handleQuery(sql string) (err error) {
 }
 
 func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Shard, error) {
-	var n []*Shard
-	names := c.server.GetShardNames()
-	if len(names) > 0 {
-		n = append(n, c.server.GetShard(names[0]))
+	var shards []*Shard
+	ids := c.server.GetShardIds()
+	if len(ids) > 0 {
+		shards = append(shards, c.server.GetShard(ids[0]))
 	}
 
 	//todo: using router info
 
-	return n, nil
+	return shards, nil
 }
 
 func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
@@ -289,7 +289,6 @@ func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
 			//todo: optimization
 			composedPk += v.String()
 			composedPk += "--"
-			log.Debugf("pkValue:%v", values)
 			if i%composedPkCnt == composedPkCnt-1 {
 				s = append(s, composedPk)
 				composedPk = "" //reset
@@ -301,7 +300,6 @@ func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
 				composedPk += "--"
 			}
 
-			log.Debugf("pkValue:%v", values)
 			if i%composedPkCnt == composedPkCnt-1 {
 				s = append(s, composedPk)
 				composedPk = ""
@@ -413,10 +411,10 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 
 	//just do simple cache now
 	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
-		pkValue := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("fill cache")
+		pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+		log.Debug("fill cache", pks)
 		c.server.IncCounter("fill")
-		ti.Cache.Set(pkValue[0], result.RowDatas[0], 0)
+		ti.Cache.Set(pks[0], result.RowDatas[0], 0)
 	}
 
 	return c.writeResultset(c.status, r)

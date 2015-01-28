@@ -148,7 +148,7 @@ func (c *Conn) readHandshakeResponse() error {
 	pos++
 	auth := data[pos : pos+authLen]
 	checkAuth := mysql.CalcPassword(c.salt, []byte(c.server.CfgGetPwd()))
-	if !bytes.Equal(auth, checkAuth) && !c.server.CfgIsSkipAuth() {
+	if !bytes.Equal(auth, checkAuth) && !c.server.SkipAuth() {
 		return errors.Trace(mysql.NewDefaultError(mysql.ER_ACCESS_DENIED_ERROR, c.c.RemoteAddr().String(), c.user, "Yes"))
 	}
 
