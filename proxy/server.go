@@ -341,12 +341,14 @@ func (s *Server) onConn(c net.Conn) {
 	const key = "connections"
 
 	s.IncCounter(key)
-	defer s.DecCounter(key)
+	defer func() {
+		s.DecCounter(key)
+		log.Infof("close %s", conn)
+	}()
 
 	s.rwlock.Lock()
 	s.clients[conn.connectionId] = conn
 	s.rwlock.Unlock()
 
 	conn.Run()
-	log.Info("close %s", conn)
 }
