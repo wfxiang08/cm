@@ -5,7 +5,7 @@ import (
 	"github.com/wandoulabs/cm/mysql"
 )
 
-func (c *Conn) isInTransaction() bool {
+func (c *Conn) inTransaction() bool {
 	return c.status&mysql.SERVER_STATUS_IN_TRANS > 0
 }
 
@@ -75,5 +75,5 @@ func (c *Conn) rollback() (err error) {
 //else no need
 //todo: rename this function
 func (c *Conn) needBeginTx() bool {
-	return c.isInTransaction() || !c.isAutoCommit()
+	return c.inTransaction() || !c.isAutoCommit()
 }

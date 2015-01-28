@@ -17,7 +17,8 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 			return errors.Errorf("support select one informaction function, %s", sql)
 		}
 	*/
-
+	//todo: handle multi set statement like: set x=1, y=2
+	log.Debug(sql)
 	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
 	if !ok {
 		return errors.Errorf("support select informaction function, %s", sql)
@@ -25,8 +26,6 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 
 	var funcExpr *sqlparser.FuncExpr
 	var specialColumn *sqlparser.ColName
-
-	log.Debug(sql)
 
 	switch v := expr.Expr.(type) {
 	case *sqlparser.FuncExpr:
@@ -65,6 +64,7 @@ func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) erro
 			r, err = c.buildSimpleSelectResult(c.user, funcExpr.Name, expr.As)
 		default:
 			log.Warning(c.connectionId, sql)
+			//todo: more strict
 			return errors.Trace(c.handleShow(stmt, sql, nil))
 			//return errors.Errorf("function %s not support, %+v", funcExpr.Name, funcExpr)
 		}

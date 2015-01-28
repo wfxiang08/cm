@@ -472,9 +472,8 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	c.server.IncCounter(plan.PlanId.String())
 
 	if ti != nil && len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
-		//todo: composed primary key support
-		keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		items := ti.Cache.Get(keys, ti.Columns)
+		pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+		items := ti.Cache.Get(pks, ti.Columns)
 		count := 0
 		for _, item := range items {
 			if item.Row != nil {
@@ -482,17 +481,17 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 			}
 		}
 
-		if count == len(keys) { //all cache hint
+		if count == len(pks) { //all cache hint
 			c.server.IncCounter("hint")
-			log.Info("hit cache!", sql, keys)
-			return c.writeCacheResults(plan, ti, keys, items)
+			log.Info("hit cache!", sql, pks)
+			return c.writeCacheResults(plan, ti, pks, items)
 		}
 
 		c.server.IncCounter("miss")
 
-		if plan.PlanId == planbuilder.PLAN_PK_IN && len(keys) == 1 {
+		if plan.PlanId == planbuilder.PLAN_PK_IN && len(pks) == 1 {
 			log.Infof("%s, %+v, %+v", sql, plan, stmt)
-			return c.fillCacheAndReturnResults(plan, ti, keys)
+			return c.fillCacheAndReturnResults(plan, ti, pks)
 		}
 	}
 
@@ -545,13 +544,12 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 			}
 
 			log.Debugf("%s %+v, %+v", sql, plan, plan.PKValues)
-			//todo: test composed pk
-			keys := pkValuesToStrings(ti.PKColumns, plan.PKValues)
+			pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
 
-			ti.Lock.Lock(hack.Slice(keys[0]))
-			defer ti.Lock.Unlock(hack.Slice(keys[0]))
+			ti.Lock.Lock(hack.Slice(pks[0]))
+			defer ti.Lock.Unlock(hack.Slice(pks[0]))
 
-			invalidCache(ti, keys)
+			invalidCache(ti, pks)
 		}
 	}
 
@@ -560,8 +558,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	if err != nil {
 		return errors.Trace(err)
 	} else if len(conns) == 0 { //todo:handle error
-		err := errors.Errorf("not server found %s", sql)
-		return errors.Trace(err)
+		return errors.Errorf("not server found %s", sql)
 	}
 
 	var rs []*mysql.Result
@@ -577,7 +574,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 }
 
 func (c *Conn) beginShardConns(conns []*mysql.SqlConn) error {
-	if c.isInTransaction() {
+	if c.inTransaction() {
 		return nil
 	}
 
@@ -591,7 +588,7 @@ func (c *Conn) beginShardConns(conns []*mysql.SqlConn) error {
 }
 
 func (c *Conn) commitShardConns(conns []*mysql.SqlConn) error {
-	if c.isInTransaction() {
+	if c.inTransaction() {
 		return nil
 	}
 

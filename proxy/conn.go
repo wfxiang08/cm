@@ -159,8 +159,6 @@ func (c *Conn) readHandshakeResponse() error {
 		}
 
 		db := string(data[pos : pos+bytes.IndexByte(data[pos:], 0)])
-		pos += len(c.db) + 1
-
 		if err := c.useDB(db); err != nil {
 			return errors.Trace(err)
 		}
