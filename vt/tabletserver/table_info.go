@@ -80,7 +80,7 @@ func (ti *TableInfo) fetchColumns(conn *mysql.MySqlConn) error {
 }
 
 func (ti *TableInfo) SetPK(colnames []string) error {
-	log.Debugf("SetPK %s", colnames)
+	log.Debugf("table %s SetPK %s", ti.Name, colnames)
 	pkIndex := schema.NewIndex("PRIMARY")
 	colnums := make([]int, len(colnames))
 	for i, colname := range colnames {

@@ -13,7 +13,8 @@ var nstring = sqlparser.String
 func (c *Conn) handleSet(stmt *sqlparser.Set, sql string) error {
 	switch stmt.Scope {
 	case "global":
-		log.Warning("set global")
+		log.Warningf("set global, %s", sql)
+		return errors.Errorf("set global not allowed, %s", sql)
 	case "session":
 		log.Warning("set session")
 	}
@@ -39,8 +40,8 @@ func (c *Conn) handleSetAutoCommit(val sqlparser.ValExpr, sql string) error {
 
 	switch value[0] {
 	case '1':
+		//default value is 1, no need to do anything
 		log.Warning("set autocommit 1")
-		//c.status |= SERVER_STATUS_AUTOCOMMIT //todo: extra to function
 	case '0':
 		log.Warning("set autocommit 0")
 		c.server.IncCounter("set autocommit 0")

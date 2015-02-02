@@ -14,7 +14,7 @@ import (
 	"github.com/wandoulabs/cm/proxy"
 )
 
-var configFile *string = flag.String("config", "./etc/cfg.json", "cm config file")
+var configFile = flag.String("config", "./etc/cfg.json", "cm config file")
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())

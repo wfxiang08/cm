@@ -12,12 +12,12 @@ import (
 )
 
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
+	//todo: handle multi set statement like: set x=1, y=2
 	/*
 		if len(stmt.SelectExprs) != 1 {
 			return errors.Errorf("support select one informaction function, %s", sql)
 		}
 	*/
-	//todo: handle multi set statement like: set x=1, y=2
 	log.Debug(sql)
 	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
 	if !ok {
@@ -105,7 +105,7 @@ func (c *Conn) handleFieldList(data []byte) error {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
 	}
 
-	//hard code
+	//hard code, assume all of the shard has the same schema
 	n := c.server.GetShard(shardName[0])
 	if n == nil {
 		return errors.Errorf("shard %s not found, %+v", shardName, c.schema)
