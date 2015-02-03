@@ -99,14 +99,13 @@ func (c *Conn) getShardIds(table string) ([]string, error) {
 	rule := r.GetRule(table)
 	var shardIds []string
 	if rule == nil {
+		return nil, errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
+	}
+
+	shardIds = rule.MapToShards
+	if len(shardIds) == 0 {
 		//using default rules
-		if len(r.Default) != 0 {
-			shardIds = r.Default
-		} else {
-			return nil, errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
-		}
-	} else {
-		shardIds = rule.MapToShards
+		shardIds = r.Default
 	}
 
 	return shardIds, nil
