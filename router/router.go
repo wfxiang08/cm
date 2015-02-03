@@ -6,7 +6,7 @@ import (
 
 type Router struct {
 	All     map[string]*config.TableRule //table name -> rules
-	Default []string
+	Default []string                     //default shards
 }
 
 func NewRouter(cfg *config.SchemaConfig) *Router {

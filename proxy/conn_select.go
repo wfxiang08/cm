@@ -94,25 +94,42 @@ func (c *Conn) buildSimpleSelectResult(value interface{}, name []byte, asName []
 	return r, nil
 }
 
+func (c *Conn) getShardIds(table string) ([]string, error) {
+	r := c.schema().r
+	rule := r.GetRule(table)
+	var shardIds []string
+	if rule == nil {
+		//using default rules
+		if len(r.Default) != 0 {
+			shardIds = r.Default
+		} else {
+			return nil, errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
+		}
+	} else {
+		shardIds = rule.MapToShards
+	}
+
+	return shardIds, nil
+}
+
 func (c *Conn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := hack.String(data[0:index])
 	wildcard := hack.String(data[index+1:])
-	rule := c.schema().r.GetRule(table)
-	if rule == nil {
-		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
+	shardIds, err := c.getShardIds(table)
+	if err != nil {
+		return err
 	}
 
-	shardName := rule.MapToShards
 	//todo: pass through
-	if len(shardName) == 0 {
+	if len(shardIds) == 0 {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
 	}
 
 	//hard code, assume all of the shard has the same schema
-	n := c.server.GetShard(shardName[0])
+	n := c.server.GetShard(shardIds[0])
 	if n == nil {
-		return errors.Errorf("shard %s not found, %+v", shardName, c.schema)
+		return errors.Errorf("shard %s not found, %+v", shardIds, c.schema)
 	}
 
 	co, err := n.getMasterConn()
