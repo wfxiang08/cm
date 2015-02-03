@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 	"github.com/juju/errors"
+	log "github.com/ngaut/logging"
 	"github.com/wandoulabs/cm/router"
 	"github.com/wandoulabs/cm/vt/tabletserver"
 	"strings"
@@ -39,12 +40,14 @@ func (s *Server) parseSchemas() error {
 		}
 
 		r := router.NewRouter(&schemaCfg)
-
-		s.schemas[db] = &Schema{
+		schema := &Schema{
 			db:     db,
 			shards: shards,
 			r:      r,
 		}
+
+		log.Infof("%+v", schema.r)
+		s.schemas[db] = schema
 	}
 
 	return nil

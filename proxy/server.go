@@ -185,7 +185,10 @@ func (s *Server) loadSchemaInfo() error {
 
 		//fix hard code node
 		sc := s.cfg.Shards[0]
-		s.autoSchamas[v.DB] = tabletserver.NewSchemaInfo(s.cfg.RowCacheConf, s.cfg.Shards[0].Master, sc.User, sc.Password, v.DB, overrides)
+		si := tabletserver.NewSchemaInfo(s.cfg.RowCacheConf, s.cfg.Shards[0].Master, sc.User, sc.Password, v.DB, overrides)
+
+		log.Infof("%+v", si)
+		s.autoSchamas[v.DB] = si
 	}
 
 	return nil
