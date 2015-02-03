@@ -172,13 +172,14 @@ func (s *Server) loadSchemaInfo() error {
 	for _, v := range s.cfg.Schemas {
 		rc := v.RouterConifg
 		var overrides []tabletserver.SchemaOverride
-		for _, sc := range rc.TableRule {
-			or := tabletserver.SchemaOverride{Name: sc.Table}
-			pks := strings.Split(sc.ShardingKey, ",")
+		for _, tr := range rc.TableRule {
+			or := tabletserver.SchemaOverride{Name: tr.Table}
+			pks := strings.Split(tr.ShardingKey, ",")
 			for _, pk := range pks {
 				or.PKColumns = append(or.PKColumns, strings.TrimSpace(pk))
 			}
-			or.Cache = &tabletserver.OverrideCacheDesc{Type: sc.RowCacheType, Prefix: or.Name, Table: or.Name}
+			log.Infof("table rule:%+v", tr)
+			or.Cache = &tabletserver.OverrideCacheDesc{Type: tr.RowCacheType, Prefix: or.Name, Table: or.Name}
 			overrides = append(overrides, or)
 		}
 

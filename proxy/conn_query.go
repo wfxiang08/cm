@@ -534,11 +534,11 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 
 		c.server.IncCounter(plan.PlanId.String())
 
-		if len(ti.PKColumns) != len(plan.PKValues) {
-			return errors.Errorf("updated/delete/replace without primary key not allowed %+v", plan.PKValues)
-		}
-
 		if ti.CacheType != schema.CACHE_NONE {
+			if len(ti.PKColumns) != len(plan.PKValues) {
+				return errors.Errorf("updated/delete/replace without primary key not allowed %+v", plan.PKValues)
+			}
+
 			if len(plan.PKValues) == 0 {
 				return errors.Errorf("pk not exist, sql: %s", sql)
 			}

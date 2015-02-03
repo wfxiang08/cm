@@ -98,8 +98,12 @@ func (c *Conn) handleFieldList(data []byte) error {
 	index := bytes.IndexByte(data, 0x00)
 	table := hack.String(data[0:index])
 	wildcard := hack.String(data[index+1:])
+	rule := c.schema().r.GetRule(table)
+	if rule == nil {
+		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
+	}
 
-	shardName := c.schema().r.GetRule(table).MapToShards
+	shardName := rule.MapToShards
 	//todo: pass through
 	if len(shardName) == 0 {
 		return errors.Errorf("no rule for table %s, %+v, please check config file", table, c.schema)
