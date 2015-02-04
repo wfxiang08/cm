@@ -242,14 +242,16 @@ func makeServer(configFile string) *Server {
 
 func NewServer(configFile string) (*Server, error) {
 	s := makeServer(configFile)
-	s.loadSchemaInfo()
+	err := s.loadSchemaInfo()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	netProto := "tcp"
 	if strings.Contains(netProto, "/") {
 		netProto = "unix"
 	}
 
-	var err error
 	s.listener, err = net.Listen(netProto, s.addr)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -272,6 +274,12 @@ func (s *Server) resetSchemaInfo() error {
 		}
 	}
 
+	cfg, err := config.ParseConfigFile(s.configFile)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
 	s.cleanup()
 	s.autoSchamas = make(map[string]*tabletserver.SchemaInfo)
 	for _, n := range s.shards {
@@ -281,18 +289,12 @@ func (s *Server) resetSchemaInfo() error {
 	s.shards = nil
 	s.schemas = nil
 
-	cfg, err := config.ParseConfigFile(s.configFile)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
 	log.Warningf("%#v", cfg)
 
 	log.SetLevelByString(cfg.LogLevel)
 
 	s.cfg = cfg
-	s.loadSchemaInfo()
-	return nil
+	return s.loadSchemaInfo()
 }
 
 func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
