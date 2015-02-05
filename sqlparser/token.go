@@ -284,6 +284,7 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			}
 
 			tkn.unReadByte()
+			tkn.lastChar = ch
 		}
 		return tkn.scanIdentifier()
 	case isDigit(ch):
