@@ -105,7 +105,7 @@ func (mc *Connection) Delete(key string) (deleted bool, err error) {
 	mc.writestrings("delete ", key, "\r\n")
 	reply := mc.readline()
 	if strings.Contains(reply, "ERROR") {
-		panic(NewMemcacheError("DELETE command, Server error:" + reply) xxx)
+		panic(NewMemcacheError("DELETE command, Server error:" + reply))
 	}
 	return strings.HasPrefix(reply, "DELETED"), nil
 }
