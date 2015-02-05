@@ -290,6 +290,8 @@ func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
 			composedPk += v.String()
 			composedPk += "--"
 			if i%composedPkCnt == composedPkCnt-1 {
+				//todo:handle tab
+				composedPk = strings.Replace(composedPk, " ", "_", -1)
 				s = append(s, composedPk)
 				composedPk = "" //reset
 			}
@@ -301,8 +303,10 @@ func pkValuesToStrings(PKColumns []int, pkValues []interface{}) []string {
 			}
 
 			if i%composedPkCnt == composedPkCnt-1 {
+				//todo:handle tab
+				composedPk = strings.Replace(composedPk, " ", "_", -1)
 				s = append(s, composedPk)
-				composedPk = ""
+				composedPk = "" //reset
 			}
 		default:
 			log.Fatal(v, reflect.TypeOf(v))
