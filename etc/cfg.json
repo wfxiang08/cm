@@ -146,7 +146,11 @@
                         "key": "id",
                         "row_cache_type": "RW",
                         "table": "tbl_pkey_blob_test"
-                    }
+                    },
+		   {
+                        "key": "id",
+			"table": "xdual"
+		   }
                 ]
             }
         }

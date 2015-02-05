@@ -105,7 +105,7 @@ func (mc *Connection) Delete(key string) (deleted bool, err error) {
 	mc.writestrings("delete ", key, "\r\n")
 	reply := mc.readline()
 	if strings.Contains(reply, "ERROR") {
-		panic(NewMemcacheError("Server error"))
+		panic(NewMemcacheError("DELETE command, Server error:" + reply))
 	}
 	return strings.HasPrefix(reply, "DELETED"), nil
 }
@@ -217,7 +217,7 @@ func (mc *Connection) store(command, key string, flags uint16, timeout uint64, v
 	reply := mc.readline()
 	//todo: liuqi, optimization by decode protocol
 	if strings.Contains(reply, "ERROR") {
-		panic(NewMemcacheError("Server error"))
+		panic(NewMemcacheError("store command, Server error:" + reply))
 	}
 	return strings.HasPrefix(reply, "STORED")
 }

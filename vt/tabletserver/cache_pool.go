@@ -42,7 +42,7 @@ func (c *RowCacheConfig) GetSubprocessFlags() []string {
 	cmd = append(cmd, c.Binary)
 	if c.Memory > 0 {
 		// memory is given in bytes and rowcache expects in MBs
-		cmd = append(cmd, "-m", strconv.Itoa(c.Memory/1024/1024))
+		cmd = append(cmd, "-m", strconv.Itoa(c.Memory*1024*1024))
 	}
 	if c.Socket != "" {
 		cmd = append(cmd, "-s", c.Socket)
