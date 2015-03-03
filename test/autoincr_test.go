@@ -8,7 +8,7 @@ type AutoIncrTestSuit struct {
 
 var _ = Suite(&AutoIncrTestSuit{
 	createStmts: map[string]string{
-		"tbl_autoincr": `create table tbl_autoincr_id (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), data int)`,
+		"tbl_autoincr": `create table tbl_autoincr (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), data int)`,
 	},
 })
 
@@ -21,7 +21,9 @@ func (s *AutoIncrTestSuit) SetUpTest(c *C) {
 }
 
 func (s *AutoIncrTestSuit) TearDownTest(c *C) {
-	dropTables()
+	for tblName, _ := range s.createStmts {
+		mustExec(mysqlDB, "drop table "+tblName)
+	}
 }
 
 func (s *AutoIncrTestSuit) Test(c *C) {

@@ -32,7 +32,9 @@ func (s *TypeTestSuit) SetUpTest(c *C) {
 }
 
 func (s *TypeTestSuit) TearDownTest(c *C) {
-	dropTables()
+	for tblName, _ := range s.createStmts {
+		mustExec(mysqlDB, "drop table "+tblName)
+	}
 }
 
 func (s *TypeTestSuit) TestInt(c *C) {

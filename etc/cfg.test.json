@@ -55,6 +55,18 @@
                         "key": "id",
                         "node": "node1",
                         "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"tbl_latin",
+                        "key": "id",
+                        "node": "node1",
+                        "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"tbl_utf8",
+                        "key": "id",
+                        "node": "node1",
+                        "row_cache_type":"RW"
                     }
                 ]
             },
