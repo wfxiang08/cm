@@ -67,7 +67,14 @@
                         "key": "id",
                         "node": "node1",
                         "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"tbl_trans",
+                        "key": "id",
+                        "node": "node1",
+                        "row_cache_type":"RW"
                     }
+
                 ]
             },
             "shard_ids": [
