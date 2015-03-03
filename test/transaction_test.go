@@ -27,6 +27,7 @@ func (s *TransTestSuit) TearDownTest(c *C) {
 }
 
 func (s *TransTestSuit) TestTrans(c *C) {
+	// commit
 	tx, err := proxyDB.Begin()
 	for i := 0; i < 1000; i++ {
 		tx.Exec("insert into tbl_trans values(?, 'a')", i)
