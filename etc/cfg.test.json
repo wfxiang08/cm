@@ -1,79 +1,73 @@
 {
-    "addr": "127.0.0.1:4000",
-    "user": "root",
+    "addr": "0.0.0.0:4000",
+    "log_level": "debug",
+    "skip_auth" : true,
     "password": "",
-    "log_level" : "debug",
-
-    "nodes" : [
-        {
-            "name" : "node1",
-            "down_after_noalive" : 0,
-            "idle_conns" : 16,
-            "rw_split" : false,
-            "master" : "127.0.0.1:3306",
-            "slave" : "",
-            "user" : "root",
-            "password": ""
-        }
-    ],
-
-    "schemas" : [
+    "rowcache_conf": {
+        "binary": "/usr/bin/memcached",
+        "connections": 1024,
+        "lock_paged": false,
+        "mem": 128,
+        "port": 11222,
+        "socket": "",
+        "threads": -1
+    },
+    "schemas": [
         {
             "db": "test",
-            "nodes" : ["node1"],
-            "rules" : {
-                "default" : "node1",
-                "shard" : [
+            "router": {
+                "default_shards": [
+                    "shard1"
+                ],
+                "table_rules": [
                     {
-                        "table":"autoincr_test",
+                        "table":"tbl_double",
                         "key": "id",
                         "node": "node1",
-		                "row_cache_type":"RW"
+                        "row_cache_type":"RW"
                     },
                     {
-                        "table":"int_test",
+                        "table":"tbl_int",
                         "key": "id",
                         "node": "node1",
-		                "row_cache_type":"RW"
+                        "row_cache_type":"RW"
                     },
                     {
-                        "table":"double_test",
+                        "table":"tbl_blob",
                         "key": "id",
                         "node": "node1",
-		                "row_cache_type":"RW"
+                        "row_cache_type":"RW"
                     },
                     {
-                        "table":"varchar_test",
+                        "table":"tbl_text",
                         "key": "id",
                         "node": "node1",
-		                "row_cache_type":"RW"
+                        "row_cache_type":"RW"
                     },
                     {
-                        "table":"text_test",
+                        "table":"tbl_varchar",
                         "key": "id",
                         "node": "node1",
-		                "row_cache_type":"RW"
-                    },
-                    {
-                        "table":"blob_test",
-                        "key": "id",
-                        "node": "node1",
-		                "row_cache_type":"RW"
-                    },
-                    {
-                        "table":"datetime_test",
-                        "key": "id",
-                        "node": "node1",
-		                "row_cache_type":"RW"
-                    },
-                    {
-                        "table":"date_test",
-                        "key": "id",
-                        "node": "node1",
-		                "row_cache_type":"RW"
+                        "row_cache_type":"RW"
                     }
                 ]
-            }
+            },
+            "shard_ids": [
+                "shard1"
+            ]
         }
-   ]
+    ],
+    "shards": [
+        {
+            "down_after_noalive": 0,
+            "id": "shard1",
+            "idle_conns": 100,
+            "master": "127.0.0.1:3306",
+            "password": "",
+            "rw_split": false,
+            "slave": "",
+            "user": "root"
+        }
+    ],
+    "user": "root"
 }
