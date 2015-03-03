@@ -1,7 +1,9 @@
 package test
 
 import (
+	"bytes"
 	"math"
+	"time"
 
 	. "gopkg.in/check.v1"
 )
@@ -12,11 +14,12 @@ type TypeTestSuit struct {
 
 var _ = Suite(&TypeTestSuit{
 	createStmts: map[string]string{
-		"tbl_int":     `create table tbl_int (id int, data int)`,
-		"tbl_double":  `create table tbl_double (id int, data double)`,
-		"tbl_blob":    `create table tbl_blob (id int, data blob)`,
-		"tbl_text":    `create table tbl_text (id int, data text)`,
-		"tbl_varchar": `create table tbl_varchar (id int, data varchar(50))`,
+		"tbl_int":      `create table tbl_int (id int, data int)`,
+		"tbl_double":   `create table tbl_double (id int, data double)`,
+		"tbl_blob":     `create table tbl_blob (id int, data blob)`,
+		"tbl_text":     `create table tbl_text (id int, data text)`,
+		"tbl_varchar":  `create table tbl_varchar (id int, data varchar(50))`,
+		"tbl_datetime": `create table tbl_datetime (id int, data datetime)`,
 	},
 })
 
@@ -103,6 +106,42 @@ func (s *TypeTestSuit) TestDouble(c *C) {
 	c.Assert(rowsAffected, Equals, int64(1))
 }
 
+func (s *TypeTestSuit) TestBlob(c *C) {
+	// insert
+	r := mustExec(proxyDB, "insert into tbl_blob values(1, ?)", []byte{1, 2, 3, 4})
+	rowsAffected, err := r.RowsAffected()
+	c.Assert(err, Equals, nil)
+	c.Assert(rowsAffected, Equals, int64(1))
+
+	// query
+	rs := mustQuery(proxyDB, "select data from tbl_blob where id = 1")
+	defer rs.Close()
+
+	for rs.Next() {
+		var data []byte
+		err := rs.Scan(&data)
+		c.Assert(err, Equals, nil)
+		c.Assert(bytes.Equal(data, []byte{1, 2, 3, 4}), Equals, true)
+	}
+
+	// update
+	mustExec(proxyDB, "update tbl_blob set data = ? where id = 1", []byte{5, 6, 7, 8})
+	rs = mustQuery(proxyDB, "select data from tbl_blob where id = 1")
+	defer rs.Close()
+	for rs.Next() {
+		var data []byte
+		err := rs.Scan(&data)
+		c.Assert(err, Equals, nil)
+		c.Assert(bytes.Equal(data, []byte{5, 6, 7, 8}), Equals, true)
+	}
+
+	// remove
+	r = mustExec(proxyDB, "delete from tbl_blob where id = 1")
+	rowsAffected, err = r.RowsAffected()
+	c.Assert(err, Equals, nil)
+	c.Assert(rowsAffected, Equals, int64(1))
+}
+
 func (s *TypeTestSuit) TestVarchar(c *C) {
 	// insert
 	r := mustExec(proxyDB, "insert into tbl_varchar values(1, 'hello')")
@@ -137,4 +176,24 @@ func (s *TypeTestSuit) TestVarchar(c *C) {
 	rowsAffected, err = r.RowsAffected()
 	c.Assert(err, Equals, nil)
 	c.Assert(rowsAffected, Equals, int64(1))
+}
+
+func (s *TypeTestSuit) TestDateTime(c *C) {
+	// insert
+	now := time.Now()
+	r := mustExec(proxyDB, "insert into tbl_datetime values(?, ?)", 1, now)
+	rowsAffected, err := r.RowsAffected()
+	c.Assert(err, Equals, nil)
+	c.Assert(rowsAffected, Equals, int64(1))
+
+	// query
+	rs := mustQuery(proxyDB, "select data from tbl_datetime where id = 1")
+	defer rs.Close()
+
+	for rs.Next() {
+		var data string
+		err := rs.Scan(&data)
+		c.Assert(err, Equals, nil)
+		c.Assert(data, Equals, now.Format("2006-01-02 15:04:05"))
+	}
 }
