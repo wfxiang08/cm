@@ -1,0 +1,79 @@
+{
+    "addr": "127.0.0.1:4000",
+    "user": "root",
+    "password": "",
+    "log_level" : "debug",
+
+    "nodes" : [
+        {
+            "name" : "node1",
+            "down_after_noalive" : 0,
+            "idle_conns" : 16,
+            "rw_split" : false,
+            "master" : "127.0.0.1:3306",
+            "slave" : "",
+            "user" : "root",
+            "password": ""
+        }
+    ],
+
+    "schemas" : [
+        {
+            "db": "test",
+            "nodes" : ["node1"],
+            "rules" : {
+                "default" : "node1",
+                "shard" : [
+                    {
+                        "table":"autoincr_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"int_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"double_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"varchar_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"text_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"blob_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"datetime_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    },
+                    {
+                        "table":"date_test",
+                        "key": "id",
+                        "node": "node1",
+		                "row_cache_type":"RW"
+                    }
+                ]
+            }
+        }
+   ]
+}

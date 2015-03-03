@@ -5,7 +5,5 @@ if [ ! -f bootstrap.sh ]; then
   exit 1
 fi
 
-source ./dev.env
-
 go get github.com/wandoulabs/go-log/log
 go get github.com/wandoulabs/go-yaml/yaml

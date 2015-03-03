@@ -1,9 +1,0 @@
-{
-	"suit_name" : "blob_test",
-	"table_name" : "tbl_blob_test",
-	"data_type" : "BLOB",
-	"data_type_go" : "[]byte",
-	"id" : "1",
-	"data" : "[]byte(\"\\xff\")",
-	"data_updated" : "[]byte(\"\\xfe\")"
-}
