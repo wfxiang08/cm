@@ -44,7 +44,7 @@ idle_conns = 100
 master =  "127.0.0.1:3306"
 password = ""
 rw_split = false
-slave = ""
+slave = []
 user = "root"
 
 `

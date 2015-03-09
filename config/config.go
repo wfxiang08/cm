@@ -34,8 +34,8 @@ type ShardConfig struct {
 	User     string `json:"user" toml:"user"`
 	Password string `json:"password" toml:"password"`
 
-	Master string `json:"master" toml:"master"`
-	Slave  string `json:"slave" toml:"slave"`
+	Master string   `json:"master" toml:"master"`
+	Slave  []string `json:"slave" toml:"slave"`
 }
 
 type Config struct {

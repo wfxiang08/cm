@@ -1,5 +1,5 @@
 addr = "0.0.0.0:4000"
-log_level = "debug"
+log_level = "error"
 skip_auth = true
 password = ""
 
@@ -21,47 +21,57 @@ shard_ids = ["shard1"]
 
     [[schemas.router.table_rules]]
     table = "tbl_int"
-    node = "node1"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_text"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_double"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_blob"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_varchar"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_datetime"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_datetime"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_latin"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_utf8"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_trans"
+    key = "id"
     row_cache_type = "RW"
 
     [[schemas.router.table_rules]]
     table = "tbl_autoincr"
+    key = "id"
     row_cache_type = "RW"
 
 [[shards]]
@@ -71,6 +81,6 @@ idle_conns = 100
 master =  "127.0.0.1:3306"
 password = ""
 rw_split = false
-slave = ""
+slave = []
 user = "root"
 
