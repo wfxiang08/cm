@@ -12,6 +12,7 @@ import (
 	"github.com/juju/errors"
 	"github.com/ngaut/cache"
 	log "github.com/ngaut/logging"
+	"github.com/wandoulabs/cm/config"
 	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -76,7 +77,7 @@ type SchemaInfo struct {
 	lastChange time.Time
 }
 
-func NewSchemaInfo(rowCacheConf RowCacheConfig, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
+func NewSchemaInfo(rowCacheConf config.RowCacheConfig, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
 	si := &SchemaInfo{
 		queries:   cache.NewLRUCache(128 * 1024 * 1024),
 		tables:    make(map[string]*TableInfo),

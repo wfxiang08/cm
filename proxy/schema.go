@@ -2,11 +2,12 @@ package proxy
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
+	"github.com/wandoulabs/cm/config"
 	"github.com/wandoulabs/cm/router"
-	"github.com/wandoulabs/cm/vt/tabletserver"
-	"strings"
 )
 
 type Schema struct {
@@ -67,6 +68,6 @@ func (s *Server) MapToShards(db string, table string) []string {
 	return r.Default
 }
 
-func (s *Server) parseRowCacheCfg() tabletserver.RowCacheConfig {
+func (s *Server) parseRowCacheCfg() config.RowCacheConfig {
 	return s.cfg.RowCacheConf
 }

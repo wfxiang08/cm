@@ -17,6 +17,7 @@ import (
 	"github.com/ngaut/memcache"
 	"github.com/ngaut/pools"
 	"github.com/ngaut/sync2"
+	"github.com/wandoulabs/cm/config"
 )
 
 const statsURL = "/debug/memcache/"
@@ -24,43 +25,6 @@ const statsURL = "/debug/memcache/"
 type CreateCacheFunc func() (*memcache.Connection, error)
 
 //todo: copy from vitess
-type RowCacheConfig struct {
-	Binary      string `json:"binary"`
-	Memory      int    `json:"mem"`
-	Socket      string `json:"socket"`
-	TcpPort     int    `json:"port"`
-	Connections int    `json:"connections"`
-	Threads     int    `json:"threads"`
-	LockPaged   bool   `json:"lock_paged"`
-}
-
-func (c *RowCacheConfig) GetSubprocessFlags() []string {
-	cmd := []string{}
-	if c.Binary == "" {
-		return cmd
-	}
-	cmd = append(cmd, c.Binary)
-	if c.Memory > 0 {
-		// memory is given in bytes and rowcache expects in MBs
-		cmd = append(cmd, "-m", strconv.Itoa(c.Memory))
-	}
-	if c.Socket != "" {
-		cmd = append(cmd, "-s", c.Socket)
-	}
-	if c.TcpPort > 0 {
-		cmd = append(cmd, "-p", strconv.Itoa(c.TcpPort))
-	}
-	if c.Connections > 0 {
-		cmd = append(cmd, "-c", strconv.Itoa(c.Connections))
-	}
-	if c.Threads > 0 {
-		cmd = append(cmd, "-t", strconv.Itoa(c.Threads))
-	}
-	if c.LockPaged {
-		cmd = append(cmd, "-k")
-	}
-	return cmd
-}
 
 var maxPrefix sync2.AtomicInt64
 
@@ -72,7 +36,7 @@ type CachePool struct {
 	name           string
 	pool           *pools.ResourcePool
 	cmd            *exec.Cmd
-	rowCacheConfig RowCacheConfig
+	rowCacheConfig config.RowCacheConfig
 	capacity       int
 	port           string
 	idleTimeout    time.Duration
@@ -81,7 +45,7 @@ type CachePool struct {
 	mu             sync.Mutex
 }
 
-func NewCachePool(name string, rowCacheConfig RowCacheConfig, queryTimeout time.Duration, idleTimeout time.Duration) *CachePool {
+func NewCachePool(name string, rowCacheConfig config.RowCacheConfig, queryTimeout time.Duration, idleTimeout time.Duration) *CachePool {
 	cp := &CachePool{name: name, idleTimeout: idleTimeout}
 	if rowCacheConfig.Binary == "" {
 		return cp

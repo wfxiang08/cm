@@ -1,0 +1,76 @@
+addr = "0.0.0.0:4000"
+log_level = "debug"
+skip_auth = true
+password = ""
+
+[rowcache_conf]
+binary = "/usr/bin/memcached"
+connections = 1024
+lock_paged = false
+mem = 128
+port = 11222
+threads = -1
+socket = ""
+
+[[schemas]]
+db = "test"
+shard_ids = ["shard1"]
+
+[schemas.router]
+    default_shards = ["shard1"]
+
+    [[schemas.router.table_rules]]
+    table = "tbl_int"
+    node = "node1"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_text"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_double"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_blob"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_varchar"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_datetime"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_datetime"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_latin"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_utf8"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_trans"
+    row_cache_type = "RW"
+
+    [[schemas.router.table_rules]]
+    table = "tbl_autoincr"
+    row_cache_type = "RW"
+
+[[shards]]
+id = "shard1"
+down_after_noalive = 0
+idle_conns = 100
+master =  "127.0.0.1:3306"
+password = ""
+rw_split = false
+slave = ""
+user = "root"
+
