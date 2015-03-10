@@ -6,7 +6,7 @@ import (
 	"github.com/wandoulabs/cm/sqlparser"
 )
 
-func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}, skipCache bool) error {
+func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}) error {
 	conns, err := c.getShardConns(false, stmt)
 	if err != nil {
 		return errors.Trace(err)

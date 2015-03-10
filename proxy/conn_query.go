@@ -46,16 +46,16 @@ func (c *Conn) handleQuery(sql string) (err error) {
 		return c.handleSelect(v, sql, nil)
 	case *sqlparser.Insert:
 		c.server.IncCounter("insert")
-		return c.handleExec(stmt, sql, nil, true)
+		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Replace:
 		c.server.IncCounter("replace")
-		return c.handleExec(stmt, sql, nil, false)
+		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Update:
 		c.server.IncCounter("update")
-		return c.handleExec(stmt, sql, nil, false)
+		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Delete:
 		c.server.IncCounter("delete")
-		return c.handleExec(stmt, sql, nil, false)
+		return c.handleExec(stmt, sql, nil)
 	case *sqlparser.Set:
 		c.server.IncCounter("set")
 		return c.handleSet(v, sql)
