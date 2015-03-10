@@ -11,13 +11,26 @@ import (
 	"github.com/wandoulabs/cm/sqlparser"
 )
 
+func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
+	conns, err := c.getShardConns(true, stmt)
+	if err != nil {
+		return errors.Trace(err)
+	} else if len(conns) == 0 { //todo:handle error
+		r := c.newEmptyResultset(stmt)
+		return c.writeResultset(c.status, r)
+	}
+
+	var rs []*mysql.Result
+	rs, err = c.executeInShard(conns, sql, args)
+	c.closeShardConns(conns)
+	if err == nil {
+		err = c.mergeSelectResult(rs, stmt)
+	}
+
+	return errors.Trace(err)
+}
+
 func (c *Conn) handleSimpleSelect(sql string, stmt *sqlparser.SimpleSelect) error {
-	//todo: handle multi set statement like: set x=1, y=2
-	/*
-		if len(stmt.SelectExprs) != 1 {
-			return errors.Errorf("support select one informaction function, %s", sql)
-		}
-	*/
 	log.Debug(sql)
 	expr, ok := stmt.SelectExprs[0].(*sqlparser.NonStarExpr)
 	if !ok {

@@ -315,26 +315,6 @@ func getFieldNames(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo) []sch
 	return fields
 }
 
-func (c *Conn) writeCacheResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string, items map[string]tabletserver.RCResult) error {
-	values := make([]mysql.RowValue, 0, len(keys))
-	for _, key := range keys {
-		row, ok := items[key]
-		if !ok {
-			log.Fatal("should never happend")
-		}
-		retValue := applyFilter(plan.ColumnNumbers, row.Row)
-		values = append(values, retValue)
-	}
-
-	r, err := c.buildResultset(getFieldNames(plan, ti), values)
-	if err != nil {
-		log.Error(err)
-		return errors.Trace(err)
-	}
-
-	return errors.Trace(c.writeResultset(c.status, r))
-}
-
 //todo: test select a == b && c == d
 //select c ==d && a == b
 func generateSelectSql(ti *tabletserver.TableInfo, plan *planbuilder.ExecPlan) (string, error) {
@@ -362,56 +342,6 @@ func generateSelectSql(ti *tabletserver.TableInfo, plan *planbuilder.ExecPlan) (
 	buf.WriteString(";")
 
 	return buf.String(), nil
-}
-
-func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tabletserver.TableInfo, keys []string) error {
-	rowsql, err := generateSelectSql(ti, plan)
-	log.Info(rowsql)
-
-	ti.Lock.Lock(hack.Slice(keys[0]))
-	defer ti.Lock.Unlock(hack.Slice(keys[0]))
-
-	conns, err := c.getShardConns(true, nil)
-	if err != nil {
-		return errors.Trace(err)
-	} else if len(conns) == 0 {
-		return errors.Errorf("not enough connection for %s", rowsql)
-	}
-
-	rs, err := c.executeInShard(conns, rowsql, nil)
-	defer c.closeShardConns(conns)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	//todo:fix hard code
-	result := rs[0]
-
-	if len(result.Values) == 0 {
-		log.Debug("empty set")
-		return c.writeResultset(result.Status, result.Resultset)
-	}
-
-	//log.Debugf("%+v", result.Values[0])
-
-	retValues := applyFilter(plan.ColumnNumbers, result.Values[0])
-	//log.Debug(len(retValues), len(keys))
-
-	r, err := c.buildResultset(getFieldNames(plan, ti), []mysql.RowValue{retValues})
-	if err != nil {
-		log.Error(err)
-		return errors.Trace(err)
-	}
-
-	//just do simple cache now
-	if len(result.Values) == 1 && len(keys) == 1 && ti.CacheType != schema.CACHE_NONE {
-		pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		log.Debug("fill cache", pks)
-		c.server.IncCounter("fill")
-		ti.Cache.Set(pks[0], result.RowDatas[0], 0)
-	}
-
-	return c.writeResultset(c.status, r)
 }
 
 func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args []interface{}) error {
@@ -451,117 +381,6 @@ func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args [
 	}
 
 	return errors.Trace(c.writeResultset(status, r))
-}
-
-func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface{}) error {
-	// handle cache
-	plan, ti, err := c.getPlanAndTableInfo(stmt)
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	log.Debugf("handleSelect %s, %+v", sql, plan.PKValues)
-
-	c.server.IncCounter(plan.PlanId.String())
-
-	if ti != nil && len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
-		pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-		items := ti.Cache.Get(pks, ti.Columns)
-		count := 0
-		for _, item := range items {
-			if item.Row != nil {
-				count++
-			}
-		}
-
-		if count == len(pks) { //all cache hint
-			c.server.IncCounter("hint")
-			log.Info("hit cache!", sql, pks)
-			return c.writeCacheResults(plan, ti, pks, items)
-		}
-
-		c.server.IncCounter("miss")
-
-		if plan.PlanId == planbuilder.PLAN_PK_IN && len(pks) == 1 {
-			log.Infof("%s, %+v, %+v", sql, plan, stmt)
-			return c.fillCacheAndReturnResults(plan, ti, pks)
-		}
-	}
-
-	conns, err := c.getShardConns(true, stmt)
-	if err != nil {
-		return errors.Trace(err)
-	} else if len(conns) == 0 { //todo:handle error
-		r := c.newEmptyResultset(stmt)
-		return c.writeResultset(c.status, r)
-	}
-
-	var rs []*mysql.Result
-	rs, err = c.executeInShard(conns, sql, args)
-	c.closeShardConns(conns)
-	if err == nil {
-		err = c.mergeSelectResult(rs, stmt)
-	}
-
-	return errors.Trace(err)
-}
-
-func invalidCache(ti *tabletserver.TableInfo, keys []string) {
-	for _, key := range keys {
-		ti.Cache.Delete(key)
-	}
-}
-
-func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface{}, skipCache bool) error {
-	if !skipCache {
-		// handle cache
-		plan, ti, err := c.getPlanAndTableInfo(stmt)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		if ti == nil {
-			return errors.Errorf("sql: %s not support", sql)
-		}
-
-		c.server.IncCounter(plan.PlanId.String())
-
-		if ti.CacheType != schema.CACHE_NONE {
-			if len(ti.PKColumns) != len(plan.PKValues) {
-				return errors.Errorf("updated/delete/replace without primary key not allowed %+v", plan.PKValues)
-			}
-
-			if len(plan.PKValues) == 0 {
-				return errors.Errorf("pk not exist, sql: %s", sql)
-			}
-
-			log.Debugf("%s %+v, %+v", sql, plan, plan.PKValues)
-			pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
-
-			ti.Lock.Lock(hack.Slice(pks[0]))
-			defer ti.Lock.Unlock(hack.Slice(pks[0]))
-
-			invalidCache(ti, pks)
-		}
-	}
-
-	conns, err := c.getShardConns(false, stmt)
-	if err != nil {
-		return errors.Trace(err)
-	} else if len(conns) == 0 { //todo:handle error
-		return errors.Errorf("not server found %s", sql)
-	}
-
-	var rs []*mysql.Result
-	rs, err = c.executeInShard(conns, sql, args)
-
-	c.closeShardConns(conns)
-
-	if err == nil {
-		err = c.mergeExecResult(rs)
-	}
-
-	return errors.Trace(err)
 }
 
 func (c *Conn) beginShardConns(conns []*mysql.SqlConn) error {
