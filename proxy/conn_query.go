@@ -80,7 +80,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 	}
 }
 
-func (c *Conn) getShardList(stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*Shard, error) {
+func (c *Conn) getShardList(stmt sqlparser.Statement) ([]*Shard, error) {
 	var shards []*Shard
 	ids := c.server.GetShardIds()
 	if len(ids) > 0 {
@@ -129,8 +129,8 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 	return
 }
 
-func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*mysql.SqlConn, error) {
-	shards, err := c.getShardList(stmt, bindVars)
+func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement) ([]*mysql.SqlConn, error) {
+	shards, err := c.getShardList(stmt)
 	if err != nil {
 		return nil, errors.Trace(err)
 	} else if shards == nil {
@@ -221,16 +221,6 @@ func (c *Conn) newEmptyResultset(stmt *sqlparser.Select) *mysql.Resultset {
 	r.RowDatas = make([]mysql.RowData, 0)
 
 	return r
-}
-
-func makeBindVars(args []interface{}) map[string]interface{} {
-	bindVars := make(map[string]interface{}, len(args))
-
-	for i, v := range args {
-		bindVars[fmt.Sprintf("v%d", i+1)] = v
-	}
-
-	return bindVars
 }
 
 func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
@@ -381,7 +371,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 	ti.Lock.Lock(hack.Slice(keys[0]))
 	defer ti.Lock.Unlock(hack.Slice(keys[0]))
 
-	conns, err := c.getShardConns(true, nil, nil)
+	conns, err := c.getShardConns(true, nil)
 	if err != nil {
 		return errors.Trace(err)
 	} else if len(conns) == 0 {
@@ -426,8 +416,7 @@ func (c *Conn) fillCacheAndReturnResults(plan *planbuilder.ExecPlan, ti *tablets
 
 func (c *Conn) handleShow(stmt sqlparser.Statement /*Other*/, sql string, args []interface{}) error {
 	log.Debug(sql)
-	bindVars := makeBindVars(args)
-	conns, err := c.getShardConns(true, stmt, bindVars)
+	conns, err := c.getShardConns(true, stmt)
 	if err != nil {
 		return errors.Trace(err)
 	} else if len(conns) == 0 {
@@ -499,8 +488,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		}
 	}
 
-	bindVars := makeBindVars(args)
-	conns, err := c.getShardConns(true, stmt, bindVars)
+	conns, err := c.getShardConns(true, stmt)
 	if err != nil {
 		return errors.Trace(err)
 	} else if len(conns) == 0 { //todo:handle error
@@ -557,8 +545,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 		}
 	}
 
-	bindVars := makeBindVars(args)
-	conns, err := c.getShardConns(false, stmt, bindVars)
+	conns, err := c.getShardConns(false, stmt)
 	if err != nil {
 		return errors.Trace(err)
 	} else if len(conns) == 0 { //todo:handle error
