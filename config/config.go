@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -14,7 +13,6 @@ type SchemaConfig struct {
 	DB           string       `json:"db" toml:"db"`
 	ShardIds     []string     `json:"shard_ids" toml:"shard_ids"`
 	RouterConifg RouterConfig `json:"router" toml:"router"`
-	CacheSize    int          `json:"cache_size,string" toml:"cache_size"` //m
 }
 
 type RouterConfig struct {
@@ -39,52 +37,13 @@ type ShardConfig struct {
 }
 
 type Config struct {
-	Addr         string         `json:"addr" toml:"addr"`
-	User         string         `json:"user" toml:"user"`
-	Password     string         `json:"password" toml:"password"`
-	LogLevel     string         `json:"log_level" toml:"log_level"`
-	SkipAuth     bool           `json:"skip_auth" toml:"skip_auth"`
-	Shards       []ShardConfig  `json:"shards" toml:"shards"`
-	Schemas      []SchemaConfig `json:"schemas" toml:"schemas"`
-	RowCacheConf RowCacheConfig `json:"rowcache_conf" toml:"rowcache_conf"`
-}
-
-type RowCacheConfig struct {
-	Binary      string `json:"binary" toml:"binary"`
-	Memory      int    `json:"mem" toml:"mem"`
-	Socket      string `json:"socket" toml:"socket"`
-	TcpPort     int    `json:"port" toml:"port"`
-	Connections int    `json:"connections" toml:"connections"`
-	Threads     int    `json:"threads" toml:"threads"`
-	LockPaged   bool   `json:"lock_paged" toml:"lock_paged"`
-}
-
-func (c *RowCacheConfig) GetSubprocessFlags() []string {
-	cmd := []string{}
-	if c.Binary == "" {
-		return cmd
-	}
-	cmd = append(cmd, c.Binary)
-	if c.Memory > 0 {
-		// memory is given in bytes and rowcache expects in MBs
-		cmd = append(cmd, "-m", strconv.Itoa(c.Memory))
-	}
-	if c.Socket != "" {
-		cmd = append(cmd, "-s", c.Socket)
-	}
-	if c.TcpPort > 0 {
-		cmd = append(cmd, "-p", strconv.Itoa(c.TcpPort))
-	}
-	if c.Connections > 0 {
-		cmd = append(cmd, "-c", strconv.Itoa(c.Connections))
-	}
-	if c.Threads > 0 {
-		cmd = append(cmd, "-t", strconv.Itoa(c.Threads))
-	}
-	if c.LockPaged {
-		cmd = append(cmd, "-k")
-	}
-	return cmd
+	Addr     string         `json:"addr" toml:"addr"`
+	User     string         `json:"user" toml:"user"`
+	Password string         `json:"password" toml:"password"`
+	LogLevel string         `json:"log_level" toml:"log_level"`
+	SkipAuth bool           `json:"skip_auth" toml:"skip_auth"`
+	Shards   []ShardConfig  `json:"shards" toml:"shards"`
+	Schemas  []SchemaConfig `json:"schemas" toml:"schemas"`
 }
 
 func ParseConfigJsonData(data []byte) (*Config, error) {

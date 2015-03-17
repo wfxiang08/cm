@@ -234,8 +234,7 @@ func (c *Conn) getTableSchema(tableName string) (table *schema.Table, ok bool) {
 		log.Debug("check if system table", tableName)
 		if strings.Index(strings.ToLower(tableName), "information_schema") >= 0 { //system table
 			return &schema.Table{
-				Name:      tableName,
-				CacheType: schema.CACHE_NONE,
+				Name: tableName,
 			}, true
 		} else {
 			return nil, false

@@ -6,7 +6,6 @@ import (
 
 	"github.com/juju/errors"
 	log "github.com/ngaut/logging"
-	"github.com/wandoulabs/cm/config"
 	"github.com/wandoulabs/cm/router"
 )
 
@@ -66,8 +65,4 @@ func (s *Server) MapToShards(db string, table string) []string {
 	}
 
 	return r.Default
-}
-
-func (s *Server) parseRowCacheCfg() config.RowCacheConfig {
-	return s.cfg.RowCacheConf
 }

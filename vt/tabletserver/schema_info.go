@@ -12,7 +12,6 @@ import (
 	"github.com/juju/errors"
 	"github.com/ngaut/cache"
 	log "github.com/ngaut/logging"
-	"github.com/wandoulabs/cm/config"
 	"github.com/wandoulabs/cm/mysql"
 	"github.com/wandoulabs/cm/sqltypes"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -72,16 +71,14 @@ type SchemaInfo struct {
 	tables     map[string]*TableInfo
 	overrides  []SchemaOverride
 	queries    *cache.LRUCache
-	cachePool  *CachePool
 	connPool   *mysql.DB
 	lastChange time.Time
 }
 
-func NewSchemaInfo(rowCacheConf config.RowCacheConfig, dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
+func NewSchemaInfo(dbAddr string, user, pwd, dbName string, overrides []SchemaOverride) *SchemaInfo {
 	si := &SchemaInfo{
-		queries:   cache.NewLRUCache(128 * 1024 * 1024),
-		tables:    make(map[string]*TableInfo),
-		cachePool: NewCachePool(dbName, rowCacheConf, 3*time.Second, 3*time.Second),
+		queries: cache.NewLRUCache(128 * 1024 * 1024),
+		tables:  make(map[string]*TableInfo),
 	}
 
 	var err error
@@ -93,7 +90,6 @@ func NewSchemaInfo(rowCacheConf config.RowCacheConfig, dbAddr string, user, pwd,
 	si.overrides = overrides
 	si.connPool.SetMaxIdleConnNum(100)
 	log.Infof("%+v", si.overrides)
-	si.cachePool.Open()
 
 	for _, or := range si.overrides {
 		si.CreateOrUpdateTable(or.Name)
@@ -118,37 +114,6 @@ func (si *SchemaInfo) override() {
 				continue
 			}
 		}
-		if si.cachePool.IsClosed() || override.Cache == nil {
-			log.Infof("%+v", override)
-			continue
-		}
-
-		switch override.Cache.Type {
-		case "RW":
-			table.CacheType = schema.CACHE_RW
-			table.Cache = NewRowCache(table, si.cachePool)
-		case "W":
-			table.CacheType = schema.CACHE_W
-			if len(override.Cache.Table) == 0 {
-				log.Warningf("Incomplete cache specs: %v", override)
-				continue
-			}
-
-			totable, ok := si.tables[override.Cache.Table]
-			if !ok {
-				log.Warningf("Table not found: %v", override)
-				continue
-			}
-
-			if totable.Cache == nil {
-				log.Warningf("Table has no cache: %v", override)
-				continue
-			}
-
-			table.Cache = totable.Cache
-		default:
-			log.Warningf("Ignoring cache override: %+v", override)
-		}
 	}
 }
 
@@ -156,7 +121,6 @@ func (si *SchemaInfo) Close() {
 	si.tables = nil
 	si.overrides = nil
 	si.queries.Clear()
-	si.cachePool.Close()
 	si.connPool.Close()
 }
 
@@ -213,7 +177,6 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 		string(tables.Values[0][1].([]byte)), // table_type
 		create_time,
 		string(tables.Values[0][3].([]byte)), // table_comment
-		si.cachePool,
 	)
 	if err != nil {
 		// This can happen if DDLs race with each other.
@@ -229,12 +192,6 @@ func (si *SchemaInfo) CreateOrUpdateTable(tableName string) {
 		log.Infof("Updating table %s", tableName)
 	}
 	si.tables[tableName] = tableInfo
-
-	if tableInfo.CacheType == schema.CACHE_NONE {
-		log.Infof("Initialized table: %s", tableName)
-	} else {
-		log.Infof("Initialized cached table: %s, prefix: %s", tableName, tableInfo.Cache.prefix)
-	}
 }
 
 func (si *SchemaInfo) DropTable(tableName string) {
@@ -270,30 +227,6 @@ func (si *SchemaInfo) SetQueryCacheSize(size int) {
 		log.Fatalf("cache size %v out of range", size)
 	}
 	si.queries.SetCapacity(int64(size))
-}
-
-func (si *SchemaInfo) getTableStats() map[string]int64 {
-	tstats := make(map[string]int64)
-	for k, v := range si.tables {
-		if v.CacheType != schema.CACHE_NONE {
-			hits, absent, misses, _ := v.Stats()
-			tstats[k+".Hits"] = hits
-			tstats[k+".Absent"] = absent
-			tstats[k+".Misses"] = misses
-		}
-	}
-	return tstats
-}
-
-func (si *SchemaInfo) getTableInvalidations() map[string]int64 {
-	tstats := make(map[string]int64)
-	for k, v := range si.tables {
-		if v.CacheType != schema.CACHE_NONE {
-			_, _, _, invalidations := v.Stats()
-			tstats[k] = invalidations
-		}
-	}
-	return tstats
 }
 
 func (si *SchemaInfo) getQueryCount() map[string]int64 {

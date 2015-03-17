@@ -6,6 +6,7 @@ package planbuilder
 
 import (
 	"fmt"
+
 	"github.com/ngaut/arena"
 	"github.com/wandoulabs/cm/sqlparser"
 	"github.com/wandoulabs/cm/vt/schema"
@@ -44,12 +45,6 @@ func analyzeSelect(sel *sqlparser.Select, getTable TableGetter, alloc arena.Aren
 	// Don't improve the plan if the select is locking the row
 	if sel.Lock != "" {
 		plan.Reason = REASON_LOCK
-		return plan, nil
-	}
-
-	// Further improvements possible only if table is row-cached
-	if tableInfo.CacheType == schema.CACHE_NONE || tableInfo.CacheType == schema.CACHE_W {
-		plan.Reason = REASON_NOCACHE
 		return plan, nil
 	}
 

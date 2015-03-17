@@ -36,7 +36,6 @@ type Table struct {
 	Columns   []TableColumn
 	Indexes   []*Index
 	PKColumns []int
-	CacheType int
 }
 
 func NewTable(name string) *Table {

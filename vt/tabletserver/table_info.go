@@ -20,19 +20,17 @@ import (
 type TableInfo struct {
 	Lock *lockring.LockRing
 	*schema.Table
-	Cache *RowCache
 	// stats updated by sqlquery.go
 	hits, absent, misses, invalidations sync2.AtomicInt64
 }
 
 func NewTableInfo(conn *mysql.MySqlConn, tableName string, tableType string, createTime sqltypes.Value,
-	comment string, cachePool *CachePool) (ti *TableInfo, err error) {
+	comment string) (ti *TableInfo, err error) {
 	ti, err = loadTableInfo(conn, tableName)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	ti.initRowCache(tableType, createTime, comment, cachePool)
 	ti.Lock = lockring.New(65536)
 
 	return ti, nil
@@ -186,40 +184,7 @@ func (ti *TableInfo) fetchIndexes(conn *mysql.MySqlConn) error {
 	return nil
 }
 
-func (ti *TableInfo) initRowCache(tableType string, createTime sqltypes.Value, comment string, cachePool *CachePool) {
-	if cachePool.IsClosed() {
-		return
-	}
-
-	if strings.Contains(comment, "vtocc_nocache") {
-		log.Infof("%s commented as vtocc_nocache. Will not be cached.", ti.Name)
-		return
-	}
-
-	if tableType == "VIEW" {
-		log.Infof("%s is a view. Will not be cached.", ti.Name)
-		return
-	}
-
-	if ti.PKColumns == nil {
-		log.Infof("Table %s has no primary key. Will not be cached.", ti.Name)
-		return
-	}
-	for _, col := range ti.PKColumns {
-		if ti.Columns[col].SqlType == mysql.MYSQL_TYPE_NO_CACHE {
-			log.Infof("Table %s pk has unsupported column types. Will not be cached.", ti.Name)
-			return
-		}
-	}
-
-	ti.CacheType = schema.CACHE_RW
-	ti.Cache = NewRowCache(ti, cachePool)
-}
-
 func (ti *TableInfo) StatsJSON() string {
-	if ti.Cache == nil {
-		return fmt.Sprintf("null")
-	}
 	h, a, m, i := ti.Stats()
 	return fmt.Sprintf("{\"Hits\": %v, \"Absent\": %v, \"Misses\": %v, \"Invalidations\": %v}", h, a, m, i)
 }
