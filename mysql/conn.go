@@ -440,6 +440,7 @@ func (c *MySqlConn) FieldList(table string, wildcard string) ([]*Field, error) {
 }
 
 func (c *MySqlConn) exec(query string) (*Result, error) {
+	// 将Command Str写入MySQL, 然后等待结果返回
 	if err := c.writeCommandStr(byte(COM_QUERY), query); err != nil {
 		return nil, err
 	}

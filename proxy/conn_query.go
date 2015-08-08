@@ -30,8 +30,12 @@ func applyFilter(columnNumbers []int, input mysql.RowValue) (output mysql.RowVal
 	return output
 }
 
+// 同一个struct的不同方法可以放在不同的文件中!!!
+// 如何处理Query呢?
+//
 func (c *Conn) handleQuery(sql string) (err error) {
 	sql = strings.TrimRight(sql, ";")
+	// 解析SQL
 	stmt, err := sqlparser.Parse(sql, c.alloc)
 	if err != nil {
 		log.Warning(c.connectionId, sql, err)
@@ -40,6 +44,7 @@ func (c *Conn) handleQuery(sql string) (err error) {
 
 	log.Debugf("connectionId: %d, statement %T , %s", c.connectionId, stmt, sql)
 
+	// 处理各种Query?
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
 		c.server.IncCounter("select")
@@ -101,9 +106,11 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 	} else {
 		log.Info("needBeginTx", c.status)
 		var ok bool
+		// 需要在事务中处理，则使用 txConns
 		co, ok = c.txConns[n.cfg.Id]
 
 		if !ok {
+			// 创建新的MasterConn
 			if co, err = n.getMasterConn(); err != nil {
 				return nil, errors.Trace(err)
 			}
@@ -130,7 +137,9 @@ func (c *Conn) getConn(n *Shard, isSelect bool) (co *mysql.SqlConn, err error) {
 }
 
 func (c *Conn) getShardConns(isSelect bool, stmt sqlparser.Statement, bindVars map[string]interface{}) ([]*mysql.SqlConn, error) {
+	// 根据stmt来获取相关的shard
 	shards, err := c.getShardList(stmt, bindVars)
+
 	if err != nil {
 		return nil, errors.Trace(err)
 	} else if shards == nil {
@@ -159,6 +168,7 @@ func (c *Conn) executeInShard(conns []*mysql.SqlConn, sql string, args []interfa
 
 	rs := make([]interface{}, len(conns))
 
+	// 在不同的Connection中执行Task
 	for i, co := range conns {
 		c.server.AsynExec(
 			&execTask{
@@ -476,8 +486,10 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 	c.server.IncCounter(plan.PlanId.String())
 
 	if ti != nil && len(plan.PKValues) > 0 && ti.CacheType != schema.CACHE_NONE {
+		// 从Cache中读取ROW
 		pks := pkValuesToStrings(ti.PKColumns, plan.PKValues)
 		items := ti.Cache.Get(pks, ti.Columns)
+
 		count := 0
 		for _, item := range items {
 			if item.Row != nil {
@@ -499,6 +511,7 @@ func (c *Conn) handleSelect(stmt *sqlparser.Select, sql string, args []interface
 		}
 	}
 
+	// 其他情况下的数据读取?
 	bindVars := makeBindVars(args)
 	conns, err := c.getShardConns(true, stmt, bindVars)
 	if err != nil {
@@ -558,6 +571,7 @@ func (c *Conn) handleExec(stmt sqlparser.Statement, sql string, args []interface
 	}
 
 	bindVars := makeBindVars(args)
+	// 获取Conn
 	conns, err := c.getShardConns(false, stmt, bindVars)
 	if err != nil {
 		return errors.Trace(err)

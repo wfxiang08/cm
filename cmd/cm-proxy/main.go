@@ -36,6 +36,7 @@ func main() {
 
 	log.CrashLog("./cm-proxy.dump")
 
+	// 创建ProxyServer
 	var svr *proxy.Server
 	svr, err = proxy.NewServer(*configFile)
 	if err != nil {

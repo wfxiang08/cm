@@ -22,8 +22,8 @@ var DEFAULT_CAPABILITY uint32 = mysql.CLIENT_LONG_PASSWORD | mysql.CLIENT_LONG_F
 
 //client <-> proxy
 type Conn struct {
-	pkg          *mysql.PacketIO
-	c            net.Conn
+	pkg          *mysql.PacketIO // MySQL的数据的读写
+	c            net.Conn        // interface本身就像相当于一个指针
 	server       IServer
 	capability   uint32
 	connectionId uint32
@@ -36,8 +36,10 @@ type Conn struct {
 	lastInsertId int64
 	affectedRows int64
 	alloc        arena.ArenaAllocator
-	txConns      map[string]*mysql.SqlConn
-	lastCmd      string
+
+	// 处于Transaction中的connection
+	txConns map[string]*mysql.SqlConn
+	lastCmd string
 }
 
 func (c *Conn) String() string {
@@ -62,6 +64,7 @@ func (c *Conn) Handshake() error {
 		return errors.Trace(err)
 	}
 
+	// 告诉Client OK
 	err := c.writeOkFlush(nil)
 	c.pkg.Sequence = 0
 
@@ -75,6 +78,7 @@ func (c *Conn) Close() error {
 	return nil
 }
 
+// 告诉客户端什么信息呢?
 func (c *Conn) writeInitialHandshake() error {
 	data := make([]byte, 4, 128)
 
@@ -83,6 +87,8 @@ func (c *Conn) writeInitialHandshake() error {
 	//server version[00]
 	data = append(data, mysql.ServerVersion...)
 	data = append(data, 0)
+
+	// connection id如何创建?
 	//connection id
 	data = append(data, byte(c.connectionId), byte(c.connectionId>>8), byte(c.connectionId>>16), byte(c.connectionId>>24))
 	//auth-plugin-data-part-1
@@ -98,8 +104,10 @@ func (c *Conn) writeInitialHandshake() error {
 	//below 13 byte may not be used
 	//capability flag upper 2 bytes, using default capability here
 	data = append(data, byte(DEFAULT_CAPABILITY>>16), byte(DEFAULT_CAPABILITY>>24))
+
 	//filter [0x15], for wireshark dump, value is 0x15
 	data = append(data, 0x15)
+
 	//reserved 10 [00]
 	data = append(data, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 	//auth-plugin-data-part-2
@@ -146,6 +154,8 @@ func (c *Conn) readHandshakeResponse() error {
 	//auth length and auth
 	authLen := int(data[pos])
 	pos++
+
+	// 直接和当前Server中配置的账号进行比对
 	auth := data[pos : pos+authLen]
 	checkAuth := mysql.CalcPassword(c.salt, []byte(c.server.CfgGetPwd()))
 	if !bytes.Equal(auth, checkAuth) && !c.server.SkipAuth() {
@@ -182,7 +192,10 @@ func (c *Conn) Run() {
 	}()
 
 	for {
+		// 1. 自己控制内存的管理(每次请求处理完毕之后reset)
 		c.alloc.Reset()
+
+		// 2. 读取Packet, 然后发送到后端
 		data, err := c.readPacket()
 		if err != nil {
 			if err.Error() != io.EOF.Error() {
@@ -191,6 +204,7 @@ func (c *Conn) Run() {
 			return
 		}
 
+		// 3. dispatch到后端
 		if err := c.dispatch(data); err != nil {
 			log.Errorf("dispatch error %s, %s", errors.ErrorStack(err), c)
 			if err != mysql.ErrBadConn { //todo: fix this
@@ -198,6 +212,7 @@ func (c *Conn) Run() {
 			}
 		}
 
+		// 4. Sequence 只在一个Packet内部才有意义
 		c.pkg.Sequence = 0
 	}
 }
@@ -209,8 +224,8 @@ func (c *Conn) dispatch(data []byte) error {
 	log.Debug(c.connectionId, cmd, hack.String(data))
 	c.lastCmd = hack.String(data)
 
+	// Token的作用?
 	token := c.server.GetToken()
-
 	c.server.GetRWlock().RLock()
 	defer func() {
 		c.server.GetRWlock().RUnlock()
@@ -219,16 +234,22 @@ func (c *Conn) dispatch(data []byte) error {
 
 	c.server.IncCounter(mysql.MYSQL_COMMAND(cmd).String())
 
+	// MYSQL_COMMAND (byte)
 	switch mysql.MYSQL_COMMAND(cmd) {
+
 	case mysql.COM_QUIT:
+		// 退出: 直接关闭Proxy和Client之间的Conn
 		c.Close()
 		return nil
 	case mysql.COM_QUERY:
+		// 查询
 		return c.handleQuery(hack.String(data))
 	case mysql.COM_PING:
+		// PING: Proxy <---> Client
 		return c.writeOkFlush(nil)
 	case mysql.COM_INIT_DB:
 		log.Debug(cmd, hack.String(data))
+		// 使用哪个DB?
 		if err := c.useDB(hack.String(data)); err != nil {
 			return errors.Trace(err)
 		}
@@ -237,7 +258,8 @@ func (c *Conn) dispatch(data []byte) error {
 	case mysql.COM_FIELD_LIST:
 		return c.handleFieldList(data)
 	case mysql.COM_STMT_PREPARE:
-		// not support server side prepare yet
+	//  处理各种Commnad, 其他的例如: 事务呢?
+	// not support server side prepare yet
 	case mysql.COM_STMT_EXECUTE:
 		log.Fatal("not support", data)
 	case mysql.COM_STMT_CLOSE:

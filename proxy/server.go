@@ -128,16 +128,21 @@ func (s *Server) parseShard(cfg config.ShardConfig) (*Shard, error) {
 
 func (s *Server) newConn(co net.Conn) *Conn {
 	log.Info("newConn", co.RemoteAddr().String())
+
+	// 如何将 net.Conn 转换成为 proxy的Conn呢? co是一个指针
 	c := &Conn{
-		c:            co,
-		pkg:          mysql.NewPacketIO(co),
-		server:       s,
+		c:      co,
+		pkg:    mysql.NewPacketIO(co),
+		server: s,
+
 		connectionId: atomic.AddUint32(&baseConnId, 1),
-		status:       mysql.SERVER_STATUS_AUTOCOMMIT,
-		collation:    mysql.DEFAULT_COLLATION_ID,
-		charset:      mysql.DEFAULT_CHARSET,
-		alloc:        arena.NewArenaAllocator(32 * 1024),
-		txConns:      make(map[string]*mysql.SqlConn),
+
+		// 参数等选取
+		status:    mysql.SERVER_STATUS_AUTOCOMMIT,
+		collation: mysql.DEFAULT_COLLATION_ID,
+		charset:   mysql.DEFAULT_CHARSET,
+		alloc:     arena.NewArenaAllocator(32 * 1024),
+		txConns:   make(map[string]*mysql.SqlConn),
 	}
 	c.salt, _ = mysql.RandomBuf(20)
 
@@ -218,6 +223,7 @@ func makeServer(configFile string) *Server {
 	}
 
 	f := func(wg *sync.WaitGroup, rs []interface{}, i int, co *mysql.SqlConn, sql string, args []interface{}) {
+		// 执行MySQL命令
 		r, err := co.Execute(sql, args...)
 		if err != nil {
 			log.Warning(err)
@@ -310,6 +316,8 @@ func (s *Server) HandleReload(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, "ok")
 }
 
+// Server模式
+// Accept一个Conn, 然后就交给Go routine
 func (s *Server) Run() error {
 	for {
 		conn, err := s.listener.Accept()
@@ -337,7 +345,10 @@ func (s *Server) Close() {
 }
 
 func (s *Server) onConn(c net.Conn) {
+	// 1. 创建一个和Client的连接
 	conn := s.newConn(c)
+
+	// 2. 处理HandShake
 	if err := conn.Handshake(); err != nil {
 		log.Errorf("handshake error %s", errors.ErrorStack(err))
 		c.Close()
@@ -346,15 +357,18 @@ func (s *Server) onConn(c net.Conn) {
 
 	const key = "connections"
 
+	// 计数器
 	s.IncCounter(key)
 	defer func() {
 		s.DecCounter(key)
 		log.Infof("close %s", conn)
 	}()
 
+	// 登记新的Conn
 	s.rwlock.Lock()
 	s.clients[conn.connectionId] = conn
 	s.rwlock.Unlock()
 
+	// conn对外提供服务
 	conn.Run()
 }
